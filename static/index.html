@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robo-Control Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <span class="logo-icon">🤖</span>
+      <h1>ROBO-CONTROL DASHBOARD</h1>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+      <div class="status-badge" style="cursor: pointer; background: rgba(0, 240, 255, 0.1); border-color: var(--cyan-accent);" id="btn-toggle-pet-mode" title="Launch fullscreen pet controller">
+        <span>🐾 LAUNCH PET FACE</span>
+      </div>
+      <div class="status-badge">
+        <div class="status-dot" id="connection-dot"></div>
+        <span id="connection-text">CONNECTING...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <!-- Left Panel: Visual Programming Workspace -->
+    <section class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🧩 WORKFLOW CREATOR</div>
+        <div class="program-controls">
+          <button class="btn btn-run" id="btn-run-program">▶ RUN</button>
+          <button class="btn btn-stop" id="btn-stop-program">⏹ STOP</button>
+          <button class="btn btn-clear" id="btn-clear-workspace">🗑 CLEAR</button>
+        </div>
+      </div>
+      
+      <div class="programming-layout">
+        <!-- Tool Box -->
+        <aside class="toolbox">
+          <div class="toolbox-title">BLOCKS</div>
+          
+          <div class="block-template block-motor-a" data-type="motor-a">
+            <span>Move Motor A</span>
+            <span class="add-icon">+</span>
+          </div>
+          
+          <div class="block-template block-motor-b" data-type="motor-b">
+            <span>Move Motor B</span>
+            <span class="add-icon">+</span>
+          </div>
+          
+          <div class="block-template block-wait" data-type="wait">
+            <span>Wait Time</span>
+            <span class="add-icon">+</span>
+          </div>
+          
+          <div class="block-template block-loop" data-type="loop">
+            <span>Repeat Loop</span>
+            <span class="add-icon">+</span>
+          </div>
+          
+          <div class="block-template block-if" data-type="if-vision">
+            <span>If Vision tracks</span>
+            <span class="add-icon">+</span>
+          </div>
+        </aside>
+        
+        <!-- Workspace for blocks -->
+        <div class="workspace" id="workspace-canvas">
+          <div class="workspace-empty-msg" id="empty-message">
+            <span>🧩</span>
+            Click blocks on the left to start building your robot program!
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Panel: Manual Controls & Status Monitors -->
+    <section class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🕹️ MANUAL CONTROL & OVERRIDE</div>
+      </div>
+      
+      <div class="manual-panel">
+        <!-- Vision Sensor Card -->
+        <div class="control-card">
+          <div class="card-title">VISION SENSOR (COLOR TRACKER)</div>
+          <div class="vision-feed-container">
+            <video id="vision-video" autoplay playsinline muted></video>
+            <canvas id="vision-canvas"></canvas>
+            <div class="vision-placeholder" id="vision-placeholder">
+              <span>📷</span>
+              Camera Off. Click "Start Feed" below.
+            </div>
+          </div>
+          <div class="vision-controls">
+            <button class="btn btn-run" id="btn-start-vision" style="flex: 1;">📷 START FEED</button>
+            <button class="btn btn-stop" id="btn-stop-vision">⏹ STOP</button>
+            <div class="color-indicator-group">
+              <span class="color-label">Target:</span>
+              <div class="color-preview" id="color-preview"></div>
+            </div>
+          </div>
+          <div class="vision-help">Click the active video to pick the tracked color. It detects if target is in the <b>Left, Center, or Right</b> third of the view.</div>
+        </div>
+
+        <!-- Neural Network Learning Card -->
+        <div class="control-card">
+          <div class="card-title">🧠 NEURAL NETWORK LEARNING MODE</div>
+          <div class="learning-controls">
+            <button class="btn btn-run" id="btn-learn-start" style="flex: 1;">🎓 START TRAINING</button>
+            <button class="btn btn-clear" id="btn-learn-test" disabled style="flex: 1;">🤖 START AUTOPILOT</button>
+          </div>
+          <div class="learning-console" id="learning-console">
+            Console: Ready to learn robot dynamics.
+          </div>
+          <div class="network-display" id="network-display">
+            Weights: Not trained yet.
+          </div>
+        </div>
+
+        <!-- Status Monitors -->
+        <div class="control-card">
+          <div class="card-title">STATUS MONITORS</div>
+          <div class="status-grid">
+            <div class="status-card">
+              <div class="status-card-label">MOTOR A POSITION</div>
+              <div class="status-card-val" id="status-motor-a-pos">0</div>
+            </div>
+            <div class="status-card">
+              <div class="status-card-label">MOTOR B POSITION</div>
+              <div class="status-card-val" id="status-motor-b-pos">0</div>
+            </div>
+            <div class="status-card">
+              <div class="status-card-label">ROBOT MODE</div>
+              <div class="status-card-val" id="status-robot-mode">IDLE</div>
+            </div>
+            <div class="status-card">
+              <div class="status-card-label">SYSTEM HEALTH</div>
+              <div class="status-card-val active">ACTIVE</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dual Joystick Manual Control -->
+        <div class="control-card">
+          <div class="card-title">MANUAL DRIVE OVERRIDE (DUAL JOYSTICKS)</div>
+          <div class="joysticks-container">
+            <!-- Left Motor Joystick -->
+            <div class="joystick-wrapper">
+              <div class="joystick-label">LEFT MOTOR (A)</div>
+              <div class="joystick-track-vertical" id="joy-a-track">
+                <div class="joystick-handle joystick-handle-a" id="joy-a-handle"></div>
+              </div>
+              <div class="joystick-value" id="joy-a-val">STOP</div>
+            </div>
+            
+            <!-- Right Motor Joystick -->
+            <div class="joystick-wrapper">
+              <div class="joystick-label">RIGHT MOTOR (B)</div>
+              <div class="joystick-track-vertical" id="joy-b-track">
+                <div class="joystick-handle joystick-handle-b" id="joy-b-handle"></div>
+              </div>
+              <div class="joystick-value" id="joy-b-val">STOP</div>
+            </div>
+          </div>
+          <div class="joystick-help">Drag the joysticks UP to drive forward (clockwise) or DOWN to drive backward. Speed is controlled by how far you drag. Release to stop.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Fullscreen Animated Robot Pet Face -->
+  <div id="pet-face-overlay" class="hidden">
+    <div class="pet-split-container">
+      <!-- Left side: Robot's remote camera view -->
+      <div class="pet-vision-panel" id="pet-vision-panel">
+        <div class="pet-panel-title">🐾 ROBOT'S REMOTE EYES</div>
+        <!-- Video & Canvas are appended here during Pet Mode -->
+      </div>
+      
+      <!-- Right side: Pet's Face, Expressions, and log -->
+      <div class="pet-face-panel">
+        <div class="pet-face-container">
+          <div class="eye-container">
+            <div class="eye" id="eye-left">
+              <div class="pupil"></div>
+            </div>
+            <div class="eye" id="eye-right">
+              <div class="pupil"></div>
+            </div>
+          </div>
+          <div class="pet-status-text" id="pet-status-text">ZZZ... SLEEPING (CLAP TO WAKE)</div>
+          <div class="pet-log" id="pet-log">Console: Ready.</div>
+        </div>
+      </div>
+    </div>
+    <div class="exit-pet-help">Click feed to place virtual food 🍬 | Click Exit top-right to close</div>
+    <button class="btn btn-stop btn-exit-pet" id="btn-exit-pet">❌ EXIT PET MODE</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
