@@ -39,6 +39,7 @@ btnModeBlocks.addEventListener('click', () => {
   rawCodeEditor.style.display = 'none';
   toolboxAside.style.display = 'block';
   
+  localStorage.setItem('editor_mode', 'blocks');
   updateCodePreview();
 });
 
@@ -54,13 +55,20 @@ btnModeCode.addEventListener('click', () => {
   rawCodeEditor.style.display = 'flex';
   toolboxAside.style.display = 'none';
   
+  localStorage.setItem('editor_mode', 'code');
+  
   // Set initial textarea code to the compiled python code from blocks
   const recipe = compileWorkspace(mainWorkspace);
   const pythonCode = generateMicroPython(recipe);
   rawCodeTextarea.value = pythonCode || "# Write custom MicroPython code here...\nimport uasyncio as asyncio\n\n";
+  localStorage.setItem('raw_python_code', rawCodeTextarea.value);
 });
 
-// Update the code preview on changes
+rawCodeTextarea.addEventListener('input', () => {
+  localStorage.setItem('raw_python_code', rawCodeTextarea.value);
+});
+
+// Update the code preview and save settings automatically
 function updateCodePreview() {
   const recipe = compileWorkspace(mainWorkspace);
   const pythonCode = generateMicroPython(recipe);
@@ -68,11 +76,109 @@ function updateCodePreview() {
   if (previewText) {
     previewText.innerText = pythonCode || "# Drag blocks here to generate MicroPython code...";
   }
+  
+  // Auto-save blocks structure
+  localStorage.setItem('workspace_blocks', JSON.stringify(serializeWorkspace(mainWorkspace)));
 }
 
 // Watch inputs and selects inside the block workspace to regenerate code on change
 mainWorkspace.addEventListener('input', updateCodePreview);
 mainWorkspace.addEventListener('change', updateCodePreview);
+
+// Serialize block workspace structure to JSON
+function serializeWorkspace(container) {
+  const serialized = [];
+  for (let child of container.children) {
+    if (child.classList.contains('program-block') || child.classList.contains('loop-container')) {
+      const blockType = child.dataset.blockType;
+      const data = { type: blockType };
+      
+      // Extract input/select values in header
+      const headerLeft = child.querySelector('.loop-header-left, .block-content');
+      if (headerLeft) {
+        data.values = {};
+        headerLeft.querySelectorAll('input, select').forEach(el => {
+          data.values[el.className] = el.value;
+        });
+      }
+      
+      // If it has a nested body, serialize it recursively
+      const body = child.querySelector('.loop-body');
+      if (body) {
+        data.body = serializeWorkspace(body);
+      }
+      
+      serialized.push(data);
+    }
+  }
+  return serialized;
+}
+
+// Deserialize block workspace structure from JSON
+function deserializeWorkspace(serialized, container) {
+  serialized.forEach(data => {
+    const blockEl = createBlockElement(data.type);
+    if (!blockEl) return;
+    
+    // Restore input/select values
+    const headerLeft = blockEl.querySelector('.loop-header-left, .block-content');
+    if (headerLeft && data.values) {
+      Object.keys(data.values).forEach(className => {
+        const el = headerLeft.querySelector(`.${className}`);
+        if (el) {
+          el.value = data.values[className];
+        }
+      });
+    }
+    
+    // Restore nested body recursively
+    const body = blockEl.querySelector('.loop-body');
+    if (body && data.body) {
+      deserializeWorkspace(data.body, body);
+    }
+    
+    container.appendChild(blockEl);
+  });
+}
+
+// Load workspace settings on startup
+function loadSavedWorkspace() {
+  // 1. Load editor mode
+  const savedMode = localStorage.getItem('editor_mode');
+  if (savedMode === 'code') {
+    currentEditorMode = 'code';
+    btnModeCode.classList.add('active');
+    btnModeBlocks.classList.remove('active');
+    workspaceCanvas.style.display = 'none';
+    codePreviewPane.style.display = 'none';
+    rawCodeEditor.style.display = 'flex';
+    toolboxAside.style.display = 'none';
+  }
+  
+  // 2. Load blocks workspace
+  const savedBlocksJson = localStorage.getItem('workspace_blocks');
+  if (savedBlocksJson) {
+    try {
+      const savedBlocks = JSON.parse(savedBlocksJson);
+      deserializeWorkspace(savedBlocks, mainWorkspace);
+      updateEmptyMessages();
+    } catch (err) {
+      console.error("Failed to restore blocks workspace:", err);
+    }
+  }
+  
+  // 3. Load custom python code
+  const savedPythonCode = localStorage.getItem('raw_python_code');
+  if (savedPythonCode !== null) {
+    rawCodeTextarea.value = savedPythonCode;
+  } else {
+    // Generate initial preview if no code saved
+    updateCodePreview();
+  }
+}
+
+// Trigger load on startup
+loadSavedWorkspace();
 
 // Generate MicroPython from block recipes
 function generateMicroPython(blocks, indent = "") {
@@ -1809,7 +1915,13 @@ const carConsole = document.getElementById('car-console');
 let carVisionActive = false;
 let carVisionStream = null;
 let carBgFrameData = null;
-let carGrid = Array(15).fill(null).map(() => Array(20).fill(0)); // 15 rows x 20 cols. 0=unexplored, 1=safe(green), 2=blocked(red)
+let carGrid = Array(15).fill(null).map(() => Array(20).fill(0));
+try {
+  const savedCarGrid = localStorage.getItem('car_map_grid');
+  if (savedCarGrid) {
+    carGrid = JSON.parse(savedCarGrid);
+  }
+} catch (e) {}
 let isMappingActive = false;
 let isCarAutopilotActive = false;
 let carCentroid = { x: 160, y: 120, detected: false };
@@ -1911,6 +2023,7 @@ btnCarCalibrateBg.addEventListener('click', () => {
 
 btnCarClearMap.addEventListener('click', () => {
   carGrid = Array(15).fill(null).map(() => Array(20).fill(0));
+  localStorage.setItem('car_map_grid', JSON.stringify(carGrid));
   logCarConsole("Obstacle map cleared.");
 });
 
@@ -2001,11 +2114,15 @@ function processCarFrame() {
         const gridRow = Math.floor(carCentroid.y / cellH);
         
         if (gridCol >= 0 && gridCol < 20 && gridRow >= 0 && gridRow < 15) {
+          const oldVal = carGrid[gridRow][gridCol];
           // If motors are wiggling but pixel frame diff is very low, it means we are stuck!
           if (carFrameDiff < 0.8) {
             carGrid[gridRow][gridCol] = 2; // Stuck / Red
           } else {
             carGrid[gridRow][gridCol] = 1; // Safe / Green
+          }
+          if (oldVal !== carGrid[gridRow][gridCol]) {
+            localStorage.setItem('car_map_grid', JSON.stringify(carGrid));
           }
         }
       }
