@@ -29,6 +29,7 @@
     <button class="tab-btn active" data-target="view-coding">🧩 CODING MODE</button>
     <button class="tab-btn" data-target="view-manual">🕹️ MANUAL DRIVE</button>
     <button class="tab-btn" data-target="view-ai">🧠 AI EXPLORER</button>
+    <button class="tab-btn" data-target="view-car">🚗 CAR MAPPER</button>
   </div>
 
   <main class="app-container">
@@ -212,6 +213,78 @@
             </div>
             <div class="network-display" id="network-display">
               Weights: Not trained yet.
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 4. CAR MAPPER VIEW -->
+    <div id="view-car" class="tab-content">
+      <div class="ai-layout-grid">
+        <!-- Car Designs & Info Panel -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🚗 CAR DESIGNS & INSTRUCTIONS</div>
+          </div>
+          <div class="panel-body-padding" style="max-height: 520px; overflow-y: auto;">
+            <p style="margin-top: 0; font-size: 0.85rem; line-height: 1.4;">
+              Build your motor car in one of two ways. Plug Motor A and Motor B into the driver boards as standard.
+            </p>
+            
+            <div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 1rem;">
+              <h4 style="margin: 0 0 0.5rem 0; color: var(--cyan-accent); font-size: 0.85rem;">Option A: Differential Drive (Tank Style)</h4>
+              <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+                • <b>Build:</b> Left wheel connected directly to <b>Motor A</b>, right wheel connected to <b>Motor B</b>.<br>
+                • <b>Steering:</b> Spin motors in opposite directions to spin on a dime, or spin together to drive straight.
+              </p>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 1rem;">
+              <h4 style="margin: 0 0 0.5rem 0; color: var(--purple-accent); font-size: 0.85rem;">Option B: Steering & Traction (Ackermann Style)</h4>
+              <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+                • <b>Build:</b> <b>Motor A</b> connects to the front steering axle/rack. <b>Motor B</b> drives the rear traction wheels.<br>
+                • <b>Steering:</b> Motor A wiggles to set the steering angle. Motor B moves forward/backward.
+              </p>
+            </div>
+
+            <h4 style="margin: 1rem 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Mapping & Autopilot</h4>
+            <p style="margin: 0 0 1rem 0; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+              1. Mount the phone watching the floor/arena remotely.<br>
+              2. Click <b>START FEED</b>, make sure your car is in the frame, and click <b>START MAPPING</b>.<br>
+              3. The car will wander and map: <b>Green</b> cells are safe to drive, <b>Red</b> cells are obstacles (where it tried to drive but couldn't move!).<br>
+              4. Toggle <b>AUTOPILOT</b> to let the car navigate autonomously using the live camera grid to avoid obstacles (including hands/feet!).
+            </p>
+
+            <div class="learning-controls" style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-run" id="btn-car-map-start" style="flex: 1;">🗺️ START MAPPING</button>
+              <button class="btn btn-clear" id="btn-car-auto" style="flex: 1;" disabled>🤖 AUTOPILOT: OFF</button>
+            </div>
+            <div class="learning-console" id="car-console" style="margin-top: 0.5rem; height: 100px; font-size: 0.75rem;">
+              Car Mapper Console: Ready.
+            </div>
+          </div>
+        </section>
+
+        <!-- Video & Map Grid Overlay Panel -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🎥 AUTONOMOUS ARENA & OBSTACLE MAP</div>
+          </div>
+          <div class="panel-body-padding">
+            <div class="vision-feed-container">
+              <video id="car-video" autoplay playsinline muted style="display: none;"></video>
+              <canvas id="car-canvas" style="display: none;"></canvas>
+              <div class="vision-placeholder" id="car-placeholder">
+                <span>🚗</span>
+                Camera Off. Click "Start Feed" below.
+              </div>
+            </div>
+            <div class="vision-controls">
+              <button class="btn btn-run" id="btn-car-start-vision" style="flex: 1;">📷 START FEED</button>
+              <button class="btn btn-clear" id="btn-car-calibrate-bg" style="flex: 1;" disabled>📸 RESET BG</button>
+              <button class="btn btn-clear" id="btn-car-clear-map" style="flex: 1;">🧹 CLEAR MAP</button>
+              <button class="btn btn-stop" id="btn-car-stop-vision">⏹ STOP</button>
             </div>
           </div>
         </section>

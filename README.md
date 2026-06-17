@@ -47,6 +47,19 @@ This is where the magic happens! Your creation doesn't need to know what it is. 
 
 ---
 
+### 🚗 4. Car Mapper Mode (Autonomous Mapping & Avoidance)
+Turn your stepper motor creation into an autonomous self-driving car! This mode explains how to build a car (either dual-motor **Differential Drive** or single-motor **Ackermann Steering & Traction**) and maps the room using the camera!
+
+1.  **Car Selection & Design:** Follow the on-screen templates to assemble wheels and steering axles.
+2.  **Autonomous Arena Mapping:** Place the car in the room and turn on the camera. As the car wanders around, it dynamically creates a 2D map overlay on top of the live video feed.
+    *   **Green Cells:** Safe paths where the car successfully drove.
+    *   **Red Cells:** Obstacles (where the car wiggled its wheels but was physically blocked from moving forward).
+3.  **Collision Avoidance Autopilot:** Turn on Autopilot, and the car will navigate itself around the room avoiding the mapped Red obstacles. Waving a hand or foot in front of it is instantly detected as a moving obstacle, and the car will steer away in real time!
+
+![Car Mapper in Action](screenshots/view-car.jpg)
+
+---
+
 ## 🔌 How to Wire Your Creation
 
 Here is a nice, color-coded map showing how all the parts plug together. 

@@ -27,6 +27,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     // Show corresponding view content
     const targetId = btn.dataset.target;
     document.getElementById(targetId).classList.add('active');
+    
+    // Auto-stop video feeds when switching to a different view
+    if (targetId !== 'view-ai' && typeof visionActive !== 'undefined' && visionActive) {
+      stopVisionFeed();
+    }
+    if (targetId !== 'view-car' && typeof carVisionActive !== 'undefined' && carVisionActive) {
+      const stopBtn = document.getElementById('btn-car-stop-vision');
+      if (stopBtn) stopBtn.click();
+    }
   });
 });
 
@@ -1646,3 +1655,394 @@ async function updateStatus() {
 initDynamicUI(configuredMotors);
 setInterval(updateStatus, 1000);
 updateStatus(); // Initial call
+
+
+// --- 🚗 CAR MAPPER & AUTONOMOUS NAVIGATOR ---
+
+const carVideo = document.getElementById('car-video');
+const carCanvas = document.getElementById('car-canvas');
+const carPlaceholder = document.getElementById('car-placeholder');
+const btnCarStartVision = document.getElementById('btn-car-start-vision');
+const btnCarCalibrateBg = document.getElementById('btn-car-calibrate-bg');
+const btnCarClearMap = document.getElementById('btn-car-clear-map');
+const btnCarStopVision = document.getElementById('btn-car-stop-vision');
+
+const btnCarMapStart = document.getElementById('btn-car-map-start');
+const btnCarAuto = document.getElementById('btn-car-auto');
+const carConsole = document.getElementById('car-console');
+
+let carVisionActive = false;
+let carVisionStream = null;
+let carBgFrameData = null;
+let carGrid = Array(15).fill(null).map(() => Array(20).fill(0)); // 15 rows x 20 cols. 0=unexplored, 1=safe(green), 2=blocked(red)
+let isMappingActive = false;
+let isCarAutopilotActive = false;
+let carCentroid = { x: 160, y: 120, detected: false };
+let carLastFrameData = null;
+let carFrameDiff = 0;
+let carMotionThreshold = 40;
+let carDriveState = 'STILL';
+
+const carCtx = carCanvas.getContext('2d');
+carCanvas.width = 320;
+carCanvas.height = 240;
+
+function logCarConsole(msg) {
+  carConsole.innerText += `\n> ${msg}`;
+  carConsole.scrollTop = carConsole.scrollHeight;
+}
+
+// Copy current camera frame into background reference
+function captureCarBackground() {
+  if (!carVisionActive) return;
+  try {
+    carCtx.drawImage(carVideo, 0, 0, carCanvas.width, carCanvas.height);
+    const imgData = carCtx.getImageData(0, 0, carCanvas.width, carCanvas.height);
+    if (!carBgFrameData || carBgFrameData.length !== imgData.data.length) {
+      carBgFrameData = new Uint8ClampedArray(imgData.data.length);
+    }
+    carBgFrameData.set(imgData.data);
+    console.log("Car background captured successfully!");
+  } catch (err) {
+    console.error("Failed to capture car background:", err);
+  }
+}
+
+btnCarStartVision.addEventListener('click', async () => {
+  if (carVisionActive) return;
+  try {
+    carVisionStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: 320, height: 240 }
+    });
+    carVideo.srcObject = carVisionStream;
+    carVideo.style.display = 'block';
+    carCanvas.style.display = 'block';
+    carPlaceholder.style.display = 'none';
+    btnCarCalibrateBg.disabled = false;
+    
+    carVisionActive = true;
+    requestAnimationFrame(processCarFrame);
+    
+    setTimeout(() => {
+      captureCarBackground();
+      logCarConsole("Initial background captured.");
+    }, 1200);
+  } catch (err) {
+    alert("Could not access camera: " + err.message);
+  }
+});
+
+btnCarStopVision.addEventListener('click', () => {
+  if (!carVisionActive) return;
+  carVisionActive = false;
+  isMappingActive = false;
+  isCarAutopilotActive = false;
+  carCentroid.detected = false;
+  carLastFrameData = null;
+  carBgFrameData = null;
+  btnCarCalibrateBg.disabled = true;
+  btnCarMapStart.innerText = "🗺️ START MAPPING";
+  btnCarMapStart.classList.add('btn-run');
+  btnCarMapStart.classList.remove('btn-stop');
+  btnCarAuto.disabled = true;
+  btnCarAuto.innerText = "🤖 AUTOPILOT: OFF";
+  
+  if (carMappingTimer) {
+    clearInterval(carMappingTimer);
+    carMappingTimer = null;
+  }
+  if (carAutoTimer) {
+    clearInterval(carAutoTimer);
+    carAutoTimer = null;
+  }
+  
+  if (carVisionStream) {
+    carVisionStream.getTracks().forEach(track => track.stop());
+    carVisionStream = null;
+  }
+  carVideo.srcObject = null;
+  carVideo.style.display = 'none';
+  carCanvas.style.display = 'none';
+  carPlaceholder.style.display = 'flex';
+  logCarConsole("Camera feed stopped.");
+  stopAll();
+  carDriveState = 'STILL';
+});
+
+btnCarCalibrateBg.addEventListener('click', () => {
+  captureCarBackground();
+  logCarConsole("Background recalibrated.");
+});
+
+btnCarClearMap.addEventListener('click', () => {
+  carGrid = Array(15).fill(null).map(() => Array(20).fill(0));
+  logCarConsole("Obstacle map cleared.");
+});
+
+function processCarFrame() {
+  if (!carVisionActive) return;
+  
+  try {
+    // 1. Draw live feed
+    carCtx.drawImage(carVideo, 0, 0, carCanvas.width, carCanvas.height);
+    const imgData = carCtx.getImageData(0, 0, carCanvas.width, carCanvas.height);
+    const data = imgData.data;
+    
+    // Calculate motion difference
+    if (carLastFrameData) {
+      let diffSum = 0;
+      let pixelStep = 8;
+      let sampleCount = 0;
+      for (let i = 0; i < data.length; i += 4 * pixelStep) {
+        diffSum += Math.abs(data[i] - carLastFrameData[i]) +
+                   Math.abs(data[i+1] - carLastFrameData[i+1]) +
+                   Math.abs(data[i+2] - carLastFrameData[i+2]);
+        sampleCount++;
+      }
+      carFrameDiff = diffSum / sampleCount;
+    }
+    
+    if (!carLastFrameData || carLastFrameData.length !== data.length) {
+      carLastFrameData = new Uint8ClampedArray(data.length);
+    }
+    carLastFrameData.set(data);
+    
+    // 2. Track car centroid using background differencing
+    let sumX = 0, sumY = 0, matchCount = 0;
+    if (carBgFrameData) {
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i+1], b = data[i+2];
+        const bg_r = carBgFrameData[i], bg_g = carBgFrameData[i+1], bg_b = carBgFrameData[i+2];
+        
+        const dist = Math.sqrt((r-bg_r)**2 + (g-bg_g)**2 + (b-bg_b)**2);
+        if (dist > carMotionThreshold) {
+          const idx = i / 4;
+          const x = idx % carCanvas.width;
+          const y = Math.floor(idx / carCanvas.width);
+          sumX += x;
+          sumY += y;
+          matchCount++;
+        }
+      }
+    }
+    
+    // Draw 2D grid overlay
+    const cellW = 320 / 20; // 16 pixels
+    const cellH = 240 / 15; // 16 pixels
+    
+    // We draw grid lines faintly
+    carCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    carCtx.lineWidth = 1;
+    for (let c = 0; c <= 20; c++) {
+      carCtx.beginPath();
+      carCtx.moveTo(c * cellW, 0); carCtx.lineTo(c * cellW, 240);
+      carCtx.stroke();
+    }
+    for (let r = 0; r <= 15; r++) {
+      carCtx.beginPath();
+      carCtx.moveTo(0, r * cellH); carCtx.lineTo(320, r * cellH);
+      carCtx.stroke();
+    }
+    
+    // Resolve car centroid position
+    if (matchCount > 150) {
+      carCentroid.x = sumX / matchCount;
+      carCentroid.y = sumY / matchCount;
+      carCentroid.detected = true;
+      
+      // Highlight car centroid
+      carCtx.strokeStyle = 'var(--purple-accent)';
+      carCtx.lineWidth = 2;
+      carCtx.beginPath();
+      carCtx.arc(carCentroid.x, carCentroid.y, 12, 0, 2*Math.PI);
+      carCtx.stroke();
+      carCtx.fillStyle = 'var(--purple-accent)';
+      carCtx.font = 'bold 9px monospace';
+      carCtx.fillText(`CAR (${Math.floor(carCentroid.x)}, ${Math.floor(carCentroid.y)})`, carCentroid.x + 15, carCentroid.y - 5);
+      
+      // Update cell mapping if mapping is active and car is driving
+      if (isMappingActive && carDriveState !== 'STILL') {
+        const gridCol = Math.floor(carCentroid.x / cellW);
+        const gridRow = Math.floor(carCentroid.y / cellH);
+        
+        if (gridCol >= 0 && gridCol < 20 && gridRow >= 0 && gridRow < 15) {
+          // If motors are wiggling but pixel frame diff is very low, it means we are stuck!
+          if (carFrameDiff < 0.8) {
+            carGrid[gridRow][gridCol] = 2; // Stuck / Red
+          } else {
+            carGrid[gridRow][gridCol] = 1; // Safe / Green
+          }
+        }
+      }
+    } else {
+      carCentroid.detected = false;
+    }
+    
+    // Draw cells
+    for (let r = 0; r < 15; r++) {
+      for (let c = 0; c < 20; c++) {
+        const state = carGrid[r][c];
+        if (state === 1) { // Safe
+          carCtx.fillStyle = 'rgba(15, 189, 140, 0.25)'; // Light Green
+          carCtx.fillRect(c * cellW + 1, r * cellH + 1, cellW - 2, cellH - 2);
+        } else if (state === 2) { // Blocked
+          carCtx.fillStyle = 'rgba(255, 0, 85, 0.4)'; // Transparent Red
+          carCtx.fillRect(c * cellW + 1, r * cellH + 1, cellW - 2, cellH - 2);
+        }
+      }
+    }
+    
+  } catch (err) {
+    console.error("Car frame process error:", err);
+  }
+  
+  requestAnimationFrame(processCarFrame);
+}
+
+// Wander mapping timer & controller
+let carMappingTimer = null;
+btnCarMapStart.addEventListener('click', () => {
+  if (!carVisionActive) {
+    alert("Camera feed must be active first!");
+    return;
+  }
+  
+  if (isMappingActive) {
+    // Stop mapping
+    isMappingActive = false;
+    btnCarMapStart.innerText = "🗺️ START MAPPING";
+    btnCarMapStart.classList.add('btn-run');
+    btnCarMapStart.classList.remove('btn-stop');
+    btnCarAuto.disabled = false;
+    if (carMappingTimer) {
+      clearInterval(carMappingTimer);
+      carMappingTimer = null;
+    }
+    logCarConsole("Mapping paused.");
+    stopAll();
+    carDriveState = 'STILL';
+  } else {
+    // Start mapping
+    isMappingActive = true;
+    btnCarMapStart.innerText = "⏹ STOP MAPPING";
+    btnCarMapStart.classList.remove('btn-run');
+    btnCarMapStart.classList.add('btn-stop');
+    btnCarAuto.disabled = true;
+    logCarConsole("Mapping started! Wander routine activated...");
+    
+    // Background wander loop: drives forward, checks if stuck, recovers
+    carMappingTimer = setInterval(runWanderStep, 1800);
+    runWanderStep();
+  }
+});
+
+async function runWanderStep() {
+  if (!isMappingActive) return;
+  
+  // If stuck, reverse and turn
+  if (carCentroid.detected && carFrameDiff < 0.8 && carDriveState !== 'STILL') {
+    logCarConsole("Stuck detected! Reversing...");
+    carDriveState = 'STILL';
+    // Back up both motors (Motor A and B backward)
+    await triggerCalibMove('A', -400);
+    await triggerCalibMove('B', -400);
+    await delay(1600);
+    
+    logCarConsole("Turning away...");
+    // Turn (Motor A forward, Motor B backward)
+    await triggerCalibMove('A', 350);
+    await triggerCalibMove('B', -350);
+    await delay(1200);
+    
+    carDriveState = 'FORWARD';
+    logCarConsole("Driving forward...");
+    await triggerCalibMove('A', 400);
+    await triggerCalibMove('B', 400);
+  } else {
+    carDriveState = 'FORWARD';
+    logCarConsole("Exploring forward...");
+    await triggerCalibMove('A', 400);
+    await triggerCalibMove('B', 400);
+  }
+}
+
+// Self-driving autopilot logic
+let carAutoTimer = null;
+btnCarAuto.addEventListener('click', () => {
+  if (isCarAutopilotActive) {
+    isCarAutopilotActive = false;
+    btnCarAuto.innerText = "🤖 AUTOPILOT: OFF";
+    btnCarAuto.classList.remove('btn-stop');
+    btnCarAuto.classList.add('btn-clear');
+    if (carAutoTimer) {
+      clearInterval(carAutoTimer);
+      carAutoTimer = null;
+    }
+    logCarConsole("Autopilot stopped.");
+    stopAll();
+    carDriveState = 'STILL';
+  } else {
+    isCarAutopilotActive = true;
+    btnCarAuto.innerText = "⏹ STOP AUTOPILOT";
+    btnCarAuto.classList.remove('btn-clear');
+    btnCarAuto.classList.add('btn-stop');
+    logCarConsole("Autopilot started! Running autonomous obstacle avoidance...");
+    
+    carAutoTimer = setInterval(runAutopilotStep, 1500);
+    runAutopilotStep();
+  }
+});
+
+async function runAutopilotStep() {
+  if (!isCarAutopilotActive) return;
+  
+  const cellW = 320 / 20;
+  const cellH = 240 / 15;
+  const gridCol = Math.floor(carCentroid.x / cellW);
+  const gridRow = Math.floor(carCentroid.y / cellH);
+  
+  // Obstacle checks in front
+  // Look 2 cells ahead of the current coordinate
+  let obstacleAhead = false;
+  
+  if (gridCol >= 0 && gridCol < 20 && gridRow >= 0 && gridRow < 15) {
+    // Check local neighborhood (within 2 cells)
+    for (let r = Math.max(0, gridRow - 2); r <= Math.min(14, gridRow + 2); r++) {
+      for (let c = Math.max(0, gridCol - 2); c <= Math.min(19, gridCol + 2); c++) {
+        if (carGrid[r][c] === 2) { // Obstacle
+          obstacleAhead = true;
+          break;
+        }
+      }
+    }
+  }
+  
+  // Waving hand/moving obstacles: if sudden high motion diff is detected near the car
+  // but it's not due to its own motion command, it means an external obstacle is present!
+  if (carFrameDiff > 5.0 && carDriveState === 'STILL') {
+    obstacleAhead = true;
+    logCarConsole("Moving obstacle detected!");
+  }
+  
+  if (obstacleAhead) {
+    logCarConsole("Obstacle nearby! Steering away...");
+    carDriveState = 'STILL';
+    // Back up
+    await triggerCalibMove('A', -350);
+    await triggerCalibMove('B', -350);
+    await delay(1400);
+    // Spin turn
+    await triggerCalibMove('A', 350);
+    await triggerCalibMove('B', -350);
+    await delay(1200);
+    
+    carDriveState = 'FORWARD';
+    await triggerCalibMove('A', 400);
+    await triggerCalibMove('B', 400);
+  } else {
+    carDriveState = 'FORWARD';
+    logCarConsole("Safe path. Driving forward...");
+    await triggerCalibMove('A', 400);
+    await triggerCalibMove('B', 400);
+  }
+}

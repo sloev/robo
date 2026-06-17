@@ -110,6 +110,17 @@ server.listen(PORT, async () => {
       quality: 90
     });
 
+    // Capture View 4: Car Mapper
+    console.log('Switching to Car Mapper Mode...');
+    await page.click('.tab-btn[data-target="view-car"]');
+    await new Promise(r => setTimeout(r, 800)); // wait for active transition
+    console.log('Taking screenshot of Car Mapper...');
+    await page.screenshot({
+      path: path.join(ssDir, 'view-car.jpg'),
+      type: 'jpeg',
+      quality: 90
+    });
+
     // For backwards compatibility/header, copy view-coding.jpg to dashboard.jpg
     fs.copyFileSync(path.join(ssDir, 'view-coding.jpg'), path.join(ssDir, 'dashboard.jpg'));
     console.log('All screenshots generated successfully!');
