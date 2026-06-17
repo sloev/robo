@@ -173,10 +173,11 @@ class WebServer:
                     resp_data = {"error": "Invalid motor selection"}
             elif path == '/api/run' and method == 'POST':
                 data = json.loads(body_bytes.decode('utf-8'))
-                recipe = data.get('recipe', [])
+                recipe = data.get('recipe')
+                code = data.get('code')
                 
-                # Execute recipe (handled in main.py loop)
-                success = self.run_recipe_cb(recipe)
+                program = code if code is not None else recipe
+                success = self.run_recipe_cb(program)
                 if success:
                     resp_data = {"status": "running"}
                 else:

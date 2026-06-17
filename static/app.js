@@ -14,6 +14,116 @@ let activeJoysticks = {};
 // Default active container is the main workspace
 setActiveContainer(mainWorkspace);
 
+
+// --- DUAL BLOCKS/CODE WORKSPACE MANAGER ---
+
+let currentEditorMode = 'blocks'; // 'blocks' or 'code'
+
+const btnModeBlocks = document.getElementById('btn-mode-blocks');
+const btnModeCode = document.getElementById('btn-mode-code');
+const workspaceCanvas = document.getElementById('workspace-canvas');
+const codePreviewPane = document.getElementById('code-preview-pane');
+const rawCodeEditor = document.getElementById('raw-code-editor');
+const rawCodeTextarea = document.getElementById('raw-code-textarea');
+const toolboxAside = document.querySelector('.toolbox');
+
+btnModeBlocks.addEventListener('click', () => {
+  if (currentEditorMode === 'blocks') return;
+  currentEditorMode = 'blocks';
+  
+  btnModeBlocks.classList.add('active');
+  btnModeCode.classList.remove('active');
+  
+  workspaceCanvas.style.display = 'flex';
+  codePreviewPane.style.display = 'flex';
+  rawCodeEditor.style.display = 'none';
+  toolboxAside.style.display = 'block';
+  
+  updateCodePreview();
+});
+
+btnModeCode.addEventListener('click', () => {
+  if (currentEditorMode === 'code') return;
+  currentEditorMode = 'code';
+  
+  btnModeCode.classList.add('active');
+  btnModeBlocks.classList.remove('active');
+  
+  workspaceCanvas.style.display = 'none';
+  codePreviewPane.style.display = 'none';
+  rawCodeEditor.style.display = 'flex';
+  toolboxAside.style.display = 'none';
+  
+  // Set initial textarea code to the compiled python code from blocks
+  const recipe = compileWorkspace(mainWorkspace);
+  const pythonCode = generateMicroPython(recipe);
+  rawCodeTextarea.value = pythonCode || "# Write custom MicroPython code here...\nimport uasyncio as asyncio\n\n";
+});
+
+// Update the code preview on changes
+function updateCodePreview() {
+  const recipe = compileWorkspace(mainWorkspace);
+  const pythonCode = generateMicroPython(recipe);
+  const previewText = document.getElementById('code-preview-text');
+  if (previewText) {
+    previewText.innerText = pythonCode || "# Drag blocks here to generate MicroPython code...";
+  }
+}
+
+// Watch inputs and selects inside the block workspace to regenerate code on change
+mainWorkspace.addEventListener('input', updateCodePreview);
+mainWorkspace.addEventListener('change', updateCodePreview);
+
+// Generate MicroPython from block recipes
+function generateMicroPython(blocks, indent = "") {
+  let code = "";
+  
+  if (blocks.length === 0) {
+    return indent + "pass\n";
+  }
+  
+  blocks.forEach(block => {
+    const action = block.action;
+    
+    if (action === 'move') {
+      code += indent + `motors['${block.motor}'].set_speed(${block.speed})\n`;
+      code += indent + `motors['${block.motor}'].move(${block.steps})\n`;
+      code += indent + `while motors['${block.motor}'].is_moving: await asyncio.sleep_ms(20)\n`;
+    } 
+    else if (action === 'set_speed') {
+      code += indent + `motors['${block.motor}'].set_speed(${block.speed})\n`;
+    } 
+    else if (action === 'stop_all') {
+      code += indent + `for m in motors.values(): m.stop()\n`;
+    } 
+    else if (action === 'wait') {
+      code += indent + `await asyncio.sleep(${block.duration})\n`;
+    } 
+    else if (action === 'loop') {
+      code += indent + `for _ in range(${block.iterations}):\n`;
+      code += generateMicroPython(block.body, indent + "    ");
+    } 
+    else if (action === 'if') {
+      const sensor = block.sensor;
+      const val = block.value;
+      const op = block.op || 'eq';
+      
+      let condition = "";
+      if (sensor === 'potentiometer') {
+        const opSymbol = op === 'gt' ? '>' : op === 'lt' ? '<' : '==';
+        condition = `sensor_data['potentiometer'] ${opSymbol} ${val}`;
+      } else {
+        condition = `sensor_data['${sensor}'] == '${val}'`;
+      }
+      
+      code += indent + `if ${condition}:\n`;
+      code += generateMicroPython(block.body, indent + "    ");
+    }
+  });
+  
+  return code;
+}
+
 // Navbar Tabs Toggle Logic
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -61,6 +171,7 @@ function updateEmptyMessages() {
   } else {
     emptyMsg.style.display = 'flex';
   }
+  updateCodePreview();
 }
 
 // Toolbox button actions (adding blocks)
@@ -677,26 +788,50 @@ function compileWorkspace(container) {
 
 // Send running recipe
 document.getElementById('btn-run-program').addEventListener('click', async () => {
-  const recipe = compileWorkspace(mainWorkspace);
-  if (recipe.length === 0) {
-    alert("Your workflow is empty! Add some blocks first.");
-    return;
-  }
-  
-  try {
-    const resp = await fetch('/api/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipe: recipe })
-    });
-    
-    if (resp.status === 409) {
-      alert("A program is already running. Stop it first!");
-    } else if (!resp.ok) {
-      alert("Error sending program: " + resp.statusText);
+  if (currentEditorMode === 'code') {
+    const rawCode = rawCodeTextarea.value;
+    if (!rawCode.trim()) {
+      alert("Your Python code is empty!");
+      return;
     }
-  } catch (err) {
-    alert("Connection error: " + err.message);
+    
+    try {
+      const resp = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: rawCode })
+      });
+      
+      if (resp.status === 409) {
+        alert("A program is already running. Stop it first!");
+      } else if (!resp.ok) {
+        alert("Error sending program: " + resp.statusText);
+      }
+    } catch (err) {
+      alert("Connection error: " + err.message);
+    }
+  } else {
+    const recipe = compileWorkspace(mainWorkspace);
+    if (recipe.length === 0) {
+      alert("Your workflow is empty! Add some blocks first.");
+      return;
+    }
+    
+    try {
+      const resp = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipe: recipe })
+      });
+      
+      if (resp.status === 409) {
+        alert("A program is already running. Stop it first!");
+      } else if (!resp.ok) {
+        alert("Error sending program: " + resp.statusText);
+      }
+    } catch (err) {
+      alert("Connection error: " + err.message);
+    }
   }
 });
 

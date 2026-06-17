@@ -112,15 +112,40 @@ async def execute_recipe(recipe):
             motor.stop()
         recipe_task = None
 
-def run_recipe_callback(recipe):
+async def execute_raw_code(code_str):
+    """Wrapper task for raw MicroPython script execution that compiles and runs code in an async task."""
+    global recipe_task
+    try:
+        print("Starting raw python execution...")
+        # Indent the user's code to run it inside an async wrapper function
+        indented_code = "\n".join("    " + line for line in code_str.split("\n"))
+        wrapper = "async def run_user_code(motors, sensor_data, asyncio):\n" + indented_code
+        
+        # Create context dict and compile/execute definition
+        env = {}
+        exec(wrapper, globals(), env)
+        
+        # Execute the defined coroutine passing global objects
+        await env['run_user_code'](motors, sensor_data, asyncio)
+        print("Raw python finished successfully.")
+    except asyncio.CancelledError:
+        print("Raw python execution stopped by user request.")
+    except Exception as e:
+        print("Python execution error:", e)
+    finally:
+        for motor in motors.values():
+            motor.stop()
+        recipe_task = None
+
+def run_recipe_callback(program):
     """
-    Callback triggered by WebServer API endpoints to control the recipe task.
-    Returns True if successfully started/stopped, False if conflict occurs.
+    Callback triggered by WebServer API endpoints to control the active task.
+    Supports list recipes (Scratch blocks) and string raw code (MicroPython text).
     """
     global recipe_task
     
-    # If recipe is None, stop the current program
-    if recipe is None:
+    # If program is None, stop the current program
+    if program is None:
         if recipe_task:
             recipe_task.cancel()
             recipe_task = None
@@ -130,8 +155,11 @@ def run_recipe_callback(recipe):
     if recipe_task is not None:
         return False
         
-    # Start execution task in the background
-    recipe_task = asyncio.create_task(execute_recipe(recipe))
+    # Start execution task in the background (detect type)
+    if isinstance(program, str):
+        recipe_task = asyncio.create_task(execute_raw_code(program))
+    else:
+        recipe_task = asyncio.create_task(execute_recipe(program))
     return True
 
 async def poll_hardware_sensors():

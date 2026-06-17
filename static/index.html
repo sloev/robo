@@ -111,11 +111,40 @@
             </div>
           </aside>
           
-          <!-- Workspace for blocks -->
-          <div class="workspace" id="workspace-canvas">
-            <div class="workspace-empty-msg" id="empty-message">
-              <span>🧩</span>
-              Click blocks on the left to start building your robot program!
+          <!-- Main workspace panel containing mode tabs, split block canvas, code preview, and editor -->
+          <div class="workspace-main-panel">
+            <div class="workspace-header">
+              <div class="workspace-mode-selector">
+                <button class="mode-tab-btn active" id="btn-mode-blocks">🧩 BLOCKS</button>
+                <button class="mode-tab-btn" id="btn-mode-code">🐍 PYTHON CODE</button>
+              </div>
+            </div>
+            
+            <div class="workspace-split-container">
+              <!-- Workspace for blocks -->
+              <div class="workspace" id="workspace-canvas" style="flex: 1;">
+                <div class="workspace-empty-msg" id="empty-message">
+                  <span>🧩</span>
+                  Click blocks on the left to start building your creation program!
+                </div>
+              </div>
+              
+              <!-- Code Preview Pane (Read-only) -->
+              <div class="code-preview-pane" id="code-preview-pane">
+                <div class="code-preview-header">🐍 LIVE MICROPYTHON PREVIEW</div>
+                <pre><code id="code-preview-text"># Drag blocks to generate MicroPython code...</code></pre>
+              </div>
+              
+              <!-- Raw Text Code Editor (Full edit mode, hidden by default) -->
+              <div class="raw-code-editor" id="raw-code-editor" style="display: none;">
+                <textarea id="raw-code-textarea" spellcheck="false" placeholder="# Write your custom MicroPython code here..."></textarea>
+                <div class="raw-code-help">
+                  You are editing raw MicroPython! You have access to: <br>
+                  • <code>motors['A']</code> and <code>motors['B']</code> (e.g. <code>motors['A'].move(300)</code>)<br>
+                  • <code>sensor_data</code> (e.g. <code>sensor_data['button_a'] == 'pressed'</code>)<br>
+                  • <code>asyncio</code> (e.g. <code>await asyncio.sleep(1.0)</code>)
+                </div>
+              </div>
             </div>
           </div>
         </div>
