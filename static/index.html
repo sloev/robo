@@ -12,7 +12,11 @@
       <span class="logo-icon">🤖</span>
       <h1>ROBO-CONTROL DASHBOARD</h1>
     </div>
-    <div style="display: flex; gap: 0.75rem;">
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+      <!-- Microphone Activation Button -->
+      <div class="status-badge" id="btn-toggle-mic" style="cursor: pointer; background: #ffffff; color: var(--cyan-accent); font-weight: 700; border: none;">
+        <span>🎤 START MIC</span>
+      </div>
       <div class="status-badge">
         <div class="status-dot" id="connection-dot"></div>
         <span id="connection-text">CONNECTING...</span>
@@ -20,124 +24,165 @@
     </div>
   </header>
 
-  <main class="app-container">
-    <!-- Left Panel: Visual Programming Workspace -->
-    <section class="panel">
-      <div class="panel-header">
-        <div class="panel-title">🧩 WORKFLOW CREATOR</div>
-        <div class="program-controls">
-          <button class="btn btn-run" id="btn-run-program">▶ RUN</button>
-          <button class="btn btn-stop" id="btn-stop-program">⏹ STOP</button>
-          <button class="btn btn-clear" id="btn-clear-workspace">🗑 CLEAR</button>
-        </div>
-      </div>
-      
-      <div class="programming-layout">
-        <!-- Tool Box -->
-        <aside class="toolbox">
-          <div class="toolbox-title">BLOCKS</div>
-          
-          <div class="block-template block-motor" data-type="motor">
-            <span>Move Motor</span>
-            <span class="add-icon">+</span>
-          </div>
-          
-          <div class="block-template block-wait" data-type="wait">
-            <span>Wait Time</span>
-            <span class="add-icon">+</span>
-          </div>
-          
-          <div class="block-template block-loop" data-type="loop">
-            <span>Repeat Loop</span>
-            <span class="add-icon">+</span>
-          </div>
-          
-          <div class="block-template block-if" data-type="if-vision">
-            <span>If Vision tracks</span>
-            <span class="add-icon">+</span>
-          </div>
-        </aside>
-        
-        <!-- Workspace for blocks -->
-        <div class="workspace" id="workspace-canvas">
-          <div class="workspace-empty-msg" id="empty-message">
-            <span>🧩</span>
-            Click blocks on the left to start building your robot program!
-          </div>
-        </div>
-      </div>
-    </section>
+  <!-- Navbar Tabs right below header -->
+  <div class="tabs-container">
+    <button class="tab-btn active" data-target="view-coding">🧩 CODING MODE</button>
+    <button class="tab-btn" data-target="view-manual">🕹️ MANUAL DRIVE</button>
+    <button class="tab-btn" data-target="view-ai">🧠 AI EXPLORER</button>
+  </div>
 
-    <!-- Right Panel: Manual Controls & Status Monitors -->
-    <section class="panel">
-      <div class="panel-header">
-        <div class="panel-title">🕹️ MANUAL CONTROL & OVERRIDE</div>
-      </div>
-      
-      <div class="manual-panel">
-        <!-- Vision Sensor Card -->
-        <div class="control-card">
-          <div class="card-title">VISION SENSOR (COLOR TRACKER)</div>
-          <div class="vision-feed-container">
-            <video id="vision-video" autoplay playsinline muted></video>
-            <canvas id="vision-canvas"></canvas>
-            <div class="vision-placeholder" id="vision-placeholder">
-              <span>📷</span>
-              Camera Off. Click "Start Feed" below.
-            </div>
+  <main class="app-container">
+    <!-- 1. CODING MODE VIEW -->
+    <div id="view-coding" class="tab-content active">
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🧩 CODING WORKSPACE</div>
+          <div class="program-controls">
+            <button class="btn btn-run" id="btn-run-program">▶ RUN</button>
+            <button class="btn btn-stop" id="btn-stop-program">⏹ STOP</button>
+            <button class="btn btn-clear" id="btn-clear-workspace">🗑 CLEAR</button>
           </div>
-          <div class="vision-controls">
-            <button class="btn btn-run" id="btn-start-vision" style="flex: 1;">📷 START FEED</button>
-            <button class="btn btn-stop" id="btn-stop-vision">⏹ STOP</button>
-            <div class="color-indicator-group">
-              <span class="color-label">Target:</span>
-              <div class="color-preview" id="color-preview"></div>
-            </div>
-          </div>
-          <div class="vision-help">Click the active video to pick the tracked color. It detects if target is in the <b>Left, Center, or Right</b> third of the view.</div>
         </div>
+        
+        <div class="programming-layout">
+          <!-- Tool Box -->
+          <aside class="toolbox">
+            <div class="toolbox-title">BLOCKS</div>
+            
+            <div class="block-template block-motor" data-type="motor">
+              <span>Move Motor</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-set-speed" data-type="set-speed">
+              <span>Set Motor Speed</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-stop-all" data-type="stop-all">
+              <span>🛑 Stop Motors</span>
+              <span class="add-icon">+</span>
+            </div>
+            
+            <div class="block-template block-wait" data-type="wait">
+              <span>Wait Time</span>
+              <span class="add-icon">+</span>
+            </div>
+            
+            <div class="block-template block-loop" data-type="loop">
+              <span>Repeat Loop</span>
+              <span class="add-icon">+</span>
+            </div>
+            
+            <div class="block-template block-if" data-type="if-vision">
+              <span>If Vision tracks</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-if-sound" data-type="if-sound">
+              <span>If Sound hears</span>
+              <span class="add-icon">+</span>
+            </div>
+          </aside>
+          
+          <!-- Workspace for blocks -->
+          <div class="workspace" id="workspace-canvas">
+            <div class="workspace-empty-msg" id="empty-message">
+              <span>🧩</span>
+              Click blocks on the left to start building your robot program!
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 2. MANUAL DRIVE VIEW -->
+    <div id="view-manual" class="tab-content">
+      <div class="manual-layout-grid">
+        <!-- Status Monitors -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📊 STATUS MONITORS</div>
+          </div>
+          <div class="panel-body-padding">
+            <div class="status-grid" id="status-grid">
+              <!-- Dynamically generated motor status cards will be prepended here -->
+              <div class="status-card" id="mode-status-card">
+                <div class="status-card-label">ROBOT MODE</div>
+                <div class="status-card-val" id="status-robot-mode">IDLE</div>
+              </div>
+              <div class="status-card">
+                <div class="status-card-label">SYSTEM HEALTH</div>
+                <div class="status-card-val active">ACTIVE</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Joystick Manual Control -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🕹️ STEERING WHEEL (JOYSTICKS)</div>
+          </div>
+          <div class="panel-body-padding">
+            <div class="joysticks-container" id="joysticks-container">
+              <!-- Dynamically populated joysticks will go here -->
+            </div>
+            <div class="joystick-help">Drag the joysticks UP to drive forward or DOWN to drive backward. Speed is controlled by how far you drag. Release to stop.</div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 3. AI EXPLORER VIEW -->
+    <div id="view-ai" class="tab-content">
+      <div class="ai-layout-grid">
+        <!-- Vision Sensor Card -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📷 VISION SENSOR (CAMERA EYES)</div>
+          </div>
+          <div class="panel-body-padding">
+            <div class="vision-feed-container">
+              <video id="vision-video" autoplay playsinline muted></video>
+              <canvas id="vision-canvas"></canvas>
+              <div class="vision-placeholder" id="vision-placeholder">
+                <span>📷</span>
+                Camera Off. Click "Start Feed" below.
+              </div>
+            </div>
+            <div class="vision-controls">
+              <button class="btn btn-run" id="btn-start-vision" style="flex: 1;">📷 START FEED</button>
+              <button class="btn btn-stop" id="btn-stop-vision">⏹ STOP</button>
+              <div class="color-indicator-group">
+                <span class="color-label">Target:</span>
+                <div class="color-preview" id="color-preview"></div>
+              </div>
+            </div>
+            <div class="vision-help">Click the video screen to lock onto a color! Your robot will recognize if that color is in the <b>Left, Center, or Right</b> third of the view.</div>
+          </div>
+        </section>
 
         <!-- Neural Network Learning Card -->
-        <div class="control-card">
-          <div class="card-title">🧠 NEURAL NETWORK LEARNING MODE</div>
-          <div class="learning-controls">
-            <button class="btn btn-run" id="btn-learn-start" style="flex: 1;">🎓 START TRAINING</button>
-            <button class="btn btn-clear" id="btn-learn-test" disabled style="flex: 1;">🤖 START AUTOPILOT</button>
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🧠 NEURAL BRAIN CALIBRATION</div>
           </div>
-          <div class="learning-console" id="learning-console">
-            Console: Ready to learn robot dynamics.
-          </div>
-          <div class="network-display" id="network-display">
-            Weights: Not trained yet.
-          </div>
-        </div>
-
-        <!-- Status Monitors -->
-        <div class="control-card">
-          <div class="card-title">STATUS MONITORS</div>
-          <div class="status-grid" id="status-grid">
-            <!-- Dynamically generated motor status cards will be prepended here -->
-            <div class="status-card" id="mode-status-card">
-              <div class="status-card-label">ROBOT MODE</div>
-              <div class="status-card-val" id="status-robot-mode">IDLE</div>
+          <div class="panel-body-padding">
+            <div class="learning-controls">
+              <button class="btn btn-run" id="btn-learn-start" style="flex: 1;">🎓 START TRAINING</button>
+              <button class="btn btn-clear" id="btn-learn-test" disabled style="flex: 1;">🤖 START AUTOPILOT</button>
             </div>
-            <div class="status-card">
-              <div class="status-card-label">SYSTEM HEALTH</div>
-              <div class="status-card-val active">ACTIVE</div>
+            <div class="learning-console" id="learning-console">
+              Console: Ready to learn robot dynamics.
+            </div>
+            <div class="network-display" id="network-display">
+              Weights: Not trained yet.
             </div>
           </div>
-        </div>
-
-        <!-- Dynamic Joystick Manual Control -->
-        <div class="control-card">
-          <div class="card-title">MANUAL DRIVE OVERRIDE</div>
-          <div class="joysticks-container" id="joysticks-container">
-            <!-- Dynamically populated joysticks will go here -->
-          </div>
-          <div class="joystick-help">Drag the joysticks UP to drive forward (clockwise) or DOWN to drive backward. Speed is controlled by how far you drag. Release to stop.</div>
-        </div>
+        </section>
       </div>
-    </section>
+    </div>
   </main>
 
   <script src="app.js"></script>

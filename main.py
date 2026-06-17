@@ -38,6 +38,17 @@ async def run_blocks(blocks):
                 while motor.is_moving:
                     await asyncio.sleep_ms(20)
                 
+        elif action == 'set_speed':
+            motor_name = block.get('motor')
+            speed = int(block.get('speed', 2))
+            motor = motors.get(motor_name)
+            if motor:
+                motor.set_speed(speed)
+
+        elif action == 'stop_all':
+            for motor in motors.values():
+                motor.stop()
+
         elif action == 'wait':
             duration = float(block.get('duration', 0.0))
             await asyncio.sleep(duration)

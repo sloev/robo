@@ -14,6 +14,22 @@ let activeJoysticks = {};
 // Default active container is the main workspace
 setActiveContainer(mainWorkspace);
 
+// Navbar Tabs Toggle Logic
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Remove active class from all buttons and content panels
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    // Add active class to clicked button
+    btn.classList.add('active');
+    
+    // Show corresponding view content
+    const targetId = btn.dataset.target;
+    document.getElementById(targetId).classList.add('active');
+  });
+});
+
 // Set active container for block insertion
 function setActiveContainer(container) {
   if (activeContainer) {
@@ -152,6 +168,50 @@ function createBlockElement(type) {
     
     return container;
   }
+
+  if (type === 'if-sound') {
+    const container = document.createElement('div');
+    container.className = 'loop-container';
+    container.style.borderLeft = '6px solid var(--purple-accent)';
+    container.style.backgroundColor = 'rgba(153, 102, 255, 0.02)';
+    container.dataset.blockType = 'if-sound';
+    
+    container.innerHTML = `
+      <div class="loop-header">
+        <div class="loop-header-left">
+          <span>🎤 If Sound detects</span>
+          <select class="if-sound-value">
+            <option value="clap">Clap</option>
+            <option value="none">None</option>
+          </select>
+          <span>then:</span>
+        </div>
+        <button class="block-remove">&times;</button>
+      </div>
+      <div class="loop-body"></div>
+    `;
+    
+    const body = container.querySelector('.loop-body');
+    const removeBtn = container.querySelector('.block-remove');
+    
+    setTimeout(() => setActiveContainer(body), 50);
+    
+    body.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setActiveContainer(body);
+    });
+    
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.remove();
+      if (activeContainer === body) {
+        setActiveContainer(mainWorkspace);
+      }
+      updateEmptyMessages();
+    });
+    
+    return container;
+  }
   
   // Normal blocks
   const block = document.createElement('div');
@@ -172,6 +232,18 @@ function createBlockElement(type) {
         <option value="1">Forward</option>
         <option value="-1">Backward</option>
       </select>
+    `;
+  } else if (type === 'set-speed') {
+    innerHTML += `
+      <span>Set Speed of</span>
+      <select class="motor-name">${getMotorOptionsHTML()}</select>
+      <span>to speed delay</span>
+      <input type="number" value="2" min="1" max="50" class="motor-speed">
+      <span>ms</span>
+    `;
+  } else if (type === 'stop-all') {
+    innerHTML += `
+      <span>Stop All Motors</span>
     `;
   } else if (type === 'wait') {
     innerHTML += `
@@ -230,6 +302,19 @@ function compileWorkspace(container) {
           steps: steps * dir,
           speed: speed
         });
+      } else if (type === 'set-speed') {
+        const motor = child.querySelector('.motor-name').value;
+        const speed = parseInt(child.querySelector('.motor-speed').value) || 2;
+        
+        blocks.push({
+          action: 'set_speed',
+          motor: motor,
+          speed: speed
+        });
+      } else if (type === 'stop-all') {
+        blocks.push({
+          action: 'stop_all'
+        });
       } else if (type === 'wait') {
         const duration = parseFloat(child.querySelector('.wait-duration').value) || 0.0;
         blocks.push({
@@ -257,6 +342,17 @@ function compileWorkspace(container) {
         blocks.push({
           action: 'if',
           sensor: 'vision',
+          value: value,
+          body: nestedBlocks
+        });
+      } else if (blockType === 'if-sound') {
+        const value = child.querySelector('.if-sound-value').value;
+        const loopBody = child.querySelector('.loop-body');
+        const nestedBlocks = compileWorkspace(loopBody);
+        
+        blocks.push({
+          action: 'if',
+          sensor: 'sound',
           value: value,
           body: nestedBlocks
         });
@@ -494,8 +590,8 @@ function initDynamicUI(motorsList) {
     activeJoysticks[motorName] = new Joystick(trackId, handleId, valId, motorName);
   });
 
-  // 3. Update dropdown options in existing Move Motor blocks
-  document.querySelectorAll('.program-block[data-block-type="motor"] select.motor-name').forEach(select => {
+  // 3. Update dropdown options in existing blocks
+  document.querySelectorAll('.program-block[data-block-type="motor"] select.motor-name, .program-block[data-block-type="set-speed"] select.motor-name').forEach(select => {
     const currentVal = select.value;
     select.innerHTML = getMotorOptionsHTML();
     if (motorsList.includes(currentVal)) {
@@ -503,6 +599,123 @@ function initDynamicUI(motorsList) {
     }
   });
 }
+
+// --- 🎤 MICROPHONE CLAP SENSING ---
+
+let audioContext = null;
+let audioStream = null;
+let micAnalyser = null;
+let micProcessInterval = null;
+let micActive = false;
+let lastClapTime = 0;
+
+const btnToggleMic = document.getElementById('btn-toggle-mic');
+
+btnToggleMic.addEventListener('click', async () => {
+  if (micActive) {
+    stopMicrophone();
+  } else {
+    await initMicrophone();
+  }
+});
+
+async function initMicrophone() {
+  try {
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContext.createMediaStreamSource(audioStream);
+    micAnalyser = audioContext.createAnalyser();
+    micAnalyser.fftSize = 256;
+    source.connect(micAnalyser);
+    
+    const bufferLength = micAnalyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    micProcessInterval = setInterval(() => {
+      if (!micActive) return;
+      micAnalyser.getByteFrequencyData(dataArray);
+      
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i];
+      }
+      let avgVolume = sum / bufferLength;
+      
+      // Clap spike trigger threshold
+      if (avgVolume > 95) {
+        let now = Date.now();
+        if (now - lastClapTime > 600) {
+          lastClapTime = now;
+          onClapDetected();
+        }
+      }
+    }, 40);
+    
+    micActive = true;
+    btnToggleMic.innerHTML = '<span>🎤 MIC: ACTIVE</span>';
+    btnToggleMic.style.backgroundColor = 'var(--green-accent)';
+    btnToggleMic.style.color = '#ffffff';
+    console.log("Microphone initialized successfully.");
+  } catch (err) {
+    alert("Could not capture microphone: " + err.message);
+  }
+}
+
+function stopMicrophone() {
+  micActive = false;
+  if (micProcessInterval) clearInterval(micProcessInterval);
+  if (audioStream) {
+    audioStream.getTracks().forEach(track => track.stop());
+    audioStream = null;
+  }
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
+  btnToggleMic.innerHTML = '<span>🎤 START MIC</span>';
+  btnToggleMic.style.backgroundColor = '#ffffff';
+  btnToggleMic.style.color = 'var(--cyan-accent)';
+}
+
+async function onClapDetected() {
+  console.log("Clap detected!");
+  try {
+    // Show quick visual feedback on mic badge
+    btnToggleMic.innerHTML = '<span>⚡ CLAP! ⚡</span>';
+    btnToggleMic.style.backgroundColor = 'var(--orange-accent)';
+    setTimeout(() => {
+      if (micActive) {
+        btnToggleMic.innerHTML = '<span>🎤 MIC: ACTIVE</span>';
+        btnToggleMic.style.backgroundColor = 'var(--green-accent)';
+      } else {
+        btnToggleMic.innerHTML = '<span>🎤 START MIC</span>';
+        btnToggleMic.style.backgroundColor = '#ffffff';
+      }
+    }, 800);
+
+    // Send sensor state to ESP32-S2
+    await fetch('/api/sensors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sound: 'clap' })
+    });
+    
+    // Reset sound state to none after 1.2 seconds
+    setTimeout(async () => {
+      try {
+        await fetch('/api/sensors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sound: 'none' })
+        });
+      } catch(e) {}
+    }, 1200);
+    
+  } catch (err) {
+    console.error("Error sending clap sensor state:", err);
+  }
+}
+
 
 // --- 📷 CLIENT-SIDE COMPUTER VISION COLOR TRACKING ---
 

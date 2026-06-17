@@ -48,7 +48,7 @@ server.listen(PORT, async () => {
   console.log(`Temp server running on port ${PORT}`);
 
   try {
-    // 2. Launch Puppeteer browser and capture screenshot
+    // 2. Launch Puppeteer browser
     console.log('Launching headless browser...');
     const browser = await puppeteer.launch({
       headless: 'new',
@@ -56,16 +56,14 @@ server.listen(PORT, async () => {
     });
 
     const page = await browser.newPage();
-    
-    // Set a good desktop screen size
-    await page.setViewport({ width: 1400, height: 950 });
+    await page.setViewport({ width: 1280, height: 850 });
     
     console.log('Navigating to dashboard...');
     await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle2' });
     
     // Wait for dynamic elements (e.g. status poll) to run
     console.log('Waiting for UI to stabilize...');
-    await new Promise(r => setTimeout(r, 2500));
+    await new Promise(r => setTimeout(r, 2000));
 
     // Ensure the screenshots directory exists
     const ssDir = path.join(__dirname, '..', 'screenshots');
@@ -73,18 +71,43 @@ server.listen(PORT, async () => {
       fs.mkdirSync(ssDir, { recursive: true });
     }
 
-    console.log('Taking screenshot...');
+    // Capture View 1: Coding Mode (Active by default)
+    console.log('Taking screenshot of Coding Mode...');
     await page.screenshot({
-      path: path.join(ssDir, 'dashboard.jpg'),
+      path: path.join(ssDir, 'view-coding.jpg'),
       type: 'jpeg',
       quality: 90
     });
 
-    console.log('Screenshot saved successfully to screenshots/dashboard.jpg');
+    // Capture View 2: Manual Drive
+    console.log('Switching to Manual Drive Mode...');
+    await page.click('.tab-btn[data-target="view-manual"]');
+    await new Promise(r => setTimeout(r, 800)); // wait for active transition
+    console.log('Taking screenshot of Manual Drive...');
+    await page.screenshot({
+      path: path.join(ssDir, 'view-manual.jpg'),
+      type: 'jpeg',
+      quality: 90
+    });
+
+    // Capture View 3: AI Explorer
+    console.log('Switching to AI Explorer Mode...');
+    await page.click('.tab-btn[data-target="view-ai"]');
+    await new Promise(r => setTimeout(r, 800)); // wait for active transition
+    console.log('Taking screenshot of AI Explorer...');
+    await page.screenshot({
+      path: path.join(ssDir, 'view-ai.jpg'),
+      type: 'jpeg',
+      quality: 90
+    });
+
+    // For backwards compatibility/header, copy view-coding.jpg to dashboard.jpg
+    fs.copyFileSync(path.join(ssDir, 'view-coding.jpg'), path.join(ssDir, 'dashboard.jpg'));
+    console.log('All screenshots generated successfully!');
 
     await browser.close();
   } catch (error) {
-    console.error('Error generating screenshot:', error);
+    console.error('Error generating screenshots:', error);
     process.exitCode = 1;
   } finally {
     server.close(() => {
