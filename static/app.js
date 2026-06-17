@@ -325,6 +325,7 @@ function createBlockElement(type) {
         <button class="block-remove">&times;</button>
       </div>
       <div class="loop-body"></div>
+      <div class="loop-footer"></div>
     `;
     
     const body = container.querySelector('.loop-body');
@@ -352,8 +353,6 @@ function createBlockElement(type) {
   if (type === 'if-vision') {
     const container = document.createElement('div');
     container.className = 'loop-container';
-    container.style.borderLeft = '6px solid var(--red-accent)';
-    container.style.backgroundColor = 'rgba(255, 0, 85, 0.02)';
     container.dataset.blockType = 'if-vision';
     
     container.innerHTML = `
@@ -371,6 +370,7 @@ function createBlockElement(type) {
         <button class="block-remove">&times;</button>
       </div>
       <div class="loop-body"></div>
+      <div class="loop-footer"></div>
     `;
     
     const body = container.querySelector('.loop-body');
@@ -398,8 +398,6 @@ function createBlockElement(type) {
   if (type === 'if-sound') {
     const container = document.createElement('div');
     container.className = 'loop-container';
-    container.style.borderLeft = '6px solid var(--purple-accent)';
-    container.style.backgroundColor = 'rgba(153, 102, 255, 0.02)';
     container.dataset.blockType = 'if-sound';
     
     container.innerHTML = `
@@ -415,6 +413,7 @@ function createBlockElement(type) {
         <button class="block-remove">&times;</button>
       </div>
       <div class="loop-body"></div>
+      <div class="loop-footer"></div>
     `;
     
     const body = container.querySelector('.loop-body');
@@ -442,8 +441,6 @@ function createBlockElement(type) {
   if (type === 'if-button') {
     const container = document.createElement('div');
     container.className = 'loop-container';
-    container.style.borderLeft = '6px solid var(--orange-accent)';
-    container.style.backgroundColor = 'rgba(255, 171, 25, 0.02)';
     container.dataset.blockType = 'if-button';
     
     container.innerHTML = `
@@ -464,6 +461,7 @@ function createBlockElement(type) {
         <button class="block-remove">&times;</button>
       </div>
       <div class="loop-body"></div>
+      <div class="loop-footer"></div>
     `;
     
     const body = container.querySelector('.loop-body');
@@ -491,8 +489,6 @@ function createBlockElement(type) {
   if (type === 'if-dial') {
     const container = document.createElement('div');
     container.className = 'loop-container';
-    container.style.borderLeft = '6px solid var(--orange-accent)';
-    container.style.backgroundColor = 'rgba(255, 171, 25, 0.02)';
     container.dataset.blockType = 'if-dial';
     
     container.innerHTML = `
@@ -510,6 +506,7 @@ function createBlockElement(type) {
         <button class="block-remove">&times;</button>
       </div>
       <div class="loop-body"></div>
+      <div class="loop-footer"></div>
     `;
     
     const body = container.querySelector('.loop-body');
@@ -537,8 +534,6 @@ function createBlockElement(type) {
   if (type === 'if-ir') {
     const container = document.createElement('div');
     container.className = 'loop-container';
-    container.style.borderLeft = '6px solid var(--red-accent)';
-    container.style.backgroundColor = 'rgba(255, 0, 85, 0.02)';
     container.dataset.blockType = 'if-ir';
     
     container.innerHTML = `
@@ -559,6 +554,7 @@ function createBlockElement(type) {
         <button class="block-remove">&times;</button>
       </div>
       <div class="loop-body"></div>
+      <div class="loop-footer"></div>
     `;
     
     const body = container.querySelector('.loop-body');
@@ -586,8 +582,6 @@ function createBlockElement(type) {
   if (type === 'if-light') {
     const container = document.createElement('div');
     container.className = 'loop-container';
-    container.style.borderLeft = '6px solid var(--orange-accent)';
-    container.style.backgroundColor = 'rgba(255, 171, 25, 0.02)';
     container.dataset.blockType = 'if-light';
     
     container.innerHTML = `
@@ -605,6 +599,7 @@ function createBlockElement(type) {
         <button class="block-remove">&times;</button>
       </div>
       <div class="loop-body"></div>
+      <div class="loop-footer"></div>
     `;
     
     const body = container.querySelector('.loop-body');
@@ -632,8 +627,6 @@ function createBlockElement(type) {
   if (type === 'if-limit') {
     const container = document.createElement('div');
     container.className = 'loop-container';
-    container.style.borderLeft = '6px solid var(--red-accent)';
-    container.style.backgroundColor = 'rgba(255, 0, 85, 0.02)';
     container.dataset.blockType = 'if-limit';
     
     container.innerHTML = `
@@ -654,6 +647,7 @@ function createBlockElement(type) {
         <button class="block-remove">&times;</button>
       </div>
       <div class="loop-body"></div>
+      <div class="loop-footer"></div>
     `;
     
     const body = container.querySelector('.loop-body');

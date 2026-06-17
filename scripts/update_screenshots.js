@@ -74,6 +74,24 @@ server.listen(PORT, async () => {
     console.log('Waiting for UI to stabilize...');
     await new Promise(r => setTimeout(r, 2000));
 
+    // Populate workspace with some blocks to show the Scratch-style nesting
+    console.log('Populating workspace with example blocks...');
+    await page.click('.block-template[data-type="loop"]');
+    await new Promise(r => setTimeout(r, 200));
+    await page.click('.block-template[data-type="motor"]');
+    await new Promise(r => setTimeout(r, 200));
+    await page.click('.block-template[data-type="wait"]');
+    await new Promise(r => setTimeout(r, 200));
+
+    // Click outside blocks to set active container back to main workspace
+    await page.click('#workspace-canvas');
+    await new Promise(r => setTimeout(r, 200));
+
+    await page.click('.block-template[data-type="if-vision"]');
+    await new Promise(r => setTimeout(r, 200));
+    await page.click('.block-template[data-type="stop-all"]');
+    await new Promise(r => setTimeout(r, 200));
+
     // Ensure the screenshots directory exists
     const ssDir = path.join(__dirname, '..', 'screenshots');
     if (!fs.existsSync(ssDir)) {
