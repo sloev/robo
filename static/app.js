@@ -307,6 +307,150 @@ function createBlockElement(type) {
     
     return container;
   }
+
+  if (type === 'if-ir') {
+    const container = document.createElement('div');
+    container.className = 'loop-container';
+    container.style.borderLeft = '6px solid var(--red-accent)';
+    container.style.backgroundColor = 'rgba(255, 0, 85, 0.02)';
+    container.dataset.blockType = 'if-ir';
+    
+    container.innerHTML = `
+      <div class="loop-header">
+        <div class="loop-header-left">
+          <span>📡 If Infrared on</span>
+          <select class="if-ir-port">
+            <option value="button_a">GP12</option>
+            <option value="button_b">GP13</option>
+          </select>
+          <span>detects</span>
+          <select class="if-ir-state">
+            <option value="pressed">Object/Line (Low)</option>
+            <option value="released">Nothing (High)</option>
+          </select>
+          <span>then:</span>
+        </div>
+        <button class="block-remove">&times;</button>
+      </div>
+      <div class="loop-body"></div>
+    `;
+    
+    const body = container.querySelector('.loop-body');
+    const removeBtn = container.querySelector('.block-remove');
+    
+    setTimeout(() => setActiveContainer(body), 50);
+    
+    body.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setActiveContainer(body);
+    });
+    
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.remove();
+      if (activeContainer === body) {
+        setActiveContainer(mainWorkspace);
+      }
+      updateEmptyMessages();
+    });
+    
+    return container;
+  }
+
+  if (type === 'if-light') {
+    const container = document.createElement('div');
+    container.className = 'loop-container';
+    container.style.borderLeft = '6px solid var(--orange-accent)';
+    container.style.backgroundColor = 'rgba(255, 171, 25, 0.02)';
+    container.dataset.blockType = 'if-light';
+    
+    container.innerHTML = `
+      <div class="loop-header">
+        <div class="loop-header-left">
+          <span>☀️ If Light (GP14) is</span>
+          <select class="if-light-op">
+            <option value="lt">Darker than</option>
+            <option value="gt">Brighter than</option>
+            <option value="eq">Equal to</option>
+          </select>
+          <input type="number" value="30" min="0" max="100" class="if-light-val">%
+          <span>then:</span>
+        </div>
+        <button class="block-remove">&times;</button>
+      </div>
+      <div class="loop-body"></div>
+    `;
+    
+    const body = container.querySelector('.loop-body');
+    const removeBtn = container.querySelector('.block-remove');
+    
+    setTimeout(() => setActiveContainer(body), 50);
+    
+    body.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setActiveContainer(body);
+    });
+    
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.remove();
+      if (activeContainer === body) {
+        setActiveContainer(mainWorkspace);
+      }
+      updateEmptyMessages();
+    });
+    
+    return container;
+  }
+
+  if (type === 'if-limit') {
+    const container = document.createElement('div');
+    container.className = 'loop-container';
+    container.style.borderLeft = '6px solid var(--red-accent)';
+    container.style.backgroundColor = 'rgba(255, 0, 85, 0.02)';
+    container.dataset.blockType = 'if-limit';
+    
+    container.innerHTML = `
+      <div class="loop-header">
+        <div class="loop-header-left">
+          <span>🛑 If Limit Switch on</span>
+          <select class="if-limit-port">
+            <option value="button_a">GP12</option>
+            <option value="button_b">GP13</option>
+          </select>
+          <span>is</span>
+          <select class="if-limit-state">
+            <option value="pressed">Triggered (Pressed)</option>
+            <option value="released">Open (Released)</option>
+          </select>
+          <span>then:</span>
+        </div>
+        <button class="block-remove">&times;</button>
+      </div>
+      <div class="loop-body"></div>
+    `;
+    
+    const body = container.querySelector('.loop-body');
+    const removeBtn = container.querySelector('.block-remove');
+    
+    setTimeout(() => setActiveContainer(body), 50);
+    
+    body.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setActiveContainer(body);
+    });
+    
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.remove();
+      if (activeContainer === body) {
+        setActiveContainer(mainWorkspace);
+      }
+      updateEmptyMessages();
+    });
+    
+    return container;
+  }
   
   // Normal blocks
   const block = document.createElement('div');
@@ -475,6 +619,45 @@ function compileWorkspace(container) {
           sensor: 'potentiometer',
           value: val,
           op: op,
+          body: nestedBlocks
+        });
+      } else if (blockType === 'if-ir') {
+        const port = child.querySelector('.if-ir-port').value;
+        const state = child.querySelector('.if-ir-state').value;
+        const loopBody = child.querySelector('.loop-body');
+        const nestedBlocks = compileWorkspace(loopBody);
+        
+        blocks.push({
+          action: 'if',
+          sensor: port,
+          value: state,
+          op: 'eq',
+          body: nestedBlocks
+        });
+      } else if (blockType === 'if-light') {
+        const op = child.querySelector('.if-light-op').value;
+        const val = parseInt(child.querySelector('.if-light-val').value) || 0;
+        const loopBody = child.querySelector('.loop-body');
+        const nestedBlocks = compileWorkspace(loopBody);
+        
+        blocks.push({
+          action: 'if',
+          sensor: 'potentiometer',
+          value: val,
+          op: op,
+          body: nestedBlocks
+        });
+      } else if (blockType === 'if-limit') {
+        const port = child.querySelector('.if-limit-port').value;
+        const state = child.querySelector('.if-limit-state').value;
+        const loopBody = child.querySelector('.loop-body');
+        const nestedBlocks = compileWorkspace(loopBody);
+        
+        blocks.push({
+          action: 'if',
+          sensor: port,
+          value: state,
+          op: 'eq',
           body: nestedBlocks
         });
       }
