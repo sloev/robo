@@ -559,7 +559,7 @@ function initDynamicUI(motorsList) {
       <div class="status-card-label">MOTOR ${motorName} POSITION</div>
       <div class="status-card-val" id="status-motor-${motorName.toLowerCase()}-pos">0</div>
     `;
-    // Prepend before the first card (ROBOT MODE)
+    // Prepend before the first card (CREATION MODE)
     statusGrid.insertBefore(card, statusGrid.firstChild);
   });
   
@@ -921,7 +921,7 @@ function processFrame() {
       
       ctx.fillStyle = 'var(--cyan-accent)';
       ctx.font = 'bold 10px monospace';
-      ctx.fillText(`ROBOT (${Math.floor(avgX)}, ${Math.floor(avgY)})`, avgX + 20, avgY - 5);
+      ctx.fillText(`CREATION (${Math.floor(avgX)}, ${Math.floor(avgY)})`, avgX + 20, avgY - 5);
     } else {
       visionResult = 'none';
       currentCentroid.detected = false;
@@ -1006,10 +1006,10 @@ btnLearnStart.addEventListener('click', () => {
     btnLearnStart.classList.remove('btn-run');
     
     learnConsole.innerText = "Console: WIZARD STARTED.";
-    logConsole("STEP 1: SCAN THE ROBOT!");
-    logConsole("Click directly on the robot's colored tracking marker in the camera view above to register its color.");
+    logConsole("STEP 1: SCAN THE CREATION!");
+    logConsole("Click directly on your creation's colored tracking marker in the camera view above to register its color.");
   } else if (trainingState === 'COLOR_REGISTER') {
-    logConsole("Still waiting for robot scan. Click on the robot's colored marker in the video viewport.");
+    logConsole("Still waiting for creation scan. Click on your creation's colored marker in the video viewport.");
   }
 });
 
