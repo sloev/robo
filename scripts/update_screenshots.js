@@ -65,6 +65,8 @@ server.listen(PORT, async () => {
     });
 
     const page = await browser.newPage();
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    page.on('pageerror', err => console.error('PAGE ERROR:', err.message));
     await page.setViewport({ width: 1280, height: 850 });
     
     console.log('Navigating to dashboard...');
@@ -76,21 +78,55 @@ server.listen(PORT, async () => {
 
     // Populate workspace with some blocks to show the Scratch-style nesting
     console.log('Populating workspace with example blocks...');
-    await page.click('.block-template[data-type="loop"]');
-    await new Promise(r => setTimeout(r, 200));
-    await page.click('.block-template[data-type="motor"]');
-    await new Promise(r => setTimeout(r, 200));
-    await page.click('.block-template[data-type="wait"]');
-    await new Promise(r => setTimeout(r, 200));
-
-    // Click outside blocks to set active container back to main workspace
-    await page.click('#workspace-canvas');
-    await new Promise(r => setTimeout(r, 200));
-
-    await page.click('.block-template[data-type="if-vision"]');
-    await new Promise(r => setTimeout(r, 200));
-    await page.click('.block-template[data-type="stop-all"]');
-    await new Promise(r => setTimeout(r, 200));
+    await page.evaluate(() => {
+      const workspace = Blockly.getMainWorkspace();
+      workspace.clear();
+      
+      // Create a repeat loop block
+      const loopBlock = workspace.newBlock('loop');
+      loopBlock.setFieldValue('3', 'COUNT');
+      loopBlock.initSvg();
+      loopBlock.render();
+      
+      // Create a motor move block
+      const motorBlock = workspace.newBlock('motor');
+      motorBlock.setFieldValue('A', 'MOTOR');
+      motorBlock.setFieldValue('100', 'STEPS');
+      motorBlock.setFieldValue('2', 'SPEED');
+      motorBlock.setFieldValue('1', 'DIR');
+      motorBlock.initSvg();
+      motorBlock.render();
+      
+      // Connect motorBlock to the SUBSTACK input of loopBlock
+      loopBlock.getInput('SUBSTACK').connection.connect(motorBlock.previousConnection);
+      
+      // Create a wait block
+      const waitBlock = workspace.newBlock('wait');
+      waitBlock.setFieldValue('1.0', 'DURATION');
+      waitBlock.initSvg();
+      waitBlock.render();
+      
+      // Connect waitBlock after motorBlock
+      motorBlock.nextConnection.connect(waitBlock.previousConnection);
+      
+      // Create an if-vision block
+      const ifBlock = workspace.newBlock('if-vision');
+      ifBlock.setFieldValue('left', 'VALUE');
+      ifBlock.initSvg();
+      ifBlock.render();
+      
+      // Connect ifBlock after loopBlock
+      loopBlock.nextConnection.connect(ifBlock.previousConnection);
+      
+      // Create a stop-all block
+      const stopBlock = workspace.newBlock('stop-all');
+      stopBlock.initSvg();
+      stopBlock.render();
+      
+      // Connect stopBlock to the SUBSTACK of ifBlock
+      ifBlock.getInput('SUBSTACK').connection.connect(stopBlock.previousConnection);
+    });
+    await new Promise(r => setTimeout(r, 1000));
 
     // Ensure the screenshots directory exists
     const ssDir = path.join(__dirname, '..', 'screenshots');

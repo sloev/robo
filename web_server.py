@@ -64,6 +64,24 @@ class WebServer:
                 await self.serve_file('/static/style.css', 'text/css', writer)
             elif clean_path == '/app.js':
                 await self.serve_file('/static/app.js', 'application/javascript', writer)
+            elif clean_path == '/blockly_compressed.js':
+                await self.serve_file('/static/blockly_compressed.js', 'application/javascript', writer)
+            elif clean_path == '/en.js':
+                await self.serve_file('/static/en.js', 'application/javascript', writer)
+            elif clean_path.startswith('/media/'):
+                ext = clean_path.split('.')[-1].lower()
+                content_type = 'application/octet-stream'
+                if ext == 'svg':
+                    content_type = 'image/svg+xml'
+                elif ext == 'mp3':
+                    content_type = 'audio/mpeg'
+                elif ext == 'gif':
+                    content_type = 'image/gif'
+                elif ext == 'png':
+                    content_type = 'image/png'
+                elif ext == 'cur':
+                    content_type = 'image/x-icon'
+                await self.serve_file('/static' + clean_path, content_type, writer)
                 
             # 3. Captive Portal Redirection
             else:
@@ -90,16 +108,27 @@ class WebServer:
 
     async def serve_file(self, filepath, content_type, writer):
         try:
-            # Check if file exists
-            os.stat(filepath)
+            # Check if gzipped version exists first
+            gz_path = filepath + ".gz"
+            is_gz = False
+            try:
+                os.stat(gz_path)
+                filepath = gz_path
+                is_gz = True
+            except OSError:
+                os.stat(filepath)
+                
             size = os.stat(filepath)[6]
             
             header = (
                 "HTTP/1.1 200 OK\r\n"
                 f"Content-Type: {content_type}\r\n"
                 f"Content-Length: {size}\r\n"
-                "Connection: close\r\n\r\n"
             )
+            if is_gz:
+                header += "Content-Encoding: gzip\r\n"
+            header += "Connection: close\r\n\r\n"
+            
             writer.write(header.encode('utf-8'))
             await writer.drain()
             

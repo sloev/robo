@@ -37,9 +37,13 @@ ifeq ($(TOOL), mpremote)
 	mpremote connect $(PORT) fs cp stepper.py :stepper.py
 	mpremote connect $(PORT) fs cp dns_server.py :dns_server.py
 	mpremote connect $(PORT) fs cp web_server.py :web_server.py
-	mpremote connect $(PORT) fs cp static/index.html :static/index.html
-	mpremote connect $(PORT) fs cp static/style.css :static/style.css
-	mpremote connect $(PORT) fs cp static/app.js :static/app.js
+	mpremote connect $(PORT) fs cp static/index.html.gz :static/index.html.gz
+	mpremote connect $(PORT) fs cp static/style.css.gz :static/style.css.gz
+	mpremote connect $(PORT) fs cp static/app.js.gz :static/app.js.gz
+	mpremote connect $(PORT) fs cp static/blockly_compressed.js.gz :static/blockly_compressed.js.gz
+	mpremote connect $(PORT) fs cp static/en.js.gz :static/en.js.gz
+	mpremote connect $(PORT) fs mkdir :static/media || true
+	for f in static/media/*; do mpremote connect $(PORT) fs cp $$f :static/media/$$(basename $$f) || true; done
 else
 	# Fallback using ampy (requires installation of adafruit-ampy)
 	ampy --port $(PORT) --baud $(BAUD) put boot.py

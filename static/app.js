@@ -1,5 +1,4 @@
 // State management
-let activeContainer = null;
 const mainWorkspace = document.getElementById('workspace-canvas');
 
 // Connection and status elements
@@ -10,13 +9,9 @@ const statusRobotMode = document.getElementById('status-robot-mode');
 // Dynamic motors configuration
 let configuredMotors = ['A', 'B']; // Default fallback
 let activeJoysticks = {};
-
-// Default active container is the main workspace
-setActiveContainer(mainWorkspace);
-
+let workspace = null;
 
 // --- DUAL BLOCKS/CODE WORKSPACE MANAGER ---
-
 let currentEditorMode = 'blocks'; // 'blocks' or 'code'
 
 const btnModeBlocks = document.getElementById('btn-mode-blocks');
@@ -27,6 +22,321 @@ const rawCodeEditor = document.getElementById('raw-code-editor');
 const rawCodeTextarea = document.getElementById('raw-code-textarea');
 const toolboxAside = document.querySelector('.toolbox');
 
+// Helper to get dropdown options for configured motors dynamically
+function getMotorOptions() {
+  if (!configuredMotors || configuredMotors.length === 0) {
+    return [["Motor A", "A"], ["Motor B", "B"]];
+  }
+  return configuredMotors.map(m => ["Motor " + m, m]);
+}
+
+// Define custom Blockly blocks
+Blockly.Blocks['motor'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("Move")
+        .appendField(new Blockly.FieldDropdown(() => getMotorOptions()), "MOTOR")
+        .appendField(new Blockly.FieldNumber(100, 1, 10000), "STEPS")
+        .appendField("steps at speed delay")
+        .appendField(new Blockly.FieldNumber(2, 1, 50), "SPEED")
+        .appendField("ms")
+        .appendField(new Blockly.FieldDropdown([["Forward", "1"], ["Backward", "-1"]]), "DIR");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#4C97FF");
+  }
+};
+
+Blockly.Blocks['set-speed'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("Set Speed of")
+        .appendField(new Blockly.FieldDropdown(() => getMotorOptions()), "MOTOR")
+        .appendField("to speed delay")
+        .appendField(new Blockly.FieldNumber(2, 1, 50), "SPEED")
+        .appendField("ms");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#4C97FF");
+  }
+};
+
+Blockly.Blocks['stop-all'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("🛑 Stop Motors");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#4C97FF");
+  }
+};
+
+Blockly.Blocks['wait'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("Wait")
+        .appendField(new Blockly.FieldNumber(1.0, 0.1, 60, 0.1), "DURATION")
+        .appendField("seconds");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FFAB19");
+  }
+};
+
+Blockly.Blocks['loop'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("🔄 Repeat")
+        .appendField(new Blockly.FieldNumber(3, 1, 100), "COUNT")
+        .appendField("times");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FFAB19");
+  }
+};
+
+Blockly.Blocks['if-vision'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("🔍 If Vision detects target on")
+        .appendField(new Blockly.FieldDropdown([
+          ["Left", "left"],
+          ["Center", "center"],
+          ["Right", "right"],
+          ["None", "none"]
+        ]), "VALUE");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FF6680");
+  }
+};
+
+Blockly.Blocks['if-sound'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("🎤 If Sound detects")
+        .appendField(new Blockly.FieldDropdown([
+          ["Clap", "clap"],
+          ["None", "none"]
+        ]), "VALUE");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#9966FF");
+  }
+};
+
+Blockly.Blocks['if-button'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("🔘 If Button")
+        .appendField(new Blockly.FieldDropdown([
+          ["A (GP12)", "button_a"],
+          ["B (GP13)", "button_b"]
+        ]), "BUTTON")
+        .appendField("is")
+        .appendField(new Blockly.FieldDropdown([
+          ["Pressed", "pressed"],
+          ["Released", "released"]
+        ]), "STATE");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FF6680");
+  }
+};
+
+Blockly.Blocks['if-dial'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("🎛️ If Dial (GP14) is")
+        .appendField(new Blockly.FieldDropdown([
+          ["Greater than", "gt"],
+          ["Less than", "lt"],
+          ["Equal to", "eq"]
+        ]), "OP")
+        .appendField(new Blockly.FieldNumber(50, 0, 100), "VAL")
+        .appendField("%");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FFAB19");
+  }
+};
+
+Blockly.Blocks['if-ir'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("📡 If Infrared on")
+        .appendField(new Blockly.FieldDropdown([
+          ["GP12", "button_a"],
+          ["GP13", "button_b"]
+        ]), "PORT")
+        .appendField("detects")
+        .appendField(new Blockly.FieldDropdown([
+          ["Object/Line (Low)", "pressed"],
+          ["Nothing (High)", "released"]
+        ]), "STATE");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FF6680");
+  }
+};
+
+Blockly.Blocks['if-light'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("☀️ If Light (GP14) is")
+        .appendField(new Blockly.FieldDropdown([
+          ["Darker than", "lt"],
+          ["Brighter than", "gt"],
+          ["Equal to", "eq"]
+        ]), "OP")
+        .appendField(new Blockly.FieldNumber(30, 0, 100), "VAL")
+        .appendField("%");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FFAB19");
+  }
+};
+
+Blockly.Blocks['if-limit'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("🛑 If Limit Switch on")
+        .appendField(new Blockly.FieldDropdown([
+          ["GP12", "button_a"],
+          ["GP13", "button_b"]
+        ]), "PORT")
+        .appendField("is")
+        .appendField(new Blockly.FieldDropdown([
+          ["Triggered (Pressed)", "pressed"],
+          ["Open (Released)", "released"]
+        ]), "STATE");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FF6680");
+  }
+};
+
+// Category Toolbox JSON configuration (matches Scratch visually)
+const toolboxJson = {
+  "kind": "categoryToolbox",
+  "contents": [
+    {
+      "kind": "category",
+      "name": "Motion",
+      "colour": "#4C97FF",
+      "contents": [
+        {
+          "kind": "block",
+          "type": "motor"
+        },
+        {
+          "kind": "block",
+          "type": "set-speed"
+        },
+        {
+          "kind": "block",
+          "type": "stop-all"
+        }
+      ]
+    },
+    {
+      "kind": "category",
+      "name": "Control",
+      "colour": "#FFAB19",
+      "contents": [
+        {
+          "kind": "block",
+          "type": "wait"
+        },
+        {
+          "kind": "block",
+          "type": "loop"
+        }
+      ]
+    },
+    {
+      "kind": "category",
+      "name": "Sensing",
+      "colour": "#FF6680",
+      "contents": [
+        {
+          "kind": "block",
+          "type": "if-vision"
+        },
+        {
+          "kind": "block",
+          "type": "if-sound"
+        },
+        {
+          "kind": "block",
+          "type": "if-button"
+        },
+        {
+          "kind": "block",
+          "type": "if-dial"
+        },
+        {
+          "kind": "block",
+          "type": "if-ir"
+        },
+        {
+          "kind": "block",
+          "type": "if-light"
+        },
+        {
+          "kind": "block",
+          "type": "if-limit"
+        }
+      ]
+    }
+  ]
+};
+
+// Initialize Blockly Workspace
+function initBlockly() {
+  workspace = Blockly.inject('workspace-canvas', {
+    toolbox: toolboxJson,
+    scrollbars: true,
+    trashcan: true,
+    zoom: {
+      controls: true,
+      wheel: true,
+      startScale: 1.0,
+      maxScale: 3,
+      minScale: 0.3,
+      scaleSpeed: 1.2
+    },
+    grid: {
+      spacing: 20,
+      length: 3,
+      colour: '#ccc',
+      snap: true
+    }
+  });
+
+  // Watch for workspace changes to regenerate preview and auto-save
+  workspace.addChangeListener((event) => {
+    if (event.isUiEvent) return;
+    updateCodePreview();
+  });
+}
+
 btnModeBlocks.addEventListener('click', () => {
   if (currentEditorMode === 'blocks') return;
   currentEditorMode = 'blocks';
@@ -34,12 +344,16 @@ btnModeBlocks.addEventListener('click', () => {
   btnModeBlocks.classList.add('active');
   btnModeCode.classList.remove('active');
   
-  workspaceCanvas.style.display = 'flex';
+  workspaceCanvas.style.display = 'block';
   codePreviewPane.style.display = 'flex';
   rawCodeEditor.style.display = 'none';
-  toolboxAside.style.display = 'block';
+  if (toolboxAside) toolboxAside.style.display = 'none';
   
   localStorage.setItem('editor_mode', 'blocks');
+  
+  if (workspace) {
+    Blockly.svgResize(workspace);
+  }
   updateCodePreview();
 });
 
@@ -53,97 +367,232 @@ btnModeCode.addEventListener('click', () => {
   workspaceCanvas.style.display = 'none';
   codePreviewPane.style.display = 'none';
   rawCodeEditor.style.display = 'flex';
-  toolboxAside.style.display = 'none';
+  if (toolboxAside) toolboxAside.style.display = 'none';
   
   localStorage.setItem('editor_mode', 'code');
   
-  // Set initial textarea code to the compiled python code from blocks
-  const recipe = compileWorkspace(mainWorkspace);
+  const recipe = compileWorkspace();
   const pythonCode = generateMicroPython(recipe);
   rawCodeTextarea.value = pythonCode || "# Write custom MicroPython code here...\nimport uasyncio as asyncio\n\n";
   localStorage.setItem('raw_python_code', rawCodeTextarea.value);
 });
 
-rawCodeTextarea.addEventListener('input', () => {
-  localStorage.setItem('raw_python_code', rawCodeTextarea.value);
-});
-
 // Update the code preview and save settings automatically
 function updateCodePreview() {
-  const recipe = compileWorkspace(mainWorkspace);
+  const recipe = compileWorkspace();
   const pythonCode = generateMicroPython(recipe);
   const previewText = document.getElementById('code-preview-text');
   if (previewText) {
     previewText.innerText = pythonCode || "# Drag blocks here to generate MicroPython code...";
   }
   
-  // Auto-save blocks structure
-  localStorage.setItem('workspace_blocks', JSON.stringify(serializeWorkspace(mainWorkspace)));
-}
-
-// Watch inputs and selects inside the block workspace to regenerate code on change
-mainWorkspace.addEventListener('input', updateCodePreview);
-mainWorkspace.addEventListener('change', updateCodePreview);
-
-// Serialize block workspace structure to JSON
-function serializeWorkspace(container) {
-  const serialized = [];
-  for (let child of container.children) {
-    if (child.classList.contains('program-block') || child.classList.contains('loop-container')) {
-      const blockType = child.dataset.blockType;
-      const data = { type: blockType };
-      
-      // Extract input/select values in header
-      const headerLeft = child.querySelector('.loop-header-left, .block-content');
-      if (headerLeft) {
-        data.values = {};
-        headerLeft.querySelectorAll('input, select').forEach(el => {
-          data.values[el.className] = el.value;
-        });
-      }
-      
-      // If it has a nested body, serialize it recursively
-      const body = child.querySelector('.loop-body');
-      if (body) {
-        data.body = serializeWorkspace(body);
-      }
-      
-      serialized.push(data);
+  // Auto-save blocks structure in Blockly XML/JSON serialization format
+  if (workspace && currentEditorMode === 'blocks') {
+    try {
+      const state = Blockly.serialization.workspaces.save(workspace);
+      localStorage.setItem('workspace_blocks', JSON.stringify(state));
+    } catch (err) {
+      console.error("Auto-save failed:", err);
     }
   }
-  return serialized;
+  updateEmptyMessages();
 }
 
-// Deserialize block workspace structure from JSON
-function deserializeWorkspace(serialized, container) {
-  serialized.forEach(data => {
-    const blockEl = createBlockElement(data.type);
-    if (!blockEl) return;
-    
-    // Restore input/select values
-    const headerLeft = blockEl.querySelector('.loop-header-left, .block-content');
-    if (headerLeft && data.values) {
-      Object.keys(data.values).forEach(className => {
-        const el = headerLeft.querySelector(`.${className}`);
-        if (el) {
-          el.value = data.values[className];
-        }
-      });
-    }
-    
-    // Restore nested body recursively
-    const body = blockEl.querySelector('.loop-body');
-    if (body && data.body) {
-      deserializeWorkspace(data.body, body);
-    }
-    
-    container.appendChild(blockEl);
+// Show/hide empty workspace placeholders
+function updateEmptyMessages() {
+  const emptyMsg = document.getElementById('empty-message');
+  if (!emptyMsg) return;
+  const hasBlocks = workspace && workspace.getAllBlocks(false).length > 0;
+  if (hasBlocks) {
+    emptyMsg.style.display = 'none';
+  } else {
+    emptyMsg.style.display = 'flex';
+  }
+}
+
+// Clear workspace
+document.getElementById('btn-clear-workspace').addEventListener('click', () => {
+  if (workspace) {
+    workspace.clear();
+  }
+  updateCodePreview();
+});
+
+// Compile visual nested block tree to flat recipe arrays
+function compileWorkspace(container) {
+  if (!workspace) return [];
+  const topBlocks = workspace.getTopBlocks(true); // Sorted top-to-bottom
+  const recipe = [];
+  topBlocks.forEach(block => {
+    recipe.push(...compileBlocklyStack(block));
   });
+  return recipe;
 }
 
-// Load workspace settings on startup
+function compileBlocklyStack(block) {
+  const steps = [];
+  let current = block;
+  while (current) {
+    if (!current.isInsertionMarker()) {
+      const step = blocklyToRecipeStep(current);
+      if (step) {
+        steps.push(step);
+      }
+    }
+    current = current.getNextBlock();
+  }
+  return steps;
+}
+
+function blocklyToRecipeStep(block) {
+  const type = block.type;
+  
+  if (type === 'motor') {
+    const motor = block.getFieldValue('MOTOR');
+    const steps = parseInt(block.getFieldValue('STEPS')) || 0;
+    const speed = parseInt(block.getFieldValue('SPEED')) || 2;
+    const dir = parseInt(block.getFieldValue('DIR')) || 1;
+    return {
+      action: 'move',
+      motor: motor,
+      steps: steps * dir,
+      speed: speed
+    };
+  }
+  
+  if (type === 'set-speed') {
+    const motor = block.getFieldValue('MOTOR');
+    const speed = parseInt(block.getFieldValue('SPEED')) || 2;
+    return {
+      action: 'set_speed',
+      motor: motor,
+      speed: speed
+    };
+  }
+  
+  if (type === 'stop-all') {
+    return {
+      action: 'stop_all'
+    };
+  }
+  
+  if (type === 'wait') {
+    const duration = parseFloat(block.getFieldValue('DURATION')) || 0.0;
+    return {
+      action: 'wait',
+      duration: duration
+    };
+  }
+  
+  if (type === 'loop') {
+    const iterations = parseInt(block.getFieldValue('COUNT')) || 1;
+    const substackBlock = block.getInputTargetBlock('SUBSTACK');
+    const nestedBlocks = substackBlock ? compileBlocklyStack(substackBlock) : [];
+    return {
+      action: 'loop',
+      iterations: iterations,
+      body: nestedBlocks
+    };
+  }
+  
+  if (type === 'if-vision') {
+    const value = block.getFieldValue('VALUE');
+    const substackBlock = block.getInputTargetBlock('SUBSTACK');
+    const nestedBlocks = substackBlock ? compileBlocklyStack(substackBlock) : [];
+    return {
+      action: 'if',
+      sensor: 'vision',
+      value: value,
+      body: nestedBlocks
+    };
+  }
+  
+  if (type === 'if-sound') {
+    const value = block.getFieldValue('VALUE');
+    const substackBlock = block.getInputTargetBlock('SUBSTACK');
+    const nestedBlocks = substackBlock ? compileBlocklyStack(substackBlock) : [];
+    return {
+      action: 'if',
+      sensor: 'sound',
+      value: value,
+      body: nestedBlocks
+    };
+  }
+  
+  if (type === 'if-button') {
+    const name = block.getFieldValue('BUTTON');
+    const state = block.getFieldValue('STATE');
+    const substackBlock = block.getInputTargetBlock('SUBSTACK');
+    const nestedBlocks = substackBlock ? compileBlocklyStack(substackBlock) : [];
+    return {
+      action: 'if',
+      sensor: name,
+      value: state,
+      op: 'eq',
+      body: nestedBlocks
+    };
+  }
+  
+  if (type === 'if-dial') {
+    const op = block.getFieldValue('OP');
+    const val = parseInt(block.getFieldValue('VAL')) || 0;
+    const substackBlock = block.getInputTargetBlock('SUBSTACK');
+    const nestedBlocks = substackBlock ? compileBlocklyStack(substackBlock) : [];
+    return {
+      action: 'if',
+      sensor: 'potentiometer',
+      value: val,
+      op: op,
+      body: nestedBlocks
+    };
+  }
+  
+  if (type === 'if-ir') {
+    const port = block.getFieldValue('PORT');
+    const state = block.getFieldValue('STATE');
+    const substackBlock = block.getInputTargetBlock('SUBSTACK');
+    const nestedBlocks = substackBlock ? compileBlocklyStack(substackBlock) : [];
+    return {
+      action: 'if',
+      sensor: port,
+      value: state,
+      op: 'eq',
+      body: nestedBlocks
+    };
+  }
+  
+  if (type === 'if-light') {
+    const op = block.getFieldValue('OP');
+    const val = parseInt(block.getFieldValue('VAL')) || 0;
+    const substackBlock = block.getInputTargetBlock('SUBSTACK');
+    const nestedBlocks = substackBlock ? compileBlocklyStack(substackBlock) : [];
+    return {
+      action: 'if',
+      sensor: 'potentiometer',
+      value: val,
+      op: op,
+      body: nestedBlocks
+    };
+  }
+  
+  if (type === 'if-limit') {
+    const port = block.getFieldValue('PORT');
+    const state = block.getFieldValue('STATE');
+    const substackBlock = block.getInputTargetBlock('SUBSTACK');
+    const nestedBlocks = substackBlock ? compileBlocklyStack(substackBlock) : [];
+    return {
+      action: 'if',
+      sensor: port,
+      value: state,
+      op: 'eq',
+      body: nestedBlocks
+    };
+  }
+  
+  return null;
+}
+
 function loadSavedWorkspace() {
-  // 1. Load editor mode
   const savedMode = localStorage.getItem('editor_mode');
   if (savedMode === 'code') {
     currentEditorMode = 'code';
@@ -152,39 +601,44 @@ function loadSavedWorkspace() {
     workspaceCanvas.style.display = 'none';
     codePreviewPane.style.display = 'none';
     rawCodeEditor.style.display = 'flex';
-    toolboxAside.style.display = 'none';
+    if (toolboxAside) toolboxAside.style.display = 'none';
+  } else {
+    currentEditorMode = 'blocks';
+    btnModeBlocks.classList.add('active');
+    btnModeCode.classList.remove('active');
+    workspaceCanvas.style.display = 'block';
+    codePreviewPane.style.display = 'flex';
+    rawCodeEditor.style.display = 'none';
+    if (toolboxAside) toolboxAside.style.display = 'none';
   }
   
-  // 2. Load blocks workspace
   const savedBlocksJson = localStorage.getItem('workspace_blocks');
-  if (savedBlocksJson) {
+  if (savedBlocksJson && workspace) {
     try {
-      const savedBlocks = JSON.parse(savedBlocksJson);
-      deserializeWorkspace(savedBlocks, mainWorkspace);
-      updateEmptyMessages();
+      const state = JSON.parse(savedBlocksJson);
+      Blockly.serialization.workspaces.load(state, workspace);
     } catch (err) {
-      console.error("Failed to restore blocks workspace:", err);
+      console.warn("Failed to restore blocks workspace:", err);
     }
   }
   
-  // 3. Load custom python code
   const savedPythonCode = localStorage.getItem('raw_python_code');
   if (savedPythonCode !== null) {
     rawCodeTextarea.value = savedPythonCode;
-  } else {
-    // Generate initial preview if no code saved
-    updateCodePreview();
   }
+  
+  updateCodePreview();
 }
 
-// Trigger load on startup
+// Initialize Blockly and load saved settings
+initBlockly();
 loadSavedWorkspace();
 
 // Generate MicroPython from block recipes
 function generateMicroPython(blocks, indent = "") {
   let code = "";
   
-  if (blocks.length === 0) {
+  if (!blocks || blocks.length === 0) {
     return indent + "pass\n";
   }
   
@@ -254,637 +708,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     }
   });
 });
-
-// Set active container for block insertion
-function setActiveContainer(container) {
-  if (activeContainer) {
-    activeContainer.classList.remove('active-dropzone');
-    activeContainer.style.borderColor = '';
-  }
-  activeContainer = container;
-  if (container !== mainWorkspace) {
-    container.classList.add('active-dropzone');
-    container.style.borderColor = 'var(--orange-accent)';
-  }
-  updateEmptyMessages();
-}
-
-// Show/hide empty workspace placeholders
-function updateEmptyMessages() {
-  const emptyMsg = document.getElementById('empty-message');
-  if (mainWorkspace.children.length > 1) { // more than the empty message itself
-    emptyMsg.style.display = 'none';
-  } else {
-    emptyMsg.style.display = 'flex';
-  }
-  updateCodePreview();
-}
-
-// Toolbox button actions (adding blocks)
-document.querySelectorAll('.block-template').forEach(template => {
-  template.addEventListener('click', () => {
-    const type = template.dataset.type;
-    const blockEl = createBlockElement(type);
-    
-    if (activeContainer === mainWorkspace) {
-      mainWorkspace.appendChild(blockEl);
-    } else {
-      activeContainer.appendChild(blockEl);
-    }
-    
-    updateEmptyMessages();
-  });
-});
-
-// Click anywhere on workspace background to reset active target to main workspace
-mainWorkspace.addEventListener('click', (e) => {
-  if (e.target === mainWorkspace || e.target.id === 'empty-message') {
-    setActiveContainer(mainWorkspace);
-  }
-});
-
-// Helper to get dropdown options for configured motors
-function getMotorOptionsHTML() {
-  return configuredMotors.map(m => `<option value="${m}">Motor ${m}</option>`).join('');
-}
-
-// Recursively build HTML block elements
-function createBlockElement(type) {
-  if (type === 'loop') {
-    const container = document.createElement('div');
-    container.className = 'loop-container';
-    container.dataset.blockType = 'loop';
-    
-    container.innerHTML = `
-      <div class="loop-header">
-        <div class="loop-header-left">
-          <span>🔄 Repeat</span>
-          <input type="number" value="3" min="1" max="100" class="loop-count">
-          <span>times</span>
-        </div>
-        <button class="block-remove">&times;</button>
-      </div>
-      <div class="loop-body"></div>
-      <div class="loop-footer"></div>
-    `;
-    
-    const body = container.querySelector('.loop-body');
-    const removeBtn = container.querySelector('.block-remove');
-    
-    setTimeout(() => setActiveContainer(body), 50);
-    
-    body.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setActiveContainer(body);
-    });
-    
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.remove();
-      if (activeContainer === body) {
-        setActiveContainer(mainWorkspace);
-      }
-      updateEmptyMessages();
-    });
-    
-    return container;
-  }
-  
-  if (type === 'if-vision') {
-    const container = document.createElement('div');
-    container.className = 'loop-container';
-    container.dataset.blockType = 'if-vision';
-    
-    container.innerHTML = `
-      <div class="loop-header">
-        <div class="loop-header-left">
-          <span>🔍 If Vision detects target on</span>
-          <select class="if-vision-value">
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
-            <option value="none">None</option>
-          </select>
-          <span>then:</span>
-        </div>
-        <button class="block-remove">&times;</button>
-      </div>
-      <div class="loop-body"></div>
-      <div class="loop-footer"></div>
-    `;
-    
-    const body = container.querySelector('.loop-body');
-    const removeBtn = container.querySelector('.block-remove');
-    
-    setTimeout(() => setActiveContainer(body), 50);
-    
-    body.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setActiveContainer(body);
-    });
-    
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.remove();
-      if (activeContainer === body) {
-        setActiveContainer(mainWorkspace);
-      }
-      updateEmptyMessages();
-    });
-    
-    return container;
-  }
-
-  if (type === 'if-sound') {
-    const container = document.createElement('div');
-    container.className = 'loop-container';
-    container.dataset.blockType = 'if-sound';
-    
-    container.innerHTML = `
-      <div class="loop-header">
-        <div class="loop-header-left">
-          <span>🎤 If Sound detects</span>
-          <select class="if-sound-value">
-            <option value="clap">Clap</option>
-            <option value="none">None</option>
-          </select>
-          <span>then:</span>
-        </div>
-        <button class="block-remove">&times;</button>
-      </div>
-      <div class="loop-body"></div>
-      <div class="loop-footer"></div>
-    `;
-    
-    const body = container.querySelector('.loop-body');
-    const removeBtn = container.querySelector('.block-remove');
-    
-    setTimeout(() => setActiveContainer(body), 50);
-    
-    body.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setActiveContainer(body);
-    });
-    
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.remove();
-      if (activeContainer === body) {
-        setActiveContainer(mainWorkspace);
-      }
-      updateEmptyMessages();
-    });
-    
-    return container;
-  }
-
-  if (type === 'if-button') {
-    const container = document.createElement('div');
-    container.className = 'loop-container';
-    container.dataset.blockType = 'if-button';
-    
-    container.innerHTML = `
-      <div class="loop-header">
-        <div class="loop-header-left">
-          <span>🔘 If Button</span>
-          <select class="if-button-name">
-            <option value="button_a">A (GP12)</option>
-            <option value="button_b">B (GP13)</option>
-          </select>
-          <span>is</span>
-          <select class="if-button-state">
-            <option value="pressed">Pressed</option>
-            <option value="released">Released</option>
-          </select>
-          <span>then:</span>
-        </div>
-        <button class="block-remove">&times;</button>
-      </div>
-      <div class="loop-body"></div>
-      <div class="loop-footer"></div>
-    `;
-    
-    const body = container.querySelector('.loop-body');
-    const removeBtn = container.querySelector('.block-remove');
-    
-    setTimeout(() => setActiveContainer(body), 50);
-    
-    body.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setActiveContainer(body);
-    });
-    
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.remove();
-      if (activeContainer === body) {
-        setActiveContainer(mainWorkspace);
-      }
-      updateEmptyMessages();
-    });
-    
-    return container;
-  }
-
-  if (type === 'if-dial') {
-    const container = document.createElement('div');
-    container.className = 'loop-container';
-    container.dataset.blockType = 'if-dial';
-    
-    container.innerHTML = `
-      <div class="loop-header">
-        <div class="loop-header-left">
-          <span>🎛️ If Dial (GP14) is</span>
-          <select class="if-dial-op">
-            <option value="gt">Greater than</option>
-            <option value="lt">Less than</option>
-            <option value="eq">Equal to</option>
-          </select>
-          <input type="number" value="50" min="0" max="100" class="if-dial-val">%
-          <span>then:</span>
-        </div>
-        <button class="block-remove">&times;</button>
-      </div>
-      <div class="loop-body"></div>
-      <div class="loop-footer"></div>
-    `;
-    
-    const body = container.querySelector('.loop-body');
-    const removeBtn = container.querySelector('.block-remove');
-    
-    setTimeout(() => setActiveContainer(body), 50);
-    
-    body.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setActiveContainer(body);
-    });
-    
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.remove();
-      if (activeContainer === body) {
-        setActiveContainer(mainWorkspace);
-      }
-      updateEmptyMessages();
-    });
-    
-    return container;
-  }
-
-  if (type === 'if-ir') {
-    const container = document.createElement('div');
-    container.className = 'loop-container';
-    container.dataset.blockType = 'if-ir';
-    
-    container.innerHTML = `
-      <div class="loop-header">
-        <div class="loop-header-left">
-          <span>📡 If Infrared on</span>
-          <select class="if-ir-port">
-            <option value="button_a">GP12</option>
-            <option value="button_b">GP13</option>
-          </select>
-          <span>detects</span>
-          <select class="if-ir-state">
-            <option value="pressed">Object/Line (Low)</option>
-            <option value="released">Nothing (High)</option>
-          </select>
-          <span>then:</span>
-        </div>
-        <button class="block-remove">&times;</button>
-      </div>
-      <div class="loop-body"></div>
-      <div class="loop-footer"></div>
-    `;
-    
-    const body = container.querySelector('.loop-body');
-    const removeBtn = container.querySelector('.block-remove');
-    
-    setTimeout(() => setActiveContainer(body), 50);
-    
-    body.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setActiveContainer(body);
-    });
-    
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.remove();
-      if (activeContainer === body) {
-        setActiveContainer(mainWorkspace);
-      }
-      updateEmptyMessages();
-    });
-    
-    return container;
-  }
-
-  if (type === 'if-light') {
-    const container = document.createElement('div');
-    container.className = 'loop-container';
-    container.dataset.blockType = 'if-light';
-    
-    container.innerHTML = `
-      <div class="loop-header">
-        <div class="loop-header-left">
-          <span>☀️ If Light (GP14) is</span>
-          <select class="if-light-op">
-            <option value="lt">Darker than</option>
-            <option value="gt">Brighter than</option>
-            <option value="eq">Equal to</option>
-          </select>
-          <input type="number" value="30" min="0" max="100" class="if-light-val">%
-          <span>then:</span>
-        </div>
-        <button class="block-remove">&times;</button>
-      </div>
-      <div class="loop-body"></div>
-      <div class="loop-footer"></div>
-    `;
-    
-    const body = container.querySelector('.loop-body');
-    const removeBtn = container.querySelector('.block-remove');
-    
-    setTimeout(() => setActiveContainer(body), 50);
-    
-    body.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setActiveContainer(body);
-    });
-    
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.remove();
-      if (activeContainer === body) {
-        setActiveContainer(mainWorkspace);
-      }
-      updateEmptyMessages();
-    });
-    
-    return container;
-  }
-
-  if (type === 'if-limit') {
-    const container = document.createElement('div');
-    container.className = 'loop-container';
-    container.dataset.blockType = 'if-limit';
-    
-    container.innerHTML = `
-      <div class="loop-header">
-        <div class="loop-header-left">
-          <span>🛑 If Limit Switch on</span>
-          <select class="if-limit-port">
-            <option value="button_a">GP12</option>
-            <option value="button_b">GP13</option>
-          </select>
-          <span>is</span>
-          <select class="if-limit-state">
-            <option value="pressed">Triggered (Pressed)</option>
-            <option value="released">Open (Released)</option>
-          </select>
-          <span>then:</span>
-        </div>
-        <button class="block-remove">&times;</button>
-      </div>
-      <div class="loop-body"></div>
-      <div class="loop-footer"></div>
-    `;
-    
-    const body = container.querySelector('.loop-body');
-    const removeBtn = container.querySelector('.block-remove');
-    
-    setTimeout(() => setActiveContainer(body), 50);
-    
-    body.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setActiveContainer(body);
-    });
-    
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.remove();
-      if (activeContainer === body) {
-        setActiveContainer(mainWorkspace);
-      }
-      updateEmptyMessages();
-    });
-    
-    return container;
-  }
-  
-  // Normal blocks
-  const block = document.createElement('div');
-  block.className = 'program-block';
-  block.dataset.blockType = type;
-  
-  let innerHTML = `<span class="block-handle">☰</span><div class="block-content">`;
-  
-  if (type === 'motor') {
-    innerHTML += `
-      <span>Move</span>
-      <select class="motor-name">${getMotorOptionsHTML()}</select>
-      <input type="number" value="100" min="1" max="10000" class="motor-steps">
-      <span>steps at speed delay</span>
-      <input type="number" value="2" min="1" max="50" class="motor-speed">
-      <span>ms</span>
-      <select class="motor-dir">
-        <option value="1">Forward</option>
-        <option value="-1">Backward</option>
-      </select>
-    `;
-  } else if (type === 'set-speed') {
-    innerHTML += `
-      <span>Set Speed of</span>
-      <select class="motor-name">${getMotorOptionsHTML()}</select>
-      <span>to speed delay</span>
-      <input type="number" value="2" min="1" max="50" class="motor-speed">
-      <span>ms</span>
-    `;
-  } else if (type === 'stop-all') {
-    innerHTML += `
-      <span>Stop All Motors</span>
-    `;
-  } else if (type === 'wait') {
-    innerHTML += `
-      <span>Wait</span>
-      <input type="number" value="1.0" min="0.1" max="60" step="0.5" class="wait-duration">
-      <span>seconds</span>
-    `;
-  }
-  
-  innerHTML += `</div><button class="block-remove">&times;</button>`;
-  block.innerHTML = innerHTML;
-  
-  block.querySelector('.block-remove').addEventListener('click', (e) => {
-    e.stopPropagation();
-    block.remove();
-    updateEmptyMessages();
-  });
-  
-  block.addEventListener('click', (e) => {
-    e.stopPropagation();
-  });
-  
-  return block;
-}
-
-// Clear workspace
-document.getElementById('btn-clear-workspace').addEventListener('click', () => {
-  const children = Array.from(mainWorkspace.children);
-  children.forEach(child => {
-    if (child.id !== 'empty-message') {
-      child.remove();
-    }
-  });
-  setActiveContainer(mainWorkspace);
-});
-
-// Compile program blocks into a recipe JSON array
-function compileWorkspace(container) {
-  const blocks = [];
-  const children = Array.from(container.children);
-  
-  for (let child of children) {
-    if (child.id === 'empty-message') continue;
-    
-    if (child.classList.contains('program-block')) {
-      const type = child.dataset.blockType;
-      if (type === 'motor') {
-        const motor = child.querySelector('.motor-name').value;
-        const steps = parseInt(child.querySelector('.motor-steps').value) || 0;
-        const speed = parseInt(child.querySelector('.motor-speed').value) || 2;
-        const dir = parseInt(child.querySelector('.motor-dir').value) || 1;
-        
-        blocks.push({
-          action: 'move',
-          motor: motor,
-          steps: steps * dir,
-          speed: speed
-        });
-      } else if (type === 'set-speed') {
-        const motor = child.querySelector('.motor-name').value;
-        const speed = parseInt(child.querySelector('.motor-speed').value) || 2;
-        
-        blocks.push({
-          action: 'set_speed',
-          motor: motor,
-          speed: speed
-        });
-      } else if (type === 'stop-all') {
-        blocks.push({
-          action: 'stop_all'
-        });
-      } else if (type === 'wait') {
-        const duration = parseFloat(child.querySelector('.wait-duration').value) || 0.0;
-        blocks.push({
-          action: 'wait',
-          duration: duration
-        });
-      }
-    } else if (child.classList.contains('loop-container')) {
-      const blockType = child.dataset.blockType;
-      if (blockType === 'loop') {
-        const iterations = parseInt(child.querySelector('.loop-count').value) || 1;
-        const loopBody = child.querySelector('.loop-body');
-        const nestedBlocks = compileWorkspace(loopBody);
-        
-        blocks.push({
-          action: 'loop',
-          iterations: iterations,
-          body: nestedBlocks
-        });
-      } else if (blockType === 'if-vision') {
-        const value = child.querySelector('.if-vision-value').value;
-        const loopBody = child.querySelector('.loop-body');
-        const nestedBlocks = compileWorkspace(loopBody);
-        
-        blocks.push({
-          action: 'if',
-          sensor: 'vision',
-          value: value,
-          body: nestedBlocks
-        });
-      } else if (blockType === 'if-sound') {
-        const value = child.querySelector('.if-sound-value').value;
-        const loopBody = child.querySelector('.loop-body');
-        const nestedBlocks = compileWorkspace(loopBody);
-        
-        blocks.push({
-          action: 'if',
-          sensor: 'sound',
-          value: value,
-          body: nestedBlocks
-        });
-      } else if (blockType === 'if-button') {
-        const button = child.querySelector('.if-button-name').value;
-        const state = child.querySelector('.if-button-state').value;
-        const loopBody = child.querySelector('.loop-body');
-        const nestedBlocks = compileWorkspace(loopBody);
-        
-        blocks.push({
-          action: 'if',
-          sensor: button,
-          value: state,
-          op: 'eq',
-          body: nestedBlocks
-        });
-      } else if (blockType === 'if-dial') {
-        const op = child.querySelector('.if-dial-op').value;
-        const val = parseInt(child.querySelector('.if-dial-val').value) || 0;
-        const loopBody = child.querySelector('.loop-body');
-        const nestedBlocks = compileWorkspace(loopBody);
-        
-        blocks.push({
-          action: 'if',
-          sensor: 'potentiometer',
-          value: val,
-          op: op,
-          body: nestedBlocks
-        });
-      } else if (blockType === 'if-ir') {
-        const port = child.querySelector('.if-ir-port').value;
-        const state = child.querySelector('.if-ir-state').value;
-        const loopBody = child.querySelector('.loop-body');
-        const nestedBlocks = compileWorkspace(loopBody);
-        
-        blocks.push({
-          action: 'if',
-          sensor: port,
-          value: state,
-          op: 'eq',
-          body: nestedBlocks
-        });
-      } else if (blockType === 'if-light') {
-        const op = child.querySelector('.if-light-op').value;
-        const val = parseInt(child.querySelector('.if-light-val').value) || 0;
-        const loopBody = child.querySelector('.loop-body');
-        const nestedBlocks = compileWorkspace(loopBody);
-        
-        blocks.push({
-          action: 'if',
-          sensor: 'potentiometer',
-          value: val,
-          op: op,
-          body: nestedBlocks
-        });
-      } else if (blockType === 'if-limit') {
-        const port = child.querySelector('.if-limit-port').value;
-        const state = child.querySelector('.if-limit-state').value;
-        const loopBody = child.querySelector('.loop-body');
-        const nestedBlocks = compileWorkspace(loopBody);
-        
-        blocks.push({
-          action: 'if',
-          sensor: port,
-          value: state,
-          op: 'eq',
-          body: nestedBlocks
-        });
-      }
-    }
-  }
-  return blocks;
-}
 
 // Send running recipe
 document.getElementById('btn-run-program').addEventListener('click', async () => {

@@ -143,8 +143,8 @@ h1 {
 
 /* Left Panel: Visual Programming Layout */
 .programming-layout {
-  display: grid;
-  grid-template-columns: 240px 1fr;
+  display: flex !important;
+  flex-direction: row;
   flex: 1;
   min-height: 600px;
   background-color: #ffffff;
@@ -152,18 +152,13 @@ h1 {
 
 @media (max-width: 600px) {
   .programming-layout {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 }
 
-/* Toolbox - Light gray bar on the left */
+/* Hide legacy sidebar toolbox since Blockly has its own native category flyout toolbox */
 .toolbox {
-  background-color: #f9fafb;
-  border-right: 2px solid var(--card-border);
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: none !important;
 }
 
 .toolbox-title {
@@ -221,21 +216,23 @@ h1 {
 }
 
 .workspace {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0px;
-  overflow-y: auto;
-  max-height: 650px;
+  position: relative;
+  flex: 1;
+  height: 100%;
+  padding: 0 !important;
+  overflow: hidden !important;
   background-color: #ffffff;
-  background-image: radial-gradient(#d0d7de 1.5px, transparent 1.5px);
-  background-size: 20px 20px;
 }
 
 .workspace-empty-msg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 99;
   color: var(--text-muted);
   text-align: center;
-  margin: auto;
   font-size: 0.9rem;
   display: flex;
   flex-direction: column;
@@ -419,57 +416,13 @@ h1 {
 }
 
 /* Instantiated Blocks in Workspace - Full Colored Scratch-style */
-.program-block {
+.block {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.9rem;
-  border-radius: 8px;
-  gap: 0.75rem;
+  flex-direction: column;
   position: relative;
-  border: none;
-  box-shadow: 0 2px 0px rgba(0,0,0,0.1);
-  color: #ffffff;
+  margin-top: 0;
+  margin-bottom: 0;
   animation: slideIn 0.15s ease-out;
-  height: 42px;
-  box-sizing: border-box;
-  margin-top: 0px;
-}
-
-/* Jigsaw Top Notch */
-.program-block::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 20px;
-  width: 14px;
-  height: 5px;
-  background-color: #ffffff; /* Matches canvas bg */
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  z-index: 2;
-}
-
-/* Jigsaw Bottom Tab */
-.program-block::after {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 20px;
-  width: 14px;
-  height: 5px;
-  background-color: inherit;
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  z-index: 3;
-}
-
-.program-block[data-block-type="motor"] {
-  background-color: var(--cyan-accent);
-}
-
-.program-block[data-block-type="wait"] {
-  background-color: var(--orange-accent);
 }
 
 @keyframes slideIn {
@@ -477,33 +430,85 @@ h1 {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.block-handle {
+.block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.8rem;
+  height: 42px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1);
   cursor: grab;
-  color: rgba(255, 255, 255, 0.7);
+  position: relative;
+  user-select: none;
+}
+
+/* Outer Top Notch Cutout */
+.block-header::before, .block-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 24px;
+  width: 16px;
+  height: 5px;
+  background-color: #ffffff; /* Matches canvas bg */
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  z-index: 2;
+}
+
+/* Outer Bottom Tab Protrusion */
+.block-header::after, .block-footer::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 24px;
+  width: 16px;
+  height: 5px;
+  background-color: inherit;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  z-index: 3;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+}
+
+/* Inner connections for loops/conditionals (shifting tab/notch inside the mouth) */
+.block[data-type="loop"] > .block-header::after,
+.block[data-type^="if-"] > .block-header::after {
+  left: 40px; /* Shifted by 16px spine */
+}
+
+.block-handle {
+  color: rgba(255, 255, 255, 0.6);
   font-size: 1rem;
+  margin-right: 0.4rem;
+  cursor: grab;
 }
 
 .block-content {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
-  font-weight: 700;
-  font-size: 0.85rem;
 }
 
 /* Block Inputs: Clean, Flat White Fields */
 .block-content input[type="number"],
 .block-content select {
   background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  padding: 0.15rem 0.35rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 20px;
+  padding: 0.2rem 0.5rem;
   color: var(--text-main);
   font-weight: 700;
   font-size: 0.8rem;
   outline: none;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .block-content input[type="number"] {
@@ -517,11 +522,12 @@ h1 {
   color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   font-size: 1.2rem;
-  padding: 0.1rem 0.3rem;
+  padding: 0 0.3rem;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
 }
 
 .block-remove:hover {
@@ -530,170 +536,61 @@ h1 {
 }
 
 /* Nested Loops / Conditions (Scratch Control C-Blocks) */
-.loop-container {
-  display: flex;
-  flex-direction: column;
-  border: none;
-  background: none;
-  padding: 0;
-  gap: 0;
-  position: relative;
-  margin-top: 0px;
-  box-shadow: none;
-  --block-color: var(--orange-accent);
-}
-
-.loop-container[data-block-type="loop"] {
-  --block-color: var(--orange-accent);
-}
-.loop-container[data-block-type="if-vision"] {
-  --block-color: var(--red-accent);
-}
-.loop-container[data-block-type="if-sound"] {
-  --block-color: var(--purple-accent);
-}
-.loop-container[data-block-type="if-button"] {
-  --block-color: var(--red-accent);
-}
-.loop-container[data-block-type="if-dial"] {
-  --block-color: var(--orange-accent);
-}
-.loop-container[data-block-type="if-ir"] {
-  --block-color: var(--red-accent);
-}
-.loop-container[data-block-type="if-light"] {
-  --block-color: var(--orange-accent);
-}
-.loop-container[data-block-type="if-limit"] {
-  --block-color: var(--red-accent);
-}
-
-.loop-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0.9rem;
-  background-color: var(--block-color);
-  color: #ffffff;
-  border-radius: 8px 8px 4px 0px;
-  height: 38px;
-  box-sizing: border-box;
-  position: relative;
-  box-shadow: 0 2px 0px rgba(0,0,0,0.1);
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-
-/* Outer Top Connection Notch */
-.loop-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 20px;
-  width: 14px;
-  height: 5px;
-  background-color: #ffffff; /* Matches canvas bg */
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  z-index: 2;
-}
-
-/* Inner Bottom Connection Tab inside Mouth */
-.loop-header::after {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 36px; /* Indented for inner block path */
-  width: 14px;
-  height: 5px;
-  background-color: inherit;
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  z-index: 3;
-}
-
-.loop-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.loop-header-left input[type="number"],
-.loop-header-left select {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
-  padding: 0.15rem 0.35rem;
-  color: var(--text-main);
-  font-weight: 700;
-  font-size: 0.8rem;
-  outline: none;
-}
-
-.loop-header .block-remove {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.loop-header .block-remove:hover {
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.loop-body {
-  padding-left: 0px;
-  border-left: 16px solid var(--block-color); /* C-Block Spine */
+.body-connection {
+  min-height: 24px;
+  border-left: 16px solid var(--block-color); /* Spine */
   display: flex;
   flex-direction: column;
   gap: 0px;
-  min-height: 20px;
   background-color: transparent;
+  padding-left: 0px;
 }
 
-.loop-body:empty::after {
-  content: 'Add blocks inside';
+.body-connection:empty::after {
+  content: 'Drag blocks inside';
   color: var(--text-muted);
   font-size: 0.75rem;
   font-style: italic;
   display: block;
-  padding: 0.5rem 0.5rem;
+  padding: 0.5rem 1rem;
 }
 
-/* Loop Footer closes the C-block */
-.loop-footer {
+.block-footer {
   height: 16px;
   background-color: var(--block-color);
-  border-radius: 0px 0px 8px 8px;
+  border-radius: 0 0 8px 8px;
   position: relative;
-  box-shadow: 0 2px 0px rgba(0,0,0,0.1);
-  box-sizing: border-box;
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Inner Top Connection Notch (bottom of mouth) */
-.loop-footer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 36px;
-  width: 14px;
-  height: 5px;
-  background-color: #ffffff; /* Matches canvas bg */
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  z-index: 2;
+/* Loop Footer inner notch */
+.block-footer::before {
+  left: 40px; /* Shifted by 16px spine */
 }
 
-/* Outer Bottom Connection Tab (under loop container) */
-.loop-footer::after {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 20px;
-  width: 14px;
-  height: 5px;
-  background-color: inherit;
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  z-index: 3;
+/* Next Connection dropzone spacing */
+.next-connection {
+  min-height: 8px;
+  background-color: transparent;
+  transition: background-color 0.15s, min-height 0.15s;
+  position: relative;
+  border-radius: 4px;
+}
+
+.next-connection:empty {
+  height: 8px;
+}
+
+/* Dropzone states */
+.dropzone-active {
+  background-color: rgba(255, 171, 25, 0.15) !important;
+  border: 2px dashed var(--orange-accent);
+  min-height: 40px !important;
+}
+
+.active-container {
+  outline: 2px solid var(--orange-accent);
+  background-color: rgba(255, 171, 25, 0.03);
 }
 
 /* Active dropzone indication */
