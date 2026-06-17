@@ -76,59 +76,21 @@ server.listen(PORT, async () => {
 
     // Populate workspace with some blocks to show the Scratch-style nesting
     console.log('Populating workspace with example blocks...');
-    await page.evaluate(() => {
-      if (typeof blocklyWorkspace !== 'undefined' && blocklyWorkspace) {
-        // Create Repeat loop
-        const loopBlock = blocklyWorkspace.newBlock('loop_repeat');
-        loopBlock.setFieldValue('3', 'TIMES');
-        loopBlock.initSvg();
-        loopBlock.render();
+    await page.click('.block-template[data-type="loop"]');
+    await new Promise(r => setTimeout(r, 200));
+    await page.click('.block-template[data-type="motor"]');
+    await new Promise(r => setTimeout(r, 200));
+    await page.click('.block-template[data-type="wait"]');
+    await new Promise(r => setTimeout(r, 200));
 
-        // Create Move Motor block
-        const motorBlock = blocklyWorkspace.newBlock('motor_move');
-        motorBlock.setFieldValue('A', 'MOTOR');
-        motorBlock.setFieldValue('200', 'STEPS');
-        motorBlock.setFieldValue('2', 'SPEED');
-        motorBlock.setFieldValue('1', 'DIR');
-        motorBlock.initSvg();
-        motorBlock.render();
+    // Click outside blocks to set active container back to main workspace
+    await page.click('#workspace-canvas');
+    await new Promise(r => setTimeout(r, 200));
 
-        // Create Wait block
-        const waitBlock = blocklyWorkspace.newBlock('wait');
-        waitBlock.setFieldValue('1.5', 'DURATION');
-        waitBlock.initSvg();
-        waitBlock.render();
-
-        // Connect motor inside loop
-        const loopDo = loopBlock.getInput('DO').connection;
-        loopDo.connect(motorBlock.previousConnection);
-
-        // Connect wait after motor
-        motorBlock.nextConnection.connect(waitBlock.previousConnection);
-
-        // Create If Vision block
-        const visionBlock = blocklyWorkspace.newBlock('if_vision');
-        visionBlock.setFieldValue('center', 'VALUE');
-        visionBlock.initSvg();
-        visionBlock.render();
-
-        // Create Stop Motors block
-        const stopBlock = blocklyWorkspace.newBlock('motor_stop_all');
-        stopBlock.initSvg();
-        stopBlock.render();
-
-        // Connect stop inside vision check
-        const visionDo = visionBlock.getInput('DO').connection;
-        visionDo.connect(stopBlock.previousConnection);
-
-        // Place loop at (40, 40)
-        loopBlock.moveBy(40, 40);
-
-        // Place vision block below loop
-        visionBlock.moveBy(40, 200);
-      }
-    });
-    await new Promise(r => setTimeout(r, 500));
+    await page.click('.block-template[data-type="if-vision"]');
+    await new Promise(r => setTimeout(r, 200));
+    await page.click('.block-template[data-type="stop-all"]');
+    await new Promise(r => setTimeout(r, 200));
 
     // Ensure the screenshots directory exists
     const ssDir = path.join(__dirname, '..', 'screenshots');

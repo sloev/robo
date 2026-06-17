@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Robo-Control Dashboard</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
-  <script src="https://unpkg.com/blockly/python_compressed.js"></script>
 </head>
 <body>
   <header>
@@ -48,6 +46,71 @@
         </div>
         
         <div class="programming-layout">
+          <!-- Tool Box -->
+          <aside class="toolbox">
+            <div class="toolbox-title">BLOCKS</div>
+            
+            <div class="block-template block-motor" data-type="motor">
+              <span>Move Motor</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-set-speed" data-type="set-speed">
+              <span>Set Motor Speed</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-stop-all" data-type="stop-all">
+              <span>🛑 Stop Motors</span>
+              <span class="add-icon">+</span>
+            </div>
+            
+            <div class="block-template block-wait" data-type="wait">
+              <span>Wait Time</span>
+              <span class="add-icon">+</span>
+            </div>
+            
+            <div class="block-template block-loop" data-type="loop">
+              <span>Repeat Loop</span>
+              <span class="add-icon">+</span>
+            </div>
+            
+            <div class="block-template block-if" data-type="if-vision">
+              <span>If Vision tracks</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-if" data-type="if-sound">
+              <span>If Sound hears</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-if" data-type="if-button">
+              <span>If Button is</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-if" data-type="if-dial">
+              <span>If Dial is</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-if" data-type="if-ir">
+              <span>If Infrared detects</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-if" data-type="if-light">
+              <span>If Light Sensor is</span>
+              <span class="add-icon">+</span>
+            </div>
+
+            <div class="block-template block-if" data-type="if-limit">
+              <span>If Limit Switch is</span>
+              <span class="add-icon">+</span>
+            </div>
+          </aside>
+          
           <!-- Main workspace panel containing mode tabs, split block canvas, code preview, and editor -->
           <div class="workspace-main-panel">
             <div class="workspace-header">
@@ -59,7 +122,11 @@
             
             <div class="workspace-split-container">
               <!-- Workspace for blocks -->
-              <div class="workspace" id="workspace-canvas" style="flex: 1; height: 100%; width: 100%; position: relative;">
+              <div class="workspace" id="workspace-canvas" style="flex: 1;">
+                <div class="workspace-empty-msg" id="empty-message">
+                  <span>🧩</span>
+                  Click blocks on the left to start building your creation program!
+                </div>
               </div>
               
               <!-- Code Preview Pane (Read-only) -->
