@@ -13,9 +13,6 @@
       <h1>ROBO-CONTROL DASHBOARD</h1>
     </div>
     <div style="display: flex; gap: 0.75rem;">
-      <div class="status-badge" id="btn-toggle-pet-mode" title="Launch fullscreen pet controller">
-        <span>🐾 LAUNCH PET FACE</span>
-      </div>
       <div class="status-badge">
         <div class="status-dot" id="connection-dot"></div>
         <span id="connection-text">CONNECTING...</span>
@@ -40,13 +37,8 @@
         <aside class="toolbox">
           <div class="toolbox-title">BLOCKS</div>
           
-          <div class="block-template block-motor-a" data-type="motor-a">
-            <span>Move Motor A</span>
-            <span class="add-icon">+</span>
-          </div>
-          
-          <div class="block-template block-motor-b" data-type="motor-b">
-            <span>Move Motor B</span>
+          <div class="block-template block-motor" data-type="motor">
+            <span>Move Motor</span>
             <span class="add-icon">+</span>
           </div>
           
@@ -123,16 +115,9 @@
         <!-- Status Monitors -->
         <div class="control-card">
           <div class="card-title">STATUS MONITORS</div>
-          <div class="status-grid">
-            <div class="status-card">
-              <div class="status-card-label">MOTOR A POSITION</div>
-              <div class="status-card-val" id="status-motor-a-pos">0</div>
-            </div>
-            <div class="status-card">
-              <div class="status-card-label">MOTOR B POSITION</div>
-              <div class="status-card-val" id="status-motor-b-pos">0</div>
-            </div>
-            <div class="status-card">
+          <div class="status-grid" id="status-grid">
+            <!-- Dynamically generated motor status cards will be prepended here -->
+            <div class="status-card" id="mode-status-card">
               <div class="status-card-label">ROBOT MODE</div>
               <div class="status-card-val" id="status-robot-mode">IDLE</div>
             </div>
@@ -143,62 +128,17 @@
           </div>
         </div>
 
-        <!-- Dual Joystick Manual Control -->
+        <!-- Dynamic Joystick Manual Control -->
         <div class="control-card">
-          <div class="card-title">MANUAL DRIVE OVERRIDE (DUAL JOYSTICKS)</div>
-          <div class="joysticks-container">
-            <!-- Left Motor Joystick -->
-            <div class="joystick-wrapper">
-              <div class="joystick-label">LEFT MOTOR (A)</div>
-              <div class="joystick-track-vertical" id="joy-a-track">
-                <div class="joystick-handle joystick-handle-a" id="joy-a-handle"></div>
-              </div>
-              <div class="joystick-value" id="joy-a-val">STOP</div>
-            </div>
-            
-            <!-- Right Motor Joystick -->
-            <div class="joystick-wrapper">
-              <div class="joystick-label">RIGHT MOTOR (B)</div>
-              <div class="joystick-track-vertical" id="joy-b-track">
-                <div class="joystick-handle joystick-handle-b" id="joy-b-handle"></div>
-              </div>
-              <div class="joystick-value" id="joy-b-val">STOP</div>
-            </div>
+          <div class="card-title">MANUAL DRIVE OVERRIDE</div>
+          <div class="joysticks-container" id="joysticks-container">
+            <!-- Dynamically populated joysticks will go here -->
           </div>
           <div class="joystick-help">Drag the joysticks UP to drive forward (clockwise) or DOWN to drive backward. Speed is controlled by how far you drag. Release to stop.</div>
         </div>
       </div>
     </section>
   </main>
-
-  <!-- Fullscreen Animated Robot Pet Face -->
-  <div id="pet-face-overlay" class="hidden">
-    <div class="pet-split-container">
-      <!-- Left side: Robot's remote camera view -->
-      <div class="pet-vision-panel" id="pet-vision-panel">
-        <div class="pet-panel-title">🐾 ROBOT'S REMOTE EYES</div>
-        <!-- Video & Canvas are appended here during Pet Mode -->
-      </div>
-      
-      <!-- Right side: Pet's Face, Expressions, and log -->
-      <div class="pet-face-panel">
-        <div class="pet-face-container">
-          <div class="eye-container">
-            <div class="eye" id="eye-left">
-              <div class="pupil"></div>
-            </div>
-            <div class="eye" id="eye-right">
-              <div class="pupil"></div>
-            </div>
-          </div>
-          <div class="pet-status-text" id="pet-status-text">ZZZ... SLEEPING (CLAP TO WAKE)</div>
-          <div class="pet-log" id="pet-log">Console: Ready.</div>
-        </div>
-      </div>
-    </div>
-    <div class="exit-pet-help">Click feed to place virtual food 🍬 | Click Exit top-right to close</div>
-    <button class="btn btn-stop btn-exit-pet" id="btn-exit-pet">❌ EXIT PET MODE</button>
-  </div>
 
   <script src="app.js"></script>
 </body>

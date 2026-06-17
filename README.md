@@ -1,4 +1,4 @@
-# ESP32-S2 Mini Robot Controller: Visual Kinematics Machine Learning & Remote Robot Pet Mode
+# ESP32-S2 Mini Robot Controller: Visual Kinematics Machine Learning Dashboard
 
 This is an educational MicroPython project for the **ESP32-S2 Mini** board designed to control **28BYJ-48 stepper motors** via **ULN2003 driver boards**. 
 
@@ -8,67 +8,71 @@ It runs a fully self-contained Access Point (AP) with a **Captive Portal** DNS s
 
 ## 🖥️ Web User Interface in Action
 
-Here is the control dashboard showing the visual block programming workspace, real-time camera tracking, Neural Network kinematics learning console, and dual vertical joystick overrides:
+Here is the control dashboard showing the visual block programming workspace, real-time camera tracking, Neural Network kinematics learning console, and dynamic vertical joystick overrides:
 
 ![Robo-Control Web UI in Action](screenshots/dashboard.jpg)
 
 ### Key UI Features:
-1.  **🧩 Workflow Creator (Left Panel):** Drag-and-drop programming blocks with speed controls and custom conditional blocks based on camera vision tracking.
+1.  **🧩 Workflow Creator (Left Panel):** Drag-and-drop programming blocks with speed controls and custom conditional blocks based on camera vision tracking. It dynamically adapts its dropdown selectors based on the number of configured motors.
 2.  **📷 Vision Sensor Color Tracker (Right Panel - Top):** Real-time client-side color blob centroid tracker with click-to-pick color selection.
 3.  **🧠 Neural Network Learning Mode (Right Panel - Middle):** Self-calibrating gradient descent routine that learns motor kinematics on-the-fly to enable autonomous target following.
-4.  **🐾 Robot Pet Mode (Split-Screen Overlay):** Split-screen dashboard containing the remote camera feed on the left and animated expressive eyes with a green terminal log on the right.
-5.  **🕹️ Manual Joystick Override (Right Panel - Bottom):** Throttled dual vertical joysticks with spring-back stop capabilities.
+4.  **🕹️ Dynamic Joystick Manual Control (Right Panel - Bottom):** Throttled vertical joysticks with spring-back stop capabilities. The number of joysticks is automatically built based on the connected motors.
 
 ---
 
-## 🐾 Interactive Robot Pet Mode (Stationary Camera Setup)
+## 🛠️ Hardware Bill of Materials (BOM)
 
-Instead of mounting the phone on the robot, **the phone sits stationary on a stand (tripod) watching the robot's workspace.** The robot has a colored tracker marker on its active element, and the phone acts as the robot's **remote visual eyes**. 
+To build this robot, you will need the following components:
 
-Click **🐾 LAUNCH PET FACE** in the top header to enter **Robot Pet Mode**. The browser UI splits into a visual workspace panel on the left (showing what the camera sees) and the animated robot face with its console logs on the right.
-
-### 1. Self-Learning Kinematics (Discovery Phase)
-Before starting, run the **Neural Network Training** calibration:
-1.  **Step 1: Scan and Register the Robot:**
-    *   Click **Start Training** to activate the scanner wizard.
-    *   The console will prompt: *"STEP 1: SCAN THE ROBOT! Click directly on the robot's colored tracking marker in the camera view above."*
-    *   Clicking on the marker registers its color. The system locks onto the centroid and verifies the scan: *"Robot scanned successfully! Centroid locked at (X, Y)."*
-2.  **Step 2: Kinematic Calibration (Babbling):**
-    *   Once scanned, the system automatically triggers a 3-second countdown and begins the calibration run.
-    *   The robot automatically wiggles its motors back and forth (babble phase).
-    *   The stationary camera measures how moving each motor changes the marker's $(X, Y)$ coordinate in the video feed.
-3.  **Step 3: Neural Net Convergence:**
-    *   A client-side neural network trains on these coordinates to **discover the robot's mechanical structure** (whether it's a 2-wheel rover, a robotic arm, a gantry, or a pivot turret). It learns the exact weights needed to map a desired visual path $(\Delta X, \Delta Y)$ to motor inputs.
-    *   The mathematical formulas learned by the network are output in real-time.
-
-### 2. Interactive Play (Virtual Candy Treats 🍬)
-*   Tap anywhere on the live video feed inside the Pet Mode panel to place a **Virtual Candy Target**.
-*   A neon-green circle appears on screen. The robot calculates its current displacement to the treat, plans a visual path, and uses its **trained Neural Network** to navigate its marker to the treat.
-*   Once it arrives (within 20 pixels), it "eats" the treat, logs it, and wiggles in a happy dance before returning to exploration!
-
-### 3. Autonomous Wandering (Curiosity & Exploring)
-*   When there are no active treats, the robot goes into **Exploring State**.
-*   It picks random $(X, Y)$ coordinates inside the camera's view, draws a dotted search target on the screen, and navigates to them using its neural network.
-*   Upon arrival, it pauses, does a little wiggle, and picks another random coordinate to wander towards.
-
-### 4. Microphone Clap wakeups & Optical Blockage detection
-*   **Clap Wakeup:** If the robot is sleeping (eyes closed), you can clap in front of the phone's microphone to wake it up. If active, clapping makes it do an excited spin!
-*   **Collision Detection:** If the robot is explore-driving but the camera scene remains static (calculated using frame-to-frame pixel differencing), the system realizes the robot is blocked by an obstacle. It turns angry (red eyes), stops, backs up, spins to clear the path, and continues exploring.
+| Component | Quantity | Description | Estimated Cost |
+| :--- | :---: | :--- | :---: |
+| **ESP32-S2 Mini Development Board** | 1 | Microcontroller running MicroPython. Features a USB-C port, built-in Wi-Fi, and 5V pins connected to the USB rail. | $3.00 |
+| **28BYJ-48 Stepper Motor (5V)** | 2+ | Standard, cheap 5-wire unipolar stepper motors. (Can scale to 3 or more motors). | $2.50 each |
+| **ULN2003 Driver Board** | 2+ | Darlington transistor arrays used to amplify control signals from the ESP32. | $1.00 each |
+| **Electrolytic Decoupling Capacitor** | 1 | **1000uF** (or **470uF**) rated at **10V or higher**. Crucial for smoothing current spikes from motors. | $0.20 |
+| **USB Power Bank** | 1 | Standard phone charger power bank capable of delivering **at least 2.0A at 5V** via USB-C. | $10.00 |
+| **Breadboard & Jumper Wires** | 1 set | For solderless prototyping. Female-to-Female and Male-to-Female jumpers. | $3.00 |
+| **Perforated Board / Solderable Breadboard** | 1 | For final clean soldering assembly (optional but recommended). | $1.50 |
 
 ---
 
-## ⚡ Powering the Robot via the ESP32-S2 Mini's 5V Pin
+## 📂 3D Printing Guide
+
+For a functional robot chassis, you can print standard components or mount them to a laser-cut base. Below are standard recommendations:
+
+1.  **Differential Drive Rover Chassis:**
+    *   Search Printables or Thingiverse for **"28BYJ-48 Stepper Chassis"** or use models like the [Mini 28BYJ-48 Stepper Rover on Printables](https://www.printables.com/model/59104-mini-stepper-motor-rover).
+    *   Print a simple base plate, two motor holders, two snap-on wheels, and a front caster/slider wheel.
+2.  **Phone Stand / Mount:**
+    *   Since the phone sits elsewhere watching the robot's workspace, print a simple adjustable tripod phone stand like the [Universal Phone Stand on Thingiverse](https://www.thingiverse.com/thing:2123786) to position the phone camera pointing down at the workspace.
+3.  **Print Settings:**
+    *   **Material:** PLA or PETG.
+    *   **Infill:** 15% to 20% Gyroid.
+    *   **Walls/Perimeters:** 3 minimum for mechanical strength around the stepper mounts.
+
+---
+
+## 🔌 Electrical Wiring & Schematic
 
 Yes! You can power both the ESP32-S2 Mini and the stepper motors from the **same USB power bank** using the board's **onboard 5V pin**. 
 
-The **5V pin** on the ESP32-S2 Mini is directly connected to the USB-C port's `VBUS` power line. When you plug a USB power bank into the board's USB-C port, the 5V pin becomes a 5V power output. This is the simplest and cleanest wiring method because **you don't need to cut any USB cables or use breakout boards**—you just plug a standard USB-C cable into the board and use standard jumper wires!
+The **5V pin** on the ESP32-S2 Mini is directly connected to the USB-C port's `VBUS` power line. When you plug a USB power bank into the board's USB-C port, the 5V pin becomes a 5V power output. 
 
 ### ⚠️ Important Engineering Rules to Prevent Resets (Brownouts)
-When the stepper motors rotate, they draw pulsed current spikes. This can create voltage sags on the 5V rail that cause the ESP32 to reboot. To make this setup 100% stable:
-1.  **Use a Decoupling Capacitor:** You **must** connect a **470uF or 1000uF Electrolytic Capacitor** (rated 10V+) directly across the VCC and GND terminals of the ULN2003 drivers. This capacitor acts as a buffer to absorb motor spikes and keep the ESP32's voltage rails stable.
-2.  **Use a Dedicated USB Power Bank:** Plug the USB-C cable into a dedicated portable phone charger/power bank (which easily outputs 1.5A to 2.0A). Avoid powering the robot from a computer's laptop USB port, as computers limit USB current to 500mA, which will trigger resets.
+When stepper motors rotate, they draw pulsed current spikes. This can create voltage sags on the 5V rail that cause the ESP32 to reboot. To make this setup 100% stable:
+1.  **Use a Decoupling Capacitor:** Connect the positive (+) lead of the **1000uF Electrolytic Capacitor** to the 5V rail, and the negative (-) lead to the GND rail.
+2.  **Dedicated Power:** Plug the USB-C cable into a dedicated portable phone charger power bank. Avoid laptop USB ports which limit output to 500mA.
 
-### 🔌 Electrical Wiring Diagram
+### 📊 Connection Table
+Configure the motor pins by adjusting the `MOTOR_PINS` dictionary in `main.py`:
+
+| Motor | ULN2003 Driver Pin | ESP32-S2 Mini GPIO |
+| :---: | :---: | :---: |
+| **Motor A (Left)** | IN1, IN2, IN3, IN4 | GP1, GP2, GP3, GP4 |
+| **Motor B (Right)** | IN1, IN2, IN3, IN4 | GP5, GP7, GP9, GP11 |
+| *(Aux)* **Motor C** | IN1, IN2, IN3, IN4 | GP12, GP13, GP14, GP16 *(configurable)* |
+
+### 🔌 Schematic Diagram (ASCII Art)
 ```
                      +---------------------------------------+
                      |         USB-C POWER BANK (2A)         |
@@ -113,17 +117,47 @@ When the stepper motors rotate, they draw pulsed current spikes. This can create
                  +---+--(+)     (-)--+
 ```
 
-### 3. Step-by-Step Wiring Connections
-1.  **Microcontroller Power:** Plug a standard USB-C cable from your USB power bank into the ESP32-S2 Mini's USB port.
-2.  **Motor Driver Power:** 
-    *   Connect the **5V pin** of the ESP32-S2 Mini to the **VCC** (+) pin of both ULN2003 driver boards.
-    *   Connect the **GND pin** of the ESP32-S2 Mini to the **GND** (-) pin of both ULN2003 driver boards.
-3.  **Capacitor Buffer:** Connect the capacitor in parallel with the driver power:
-    *   Connect the longer positive lead (+) of the capacitor to the driver **VCC** (+) rail.
-    *   Connect the shorter negative lead (-) of the capacitor to the driver **GND** (-) rail.
-4.  **Control Lines:**
-    *   Connect Motor A IN1-IN4 to ESP32 **GPIO 1, 2, 3, 4**.
-    *   Connect Motor B IN1-IN4 to ESP32 **GPIO 5, 7, 9, 11**.
+---
+
+## 🛠️ Step-by-Step Assembly & Soldering Guide
+
+Follow these steps to build your robot:
+
+### Step 1: Chassis Assembly
+1.  Mount the two **28BYJ-48 stepper motors** into your 3D printed rover chassis. Screw them down tightly using M3 screws and nuts.
+2.  Press the wheels onto the output shafts of the stepper motors. Secure the wheel hubs if your print design uses lock screws.
+3.  Add the front caster wheel/glide slider to balance the chassis.
+
+### Step 2: Preparing the Power Rails & Soldering
+1.  If using a solderable perfboard, place the **ESP32-S2 Mini** in a set of female pin headers so it can be detached easily.
+2.  **Solder the Power Buses:** Create a dedicated **5V Power Rail** and a **GND Rail** on your board.
+3.  Connect the **5V pin** of the ESP32-S2 Mini to the 5V Rail.
+4.  Connect the **GND pin** of the ESP32-S2 Mini to the GND Rail.
+5.  **Solder the Capacitor:** Place the **1000uF Electrolytic Capacitor** directly across the 5V and GND Rails. 
+    *   *⚠️ WARNING:* Polarized capacitor! Ensure the **longer lead (+)** is soldered to the 5V Rail and the **striped side lead (-)** is soldered to the GND Rail. Soldering it backwards will damage the capacitor.
+
+### Step 3: Connecting Drivers & Motors
+1.  Connect the **VCC** and **GND** power pins of the ULN2003 Driver Boards to the common 5V and GND rails on your board.
+2.  Route the control wires:
+    *   Connect Driver A **IN1-IN4** to GP1, GP2, GP3, GP4.
+    *   Connect Driver B **IN1-IN4** to GP5, GP7, GP9, GP11.
+3.  Plug the 5-pin white connectors from the stepper motors directly into their matching sockets on the driver boards.
+
+---
+
+## 🧠 Kinematic AI Training Guide (Remote Stationary setup)
+
+Unlike standard rovers, the phone is placed **stationary in a stand** overlooking the robot's workspace:
+
+1.  **Scan the robot:**
+    *   Click **Start Training** in the AI panel.
+    *   Click on the robot's colored marker in the video feed to scan it. The system locks onto the centroid.
+2.  **Start Kinematic Calibration:**
+    *   The robot wiggles its wheels back and forth.
+    *   The system measures how moving each motor moves the visual centroid in the camera frame.
+3.  **Learn and Pilot:**
+    *   A neural network maps visual target displacements $(\Delta X, \Delta Y)$ to motor inputs.
+    *   Click **Start Autopilot** to watch the robot navigate autonomously to track visual targets!
 
 ---
 
@@ -149,3 +183,4 @@ Run the following command to reboot the board and launch the program:
 make reset
 ```
 *(If your port is different, e.g. COM3 or /dev/ttyUSB0, append `PORT=COM3` to make commands).*
+

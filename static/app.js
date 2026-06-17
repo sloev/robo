@@ -2,15 +2,17 @@
 let activeContainer = null;
 const mainWorkspace = document.getElementById('workspace-canvas');
 
-// Default active container is the main workspace
-setActiveContainer(mainWorkspace);
-
 // Connection and status elements
 const connectionDot = document.getElementById('connection-dot');
 const connectionText = document.getElementById('connection-text');
-const statusMotorAPos = document.getElementById('status-motor-a-pos');
-const statusMotorBPos = document.getElementById('status-motor-b-pos');
 const statusRobotMode = document.getElementById('status-robot-mode');
+
+// Dynamic motors configuration
+let configuredMotors = ['A', 'B']; // Default fallback
+let activeJoysticks = {};
+
+// Default active container is the main workspace
+setActiveContainer(mainWorkspace);
 
 // Set active container for block insertion
 function setActiveContainer(container) {
@@ -58,6 +60,11 @@ mainWorkspace.addEventListener('click', (e) => {
     setActiveContainer(mainWorkspace);
   }
 });
+
+// Helper to get dropdown options for configured motors
+function getMotorOptionsHTML() {
+  return configuredMotors.map(m => `<option value="${m}">Motor ${m}</option>`).join('');
+}
 
 // Recursively build HTML block elements
 function createBlockElement(type) {
@@ -153,21 +160,10 @@ function createBlockElement(type) {
   
   let innerHTML = `<span class="block-handle">☰</span><div class="block-content">`;
   
-  if (type === 'motor-a') {
+  if (type === 'motor') {
     innerHTML += `
-      <span>Move Motor A</span>
-      <input type="number" value="100" min="1" max="10000" class="motor-steps">
-      <span>steps at speed delay</span>
-      <input type="number" value="2" min="1" max="50" class="motor-speed">
-      <span>ms</span>
-      <select class="motor-dir">
-        <option value="1">Forward</option>
-        <option value="-1">Backward</option>
-      </select>
-    `;
-  } else if (type === 'motor-b') {
-    innerHTML += `
-      <span>Move Motor B</span>
+      <span>Move</span>
+      <select class="motor-name">${getMotorOptionsHTML()}</select>
       <input type="number" value="100" min="1" max="10000" class="motor-steps">
       <span>steps at speed delay</span>
       <input type="number" value="2" min="1" max="50" class="motor-speed">
@@ -222,8 +218,8 @@ function compileWorkspace(container) {
     
     if (child.classList.contains('program-block')) {
       const type = child.dataset.blockType;
-      if (type === 'motor-a' || type === 'motor-b') {
-        const motor = type === 'motor-a' ? 'A' : 'B';
+      if (type === 'motor') {
+        const motor = child.querySelector('.motor-name').value;
         const steps = parseInt(child.querySelector('.motor-steps').value) || 0;
         const speed = parseInt(child.querySelector('.motor-speed').value) || 2;
         const dir = parseInt(child.querySelector('.motor-dir').value) || 1;
@@ -300,7 +296,7 @@ async function stopAll() {
   try {
     await fetch('/api/stop', { method: 'POST' });
   } catch (err) {
-    console.error("Error stopping robot:", err);
+    console.error("Error sending stop command:", err);
   }
 }
 document.getElementById('btn-stop-program').addEventListener('click', stopAll);
@@ -316,11 +312,11 @@ class Joystick {
     this.isDragging = false;
     
     // Joystick geometry constants (in pixels)
-    this.trackHeight = 180;
-    this.handleSize = 50;
+    this.trackHeight = 160;
+    this.handleSize = 42;
     this.borderSize = 2;
-    this.maxDisplacement = (this.trackHeight - (this.borderSize * 2) - this.handleSize) / 2; // 63px
-    this.centerTop = this.maxDisplacement; // 63px
+    this.maxDisplacement = (this.trackHeight - (this.borderSize * 2) - this.handleSize) / 2; // 57px
+    this.centerTop = this.maxDisplacement; // 57px
     
     // State tracking to throttle requests
     this.currentState = "STOP";
@@ -330,8 +326,8 @@ class Joystick {
   
   initEvents() {
     const startDrag = (e) => {
-      // Don't override joysticks if autopilot, learning mode, or pet mode is active
-      if (autopilotActive || learningModeActive || petModeActive) return;
+      // Don't override joysticks if autopilot or learning mode is active
+      if (autopilotActive || learningModeActive) return;
       
       this.isDragging = true;
       this.handle.style.transition = 'none';
@@ -433,10 +429,8 @@ class Joystick {
     this.valDisplay.innerText = label;
     if (state === "STOP") {
       this.valDisplay.style.color = "var(--text-muted)";
-    } else if (this.motorName === "A") {
-      this.valDisplay.style.color = "var(--cyan-accent)";
     } else {
-      this.valDisplay.style.color = "var(--purple-accent)";
+      this.valDisplay.style.color = this.handle.style.backgroundColor || "var(--cyan-accent)";
     }
     
     try {
@@ -451,10 +445,64 @@ class Joystick {
   }
 }
 
-// Instantiate Left and Right Joysticks
-const joyA = new Joystick('joy-a-track', 'joy-a-handle', 'joy-a-val', 'A');
-const joyB = new Joystick('joy-b-track', 'joy-b-handle', 'joy-b-val', 'B');
+// Function to dynamically build Joysticks & Status Monitors
+function initDynamicUI(motorsList) {
+  configuredMotors = motorsList;
+  
+  // 1. Rebuild Status Monitors in UI
+  const statusGrid = document.getElementById('status-grid');
+  // Clear any existing dynamic motor status cards
+  const existingCards = statusGrid.querySelectorAll('.dynamic-motor-card');
+  existingCards.forEach(c => c.remove());
+  
+  // Create status cards for each motor
+  motorsList.forEach(motorName => {
+    const card = document.createElement('div');
+    card.className = 'status-card dynamic-motor-card';
+    card.innerHTML = `
+      <div class="status-card-label">MOTOR ${motorName} POSITION</div>
+      <div class="status-card-val" id="status-motor-${motorName.toLowerCase()}-pos">0</div>
+    `;
+    // Prepend before the first card (ROBOT MODE)
+    statusGrid.insertBefore(card, statusGrid.firstChild);
+  });
+  
+  // 2. Rebuild Joysticks in UI
+  const joysticksContainer = document.getElementById('joysticks-container');
+  joysticksContainer.innerHTML = '';
+  activeJoysticks = {};
+  
+  // Palette of colors for dynamic joysticks (Scratch-themed)
+  const handleColors = ['#4c97ff', '#9966ff', '#0fbd8c', '#ffab19', '#ff6680'];
+  
+  motorsList.forEach((motorName, idx) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'joystick-wrapper';
+    wrapper.innerHTML = `
+      <div class="joystick-label">MOTOR ${motorName}</div>
+      <div class="joystick-track-vertical" id="joy-${motorName.toLowerCase()}-track">
+        <div class="joystick-handle" id="joy-${motorName.toLowerCase()}-handle" style="background-color: ${handleColors[idx % handleColors.length]}"></div>
+      </div>
+      <div class="joystick-value" id="joy-${motorName.toLowerCase()}-val">STOP</div>
+    `;
+    joysticksContainer.appendChild(wrapper);
+    
+    // Instantiate joystick logic
+    const trackId = `joy-${motorName.toLowerCase()}-track`;
+    const handleId = `joy-${motorName.toLowerCase()}-handle`;
+    const valId = `joy-${motorName.toLowerCase()}-val`;
+    activeJoysticks[motorName] = new Joystick(trackId, handleId, valId, motorName);
+  });
 
+  // 3. Update dropdown options in existing Move Motor blocks
+  document.querySelectorAll('.program-block[data-block-type="motor"] select.motor-name').forEach(select => {
+    const currentVal = select.value;
+    select.innerHTML = getMotorOptionsHTML();
+    if (motorsList.includes(currentVal)) {
+      select.value = currentVal;
+    }
+  });
+}
 
 // --- 📷 CLIENT-SIDE COMPUTER VISION COLOR TRACKING ---
 
@@ -471,12 +519,8 @@ let targetColor = { r: 255, g: 0, b: 0 }; // Default tracking color: Red
 let colorTolerance = 55; // Sensitivity margin for matching
 let visionResult = 'none'; // 'left', 'center', 'right', or 'none'
 
-// Centroid tracking coordinate states shared with neural network and pet mode
+// Centroid tracking coordinate states shared with neural network
 let currentCentroid = { x: 0, y: 0, detected: false };
-
-// Target positions coordinates for Pet Mode (Wandering & Treats placement)
-let virtualTreat = { x: 0, y: 0, active: false };
-let exploreGoal = { x: 0, y: 0, active: false };
 
 // Frame differencing variables to detect if the robot is moving or stuck (blocked)
 let lastFrameData = null;
@@ -515,8 +559,6 @@ async function stopVisionFeed() {
   currentCentroid.detected = false;
   lastFrameData = null;
   currentFrameDiff = 0;
-  virtualTreat.active = false;
-  exploreGoal.active = false;
   
   if (visionStream) {
     visionStream.getTracks().forEach(track => track.stop());
@@ -540,7 +582,7 @@ async function stopVisionFeed() {
 
 btnStopVision.addEventListener('click', stopVisionFeed);
 
-// Click-to-pick target tracking color OR place virtual food target in Pet Mode
+// Click-to-pick target tracking color
 visionCanvas.addEventListener('click', (e) => {
   if (!visionActive) return;
   
@@ -548,33 +590,25 @@ visionCanvas.addEventListener('click', (e) => {
   const x = Math.floor(((e.clientX - rect.left) / rect.width) * visionCanvas.width);
   const y = Math.floor(((e.clientY - rect.top) / rect.height) * visionCanvas.height);
   
-  if (petModeActive) {
-    // In Pet Mode, clicking the viewport places a virtual treat for the pet to track
-    virtualTreat = { x: x, y: y, active: true };
-    exploreGoal.active = false; // Override wandering goal
-    petLogConsole("Candy target placed! 🍬");
-    transitionPetState('PLAYING');
-  } else {
-    // Normal mode: pick color to track
-    try {
-      const pixel = ctx.getImageData(x, y, 1, 1).data;
-      targetColor = { r: pixel[0], g: pixel[1], b: pixel[2] };
-      colorPreview.style.backgroundColor = `rgb(${targetColor.r}, ${targetColor.g}, ${targetColor.b})`;
-      
-      // If we are in color registration training step, check if the color is registered successfully
-      if (trainingState === 'COLOR_REGISTER') {
-        setTimeout(() => {
-          if (currentCentroid.detected) {
-            logConsole(`Robot scanned successfully! Centroid locked at (${Math.floor(currentCentroid.x)}, ${Math.floor(currentCentroid.y)})`);
-            startCountdownAndCalibrate();
-          } else {
-            logConsole("Scan failed. Marker not recognized. Click again on a bright, distinct color on the robot.");
-          }
-        }, 120);
-      }
-    } catch (err) {
-      console.error("Color picker failed:", err);
+  // Pick color to track
+  try {
+    const pixel = ctx.getImageData(x, y, 1, 1).data;
+    targetColor = { r: pixel[0], g: pixel[1], b: pixel[2] };
+    colorPreview.style.backgroundColor = `rgb(${targetColor.r}, ${targetColor.g}, ${targetColor.b})`;
+    
+    // If we are in color registration training step, check if the color is registered successfully
+    if (trainingState === 'COLOR_REGISTER') {
+      setTimeout(() => {
+        if (currentCentroid.detected) {
+          logConsole(`Robot scanned successfully! Centroid locked at (${Math.floor(currentCentroid.x)}, ${Math.floor(currentCentroid.y)})`);
+          startCountdownAndCalibrate();
+        } else {
+          logConsole("Scan failed. Marker not recognized. Click again on a bright, distinct color on the robot.");
+        }
+      }, 120);
     }
+  } catch (err) {
+    console.error("Color picker failed:", err);
   }
 });
 
@@ -649,15 +683,9 @@ function processFrame() {
     ctx.moveTo(div2, 0); ctx.lineTo(div2, visionCanvas.height);
     ctx.stroke();
     
-    // Draw coordinates trails & visual markers
-    let robotX = 0, robotY = 0;
-    
     if (matchCount > 40) {
       const avgX = sumX / matchCount;
       const avgY = sumY / matchCount;
-      
-      robotX = avgX;
-      robotY = avgY;
       
       currentCentroid = { x: avgX, y: avgY, detected: true };
       
@@ -686,83 +714,21 @@ function processFrame() {
       currentCentroid.detected = false;
     }
     
-    // 3. Render Pet targets (Candy treat or Wander Goal)
-    if (petModeActive) {
-      if (virtualTreat.active) {
-        // Draw placed candy target
-        ctx.fillStyle = 'var(--green-accent)';
-        ctx.beginPath();
-        ctx.arc(virtualTreat.x, virtualTreat.y, 8, 0, 2 * Math.PI);
-        ctx.fill();
-        
-        ctx.strokeStyle = 'var(--green-accent)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(virtualTreat.x, virtualTreat.y, 14, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        ctx.font = 'bold 10px sans-serif';
-        ctx.fillText("🍬 CANDY TREAT", virtualTreat.x + 18, virtualTreat.y + 4);
-        
-        // Draw planned vector line from robot position to target
-        if (currentCentroid.detected) {
-          ctx.strokeStyle = 'rgba(0, 255, 102, 0.4)';
-          ctx.lineWidth = 1.5;
-          ctx.setLineDash([5, 5]);
-          ctx.beginPath();
-          ctx.moveTo(robotX, robotY);
-          ctx.lineTo(virtualTreat.x, virtualTreat.y);
-          ctx.stroke();
-          ctx.setLineDash([]); // Reset
-        }
-      } else if (exploreGoal.active) {
-        // Draw dotted wander target
-        ctx.strokeStyle = 'var(--orange-accent)';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([3, 3]);
-        ctx.beginPath();
-        ctx.arc(exploreGoal.x, exploreGoal.y, 10, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        
-        ctx.fillStyle = 'var(--orange-accent)';
-        ctx.font = 'bold 9px sans-serif';
-        ctx.fillText("🔍 EXPLORING...", exploreGoal.x + 14, exploreGoal.y + 3);
-        
-        if (currentCentroid.detected) {
-          ctx.strokeStyle = 'rgba(255, 170, 0, 0.3)';
-          ctx.lineWidth = 1;
-          ctx.setLineDash([4, 4]);
-          ctx.beginPath();
-          ctx.moveTo(robotX, robotY);
-          ctx.lineTo(exploreGoal.x, exploreGoal.y);
-          ctx.stroke();
-          ctx.setLineDash([]);
-        }
-      }
-    } else {
-      // Normal UI text indicator
-      if (currentCentroid.detected) {
-        ctx.fillStyle = 'var(--green-accent)';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillText(`TARGET ZONE: ${visionResult.toUpperCase()}`, 10, 20);
-      } else {
-        ctx.fillStyle = 'var(--red-accent)';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillText('SEARCHING FOR MARKER...', 10, 20);
-      }
-    }
+    // Send tracking results to the backend sensors model periodically
+    sendVisionResult();
     
   } catch (err) {
-    console.error("Frame processing error:", err);
+    console.error("Frame process error:", err);
   }
   
   requestAnimationFrame(processFrame);
 }
 
-// Push local vision sensor states to the ESP32 (throttled loop)
-async function pushSensors() {
-  if (!visionActive) return;
+// Throttle sensor posts
+let lastSentResult = 'none';
+async function sendVisionResult() {
+  if (visionResult === lastSentResult) return;
+  lastSentResult = visionResult;
   
   try {
     await fetch('/api/sensors', {
@@ -772,17 +738,16 @@ async function pushSensors() {
     });
   } catch (err) {}
 }
-setInterval(pushSensors, 250);
 
 
-// --- 🧠 CLIENT-SIDE NEURAL NETWORK KINEMATICS LEARNING ---
+// --- 🧠 NEURAL NETWORK REINFORCEMENT LEARNING MODE ---
 
 let learningModeActive = false;
 let autopilotActive = false;
 let trainingState = 'IDLE'; // 'IDLE', 'COLOR_REGISTER', 'BABBLING'
 let learningSamples = [];
 
-// Weights: mapping [norm_dx, norm_dy] input to [MotorA, MotorB] outputs
+// Single-Layer Perceptron weights and biases mapping (dx, dy) -> Motor speeds (A, B)
 let nnWeights = [[0.0, 0.0], [0.0, 0.0]];
 let nnBiases = [0.0, 0.0];
 
@@ -796,7 +761,6 @@ function logConsole(msg) {
   learnConsole.scrollTop = learnConsole.scrollHeight;
 }
 
-// Utility delay function
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 // Trigger manual motor movement for calibration
@@ -814,7 +778,7 @@ async function triggerCalibMove(motor, steps) {
 
 // NN Start Button triggers color registration step
 btnLearnStart.addEventListener('click', () => {
-  if (learningModeActive || petModeActive) return;
+  if (learningModeActive) return;
   
   // Guard check: camera feed must be active
   if (!visionActive) {
@@ -950,12 +914,15 @@ function trainNeuralNetwork() {
       const norm_dx = sample.dx / 320;
       const norm_dy = sample.dy / 240;
       
+      // Predict output mapping
       const predA = nnWeights[0][0]*norm_dx + nnWeights[0][1]*norm_dy + nnBiases[0];
       const predB = nnWeights[1][0]*norm_dx + nnWeights[1][1]*norm_dy + nnBiases[1];
       
+      // Calculate delta error
       const errA = sample.motorA - predA;
       const errB = sample.motorB - predB;
       
+      // Adjust weights
       nnWeights[0][0] += lr * errA * norm_dx;
       nnWeights[0][1] += lr * errA * norm_dy;
       nnBiases[0] += lr * errA;
@@ -966,37 +933,36 @@ function trainNeuralNetwork() {
     }
   }
   
-  logConsole("Network converged successfully!");
-  updateNetworkDisplay();
-}
-
-function updateNetworkDisplay() {
-  const w = nnWeights;
-  const b = nnBiases;
+  logConsole("Neural calibration complete!");
   
   networkDisplay.innerHTML = `
-    <strong>Motor A (Left) Neural formula:</strong><br>
-    SpeedA = (${w[0][0].toFixed(2)} × dx) + (${w[0][1].toFixed(2)} × dy) + ${b[0].toFixed(2)}<br><br>
-    <em>Motor B (Right) Neural formula:</em><br>
-    SpeedB = (${w[1][0].toFixed(2)} × dx) + (${w[1][1].toFixed(2)} × dy) + ${b[1].toFixed(2)}
+    <strong>Weights:</strong><br>
+    Motor A (Left) = [${nnWeights[0][0].toFixed(2)} * dx, ${nnWeights[0][1].toFixed(2)} * dy]<br>
+    Motor B (Right) = [${nnWeights[1][0].toFixed(2)} * dx, ${nnWeights[1][1].toFixed(2)} * dy]
   `;
 }
 
-// Map predictions from neural net to motor execution calls
-function mapSpeedValue(normSpeed) {
-  if (Math.abs(normSpeed) < 0.15) return { steps: 0, speed: 2 };
+// Convert NN predictions [-1.0, 1.0] to API steps/speed delays
+function mapSpeedValue(value) {
+  const absVal = Math.abs(value);
+  if (absVal < 0.15) {
+    return { steps: 0, speed: 2 };
+  }
   
-  const direction = normSpeed > 0 ? 1 : -1;
-  const absVal = Math.min(1.0, Math.abs(normSpeed));
+  const direction = value > 0 ? 1 : -1;
+  const steps = direction * 280; // step count size
   
-  let speed = 15;
-  if (absVal > 0.7) speed = 2;
-  else if (absVal > 0.4) speed = 8;
+  let speed = 15; // Slow
+  if (absVal > 0.45 && absVal <= 0.75) {
+    speed = 8;  // Medium
+  } else if (absVal > 0.75) {
+    speed = 2;  // Fast
+  }
   
-  return { steps: direction * 400, speed: speed };
+  return { steps: steps, speed: speed };
 }
 
-// Autopilot loop: feeds camera offsets to neural net and moves motors
+// Run Autopilot Control loop utilizing the trained Single-Layer Perceptron
 async function runAutopilotLoop() {
   if (!autopilotActive) return;
   
@@ -1062,429 +1028,6 @@ btnLearnTest.addEventListener('click', () => {
 });
 
 
-// --- 🐾 ROBOT PET FACE MODE STATE MACHINE ---
-
-let petModeActive = false;
-let petState = 'SLEEPING'; // 'SLEEPING', 'WAKING', 'EXPLORING', 'PLAYING', 'ANGRY'
-
-// Audio mic / clap detection variables
-let audioContext = null;
-let audioStream = null;
-let micAnalyser = null;
-let micProcessInterval = null;
-
-const petFaceOverlay = document.getElementById('pet-face-overlay');
-const btnTogglePetMode = document.getElementById('btn-toggle-pet-mode');
-const petStatusText = document.getElementById('pet-status-text');
-const petLog = document.getElementById('pet-log');
-const btnExitPet = document.getElementById('btn-exit-pet');
-
-// Eye DOM elements for animations
-const eyeLeft = document.getElementById('eye-left');
-const eyeRight = document.getElementById('eye-right');
-
-btnTogglePetMode.addEventListener('click', () => {
-  if (petModeActive) {
-    exitPetMode();
-  } else {
-    enterPetMode();
-  }
-});
-
-btnExitPet.addEventListener('click', exitPetMode);
-
-function petLogConsole(msg) {
-  petLog.innerText += `\n> ${msg}`;
-  petLog.scrollTop = petLog.scrollHeight;
-}
-
-async function enterPetMode() {
-  if (learningModeActive || autopilotActive) {
-    alert("Please stop calibration or autopilot before launching Pet Mode!");
-    return;
-  }
-  
-  petModeActive = true;
-  petFaceOverlay.classList.remove('hidden');
-  petFaceOverlay.offsetHeight; // force reflow
-  petFaceOverlay.classList.add('active');
-  
-  // Re-parent the video and canvas into the Pet Mode overlay viewport container
-  const visionPanel = document.getElementById('pet-vision-panel');
-  visionPanel.appendChild(visionVideo);
-  visionPanel.appendChild(visionCanvas);
-  
-  // Start vision processing in background
-  if (!visionActive) {
-    btnStartVision.click();
-  }
-  
-  // Initialize microphone listener for clapping wake-ups
-  await initMicrophone();
-  
-  // Initial state: sleeping
-  transitionPetState('SLEEPING');
-  petLog.innerText = "Console: Remote Robot Pet activated.";
-  
-  runPetStateMachine();
-}
-
-function exitPetMode() {
-  if (!petModeActive) return;
-  petModeActive = false;
-  
-  petFaceOverlay.classList.remove('active');
-  setTimeout(() => petFaceOverlay.classList.add('hidden'), 500);
-  
-  // Re-parent video and canvas back to the main dashboard vision container card
-  const mainVisionCard = document.querySelector('.vision-feed-container');
-  mainVisionCard.appendChild(visionVideo);
-  mainVisionCard.appendChild(visionCanvas);
-  
-  stopMicrophone();
-  stopAll();
-  
-  virtualTreat.active = false;
-  exploreGoal.active = false;
-}
-
-// State Machine transitions
-function transitionPetState(newState) {
-  petState = newState;
-  
-  // Reset CSS classes
-  petFaceOverlay.classList.remove('pet-sleeping', 'pet-happy', 'pet-angry');
-  
-  if (newState === 'SLEEPING') {
-    petFaceOverlay.classList.add('pet-sleeping');
-    petStatusText.innerText = "ZZZ... Sleeping (CLAP to wake)";
-  } else if (newState === 'WAKING') {
-    petFaceOverlay.classList.add('pet-happy');
-    petStatusText.innerText = "Yawn! waking up!";
-  } else if (newState === 'EXPLORING') {
-    // default scanning eyes
-    petStatusText.innerText = "Exploring the room...";
-  } else if (newState === 'PLAYING') {
-    petFaceOverlay.classList.add('pet-happy');
-    petStatusText.innerText = "PLAYING! Chasing candy 🍬";
-  } else if (newState === 'ANGRY') {
-    petFaceOverlay.classList.add('pet-angry');
-    petStatusText.innerText = "OBSTACLE DETECTED! OUCH!";
-  }
-}
-
-// Micro claps listener
-async function initMicrophone() {
-  try {
-    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioContext.createMediaStreamSource(audioStream);
-    micAnalyser = audioContext.createAnalyser();
-    micAnalyser.fftSize = 256;
-    source.connect(micAnalyser);
-    
-    const bufferLength = micAnalyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    let lastClap = 0;
-    
-    micProcessInterval = setInterval(() => {
-      if (!petModeActive) return;
-      micAnalyser.getByteFrequencyData(dataArray);
-      
-      let sum = 0;
-      for (let i = 0; i < bufferLength; i++) {
-        sum += dataArray[i];
-      }
-      let avgVolume = sum / bufferLength;
-      
-      // Clap spike trigger threshold
-      if (avgVolume > 95) {
-        let now = Date.now();
-        if (now - lastClap > 600) {
-          lastClap = now;
-          onClapDetected();
-        }
-      }
-    }, 40);
-  } catch (err) {
-    console.warn("Could not capture microphone: " + err.message);
-  }
-}
-
-function stopMicrophone() {
-  if (micProcessInterval) clearInterval(micProcessInterval);
-  if (audioStream) {
-    audioStream.getTracks().forEach(track => track.stop());
-    audioStream = null;
-  }
-  if (audioContext) {
-    audioContext.close();
-    audioContext = null;
-  }
-}
-
-// Wake up on clapping
-async function onClapDetected() {
-  if (!petModeActive) return;
-  
-  if (petState === 'SLEEPING') {
-    transitionPetState('WAKING');
-    petLogConsole("Clap heard! Waking up robot...");
-    
-    // Play happy waking wiggle dance
-    try {
-      await fetch('/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'A', steps: 150, speed: 3 })
-      });
-      await fetch('/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'B', steps: -150, speed: 3 })
-      });
-      await delay(500);
-      await fetch('/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'A', steps: -300, speed: 3 })
-      });
-      await fetch('/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'B', steps: 300, speed: 3 })
-      });
-      await delay(500);
-    } catch(err) {}
-    
-    transitionPetState('EXPLORING');
-  } else if (petState === 'EXPLORING' || petState === 'PLAYING') {
-    // Play happy spin on clap
-    petLogConsole("Clap detected! Happy wiggle!");
-    try {
-      await fetch('/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'A', steps: 400, speed: 2 })
-      });
-      await fetch('/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'B', steps: -400, speed: 2 })
-      });
-    } catch(err) {}
-  }
-}
-
-// Run state machine routine (re-evaluates every 350ms)
-let petCycleCount = 0;
-async function runPetStateMachine() {
-  if (!petModeActive) return;
-  
-  try {
-    // 1. SLEEPING STATE
-    if (petState === 'SLEEPING') {
-      await fetch('/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'A', steps: 0, speed: 2 })
-      });
-      await fetch('/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'B', steps: 0, speed: 2 })
-      });
-    }
-    
-    // 2. EXPLORING STATE (Wandering around the camera field autonomously)
-    if (petState === 'EXPLORING') {
-      // Pupils scan left/right
-      petCycleCount++;
-      const pupils = document.querySelectorAll('.pupil');
-      const offset = Math.sin(petCycleCount * 0.4) * 15;
-      pupils.forEach(pupil => {
-        pupil.style.transform = `translateX(${offset}px)`;
-      });
-      
-      // If client placed virtual food target, transition to Playing mode
-      if (virtualTreat.active) {
-        transitionPetState('PLAYING');
-      } else {
-        // Check if robot marker is visible
-        if (currentCentroid.detected) {
-          // If we reached our wander destination (or don't have one), pick a new random coord
-          let arrivedAtGoal = false;
-          if (exploreGoal.active) {
-            const dist = Math.sqrt((exploreGoal.x - currentCentroid.x)**2 + (exploreGoal.y - currentCentroid.y)**2);
-            if (dist < 20) arrivedAtGoal = true;
-          }
-          
-          if (!exploreGoal.active || arrivedAtGoal) {
-            exploreGoal = {
-              x: 40 + Math.random() * 240, // [40, 280]
-              y: 40 + Math.random() * 160, // [40, 200]
-              active: true
-            };
-            petLogConsole(`Found new coordinate: (${Math.floor(exploreGoal.x)}, ${Math.floor(exploreGoal.y)})`);
-            
-            // Short wiggle pause upon goal arrival
-            if (arrivedAtGoal) {
-              await triggerCalibMove('A', 150);
-              await triggerCalibMove('B', -150);
-              await delay(400);
-            }
-          }
-          
-          // Check if driving but video pixels are static (blocked against obstacle)
-          if (currentFrameDiff > 0 && currentFrameDiff < 3.2) {
-            transitionPetState('ANGRY');
-            exploreGoal.active = false;
-            await stopAll();
-            petLogConsole("Robot blocked! Reversing...");
-            
-            // Run escape move
-            await fetch('/api/manual', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ motor: 'A', steps: -500, speed: 4 })
-            });
-            await fetch('/api/manual', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ motor: 'B', steps: -500, speed: 4 })
-            });
-            await delay(1200);
-            
-            // Spin to head in new direction
-            await fetch('/api/manual', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ motor: 'A', steps: 400, speed: 3 })
-            });
-            await fetch('/api/manual', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ motor: 'B', steps: -400, speed: 3 })
-            });
-            await delay(1000);
-            
-            transitionPetState('EXPLORING');
-          } else {
-            // Drive towards the wandering exploreGoal coordinate using learned weights
-            const dx = exploreGoal.x - currentCentroid.x;
-            const dy = exploreGoal.y - currentCentroid.y;
-            
-            const norm_dx = dx / 320;
-            const norm_dy = dy / 240;
-            
-            const predA = nnWeights[0][0]*norm_dx + nnWeights[0][1]*norm_dy + nnBiases[0];
-            const predB = nnWeights[1][0]*norm_dx + nnWeights[1][1]*norm_dy + nnBiases[1];
-            
-            const actA = mapSpeedValue(predA);
-            const actB = mapSpeedValue(predB);
-            
-            await fetch('/api/manual', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ motor: 'A', steps: actA.steps, speed: actA.speed })
-            });
-            await fetch('/api/manual', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ motor: 'B', steps: actB.steps, speed: actB.speed })
-            });
-          }
-        } else {
-          // If robot tracking marker is lost, search by spinning slowly
-          await fetch('/api/manual', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ motor: 'A', steps: 200, speed: 10 })
-          });
-          await fetch('/api/manual', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ motor: 'B', steps: -200, speed: 10 })
-          });
-        }
-      }
-    }
-    
-    // 3. PLAYING STATE (Chasing the virtual treat coordinate)
-    if (petState === 'PLAYING') {
-      if (!virtualTreat.active) {
-        transitionPetState('EXPLORING');
-      } else if (currentCentroid.detected) {
-        // Calculate error offsets between robot marker and treat
-        const dx = virtualTreat.x - currentCentroid.x;
-        const dy = virtualTreat.y - currentCentroid.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        // If robot reached the treat (within 20 pixels radius)
-        if (dist < 20) {
-          virtualTreat.active = false;
-          petLogConsole("Yum! Candy eaten! Happy wiggle! 🍬");
-          
-          // Happy dance wiggle
-          await triggerCalibMove('A', 250);
-          await triggerCalibMove('B', -250);
-          await delay(450);
-          await triggerCalibMove('A', -250);
-          await triggerCalibMove('B', 250);
-          await delay(450);
-          
-          transitionPetState('EXPLORING');
-        } else {
-          // Drive toward virtual treat using Neural Network formulas
-          const norm_dx = dx / 320;
-          const norm_dy = dy / 240;
-          
-          const predA = nnWeights[0][0]*norm_dx + nnWeights[0][1]*norm_dy + nnBiases[0];
-          const predB = nnWeights[1][0]*norm_dx + nnWeights[1][1]*norm_dy + nnBiases[1];
-          
-          const actA = mapSpeedValue(predA);
-          const actB = mapSpeedValue(predB);
-          
-          // Pupils track the treat visually
-          const pupils = document.querySelectorAll('.pupil');
-          const pupilX = (virtualTreat.x - 160) / 160 * 18;
-          const pupilY = (virtualTreat.y - 120) / 120 * 18;
-          pupils.forEach(pupil => {
-            pupil.style.transform = `translate(${pupilX}px, ${pupilY}px)`;
-          });
-          
-          await fetch('/api/manual', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ motor: 'A', steps: actA.steps, speed: actA.speed })
-          });
-          await fetch('/api/manual', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ motor: 'B', steps: actB.steps, speed: actB.speed })
-          });
-        }
-      } else {
-        // If robot marker is lost while chasing, wait and search
-        await fetch('/api/manual', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ motor: 'A', steps: 0, speed: 2 })
-        });
-        await fetch('/api/manual', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ motor: 'B', steps: 0, speed: 2 })
-        });
-      }
-    }
-  } catch (err) {}
-  
-  // Recheck state loop
-  setTimeout(runPetStateMachine, 350);
-}
-
-
 // --- 📈 PERIODIC STATUS UPDATES ---
 
 // Periodic status monitor polling (every 1 second)
@@ -1495,17 +1038,29 @@ async function updateStatus() {
     
     const status = await resp.json();
     
-    statusMotorAPos.innerText = status.motorA.current;
-    statusMotorBPos.innerText = status.motorB.current;
+    // Check if the motors list has changed from what we currently display
+    const statusMotors = Object.keys(status);
+    const listsMatch = configuredMotors.length === statusMotors.length && 
+                       configuredMotors.every(m => statusMotors.includes(m));
+                       
+    if (!listsMatch && statusMotors.length > 0) {
+      initDynamicUI(statusMotors);
+    }
     
-    const isMoving = status.motorA.moving || status.motorB.moving;
+    let isMoving = false;
+    
+    configuredMotors.forEach(motorName => {
+      const valEl = document.getElementById(`status-motor-${motorName.toLowerCase()}-pos`);
+      if (valEl && status[motorName]) {
+        valEl.innerText = status[motorName].current;
+        if (status[motorName].moving) {
+          isMoving = true;
+        }
+      }
+    });
     
     if (isMoving) {
-      if (petModeActive) {
-        statusRobotMode.innerText = petState;
-      } else {
-        statusRobotMode.innerText = autopilotActive ? "AUTOPILOT" : "DRIVING";
-      }
+      statusRobotMode.innerText = autopilotActive ? "AUTOPILOT" : "DRIVING";
       statusRobotMode.style.color = "var(--cyan-accent)";
     } else {
       statusRobotMode.innerText = "IDLE";
@@ -1522,6 +1077,7 @@ async function updateStatus() {
   }
 }
 
-// Start polling status
+// Start polling status & dynamic UI initialization
+initDynamicUI(configuredMotors);
 setInterval(updateStatus, 1000);
 updateStatus(); // Initial call

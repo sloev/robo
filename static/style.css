@@ -201,13 +201,8 @@ h1 {
   filter: brightness(1.05);
 }
 
-.block-motor-a {
+.block-motor {
   background-color: var(--cyan-accent);
-  color: #ffffff;
-}
-
-.block-motor-b {
-  background-color: var(--purple-accent);
   color: #ffffff;
 }
 
@@ -319,13 +314,8 @@ h1 {
   animation: slideIn 0.15s ease-out;
 }
 
-/* Color blocks by type in the workspace to match Scratch */
-.program-block[data-block-type="motor-a"] {
+.program-block[data-block-type="motor"] {
   background-color: var(--cyan-accent);
-}
-
-.program-block[data-block-type="motor-b"] {
-  background-color: var(--purple-accent);
 }
 
 .program-block[data-block-type="wait"] {
@@ -770,187 +760,6 @@ h1 {
   font-style: normal;
 }
 
-/* Fullscreen Pet Face Screen (Simulated LCD robot display) */
-#pet-face-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: #1a1b23; /* Dark slate (looks like an LCD screen) */
-  z-index: 2000;
-  display: flex;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-#pet-face-overlay.active {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.pet-split-container {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  padding: 2.5rem 1.5rem;
-  gap: 1.5rem;
-}
-
-.pet-vision-panel {
-  flex: 1.2;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  border-right: 2px solid rgba(255, 255, 255, 0.1);
-  padding-right: 1.5rem;
-  position: relative;
-}
-
-.pet-panel-title {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--cyan-accent);
-  margin-bottom: 1rem;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.pet-face-panel {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.pet-face-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-  width: 100%;
-}
-
-.eye-container {
-  display: flex;
-  gap: 3.5rem;
-}
-
-/* Flat animated robot eyes */
-.eye {
-  width: 100px;
-  height: 100px;
-  background-color: #2e303f;
-  border: 6px solid var(--cyan-accent);
-  border-radius: 50%;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.2s ease;
-  overflow: hidden;
-}
-
-.pupil {
-  width: 30px;
-  height: 30px;
-  background-color: var(--cyan-accent);
-  border-radius: 50%;
-  position: absolute;
-  transition: all 0.15s ease;
-}
-
-.pet-status-text {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #ffffff;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-align: center;
-}
-
-.pet-log {
-  background-color: #10111a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 0.5rem;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.72rem;
-  color: var(--green-accent);
-  height: 80px;
-  width: 100%;
-  max-width: 300px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  text-align: left;
-}
-
-.exit-pet-help {
-  position: absolute;
-  bottom: 1.25rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.4);
-  text-transform: uppercase;
-  text-align: center;
-  pointer-events: none;
-}
-
-.btn-exit-pet {
-  position: absolute;
-  top: 1.25rem;
-  right: 1.25rem;
-  z-index: 2100;
-  padding: 0.4rem 0.8rem;
-}
-
-/* Eye Emotions (Flat color changes) */
-.pet-happy .eye {
-  border-color: var(--green-accent);
-  border-bottom-color: transparent;
-  border-radius: 50% 50% 15% 15%;
-  transform: rotate(-8deg);
-}
-.pet-happy #eye-right {
-  transform: rotate(8deg);
-}
-.pet-happy .pupil {
-  background-color: var(--green-accent);
-}
-
-.pet-angry .eye {
-  border-color: var(--red-accent);
-  clip-path: polygon(0% 12%, 100% 0%, 100% 100%, 0% 100%);
-}
-.pet-angry #eye-right {
-  clip-path: polygon(0% 0%, 100% 12%, 100% 100%, 0% 100%);
-}
-.pet-angry .pupil {
-  background-color: var(--red-accent);
-  top: 12px;
-}
-
-.pet-sleeping .eye {
-  height: 12px;
-  border-radius: 0;
-  border-width: 0 0 6px 0;
-  border-color: var(--text-muted);
-}
-.pet-sleeping .pupil {
-  display: none;
-}
-.pet-sleeping .pet-status-text {
-  animation: sleepPulse 2s infinite ease-in-out;
-}
-
 .hidden {
   display: none !important;
-}
-
-@keyframes sleepPulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.7; }
 }

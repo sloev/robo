@@ -5,12 +5,13 @@ from web_server import WebServer
 
 # Pin Definitions (IN1, IN2, IN3, IN4 for each motor)
 # Adjust these pins to match your physical wiring setup
-MOTOR_A_PINS = [1, 2, 3, 4]
-MOTOR_B_PINS = [5, 7, 9, 11]
+MOTOR_PINS = {
+    'A': [1, 2, 3, 4],
+    'B': [5, 7, 9, 11]
+}
 
 # Initialize Stepper Motors
-motor_a = Stepper(MOTOR_A_PINS)
-motor_b = Stepper(MOTOR_B_PINS)
+motors = {name: Stepper(pins) for name, pins in MOTOR_PINS.items()}
 
 # Active recipe task reference
 recipe_task = None
@@ -28,13 +29,14 @@ async def run_blocks(blocks):
             steps = int(block.get('steps', 0))
             speed = int(block.get('speed', 2))
             
-            motor = motor_a if motor_name == 'A' else motor_b
-            motor.set_speed(speed)
-            motor.move(steps)
-            
-            # Non-blocking wait for movement to complete
-            while motor.is_moving:
-                await asyncio.sleep_ms(20)
+            motor = motors.get(motor_name)
+            if motor:
+                motor.set_speed(speed)
+                motor.move(steps)
+                
+                # Non-blocking wait for movement to complete
+                while motor.is_moving:
+                    await asyncio.sleep_ms(20)
                 
         elif action == 'wait':
             duration = float(block.get('duration', 0.0))
@@ -65,8 +67,8 @@ async def execute_recipe(recipe):
     except asyncio.CancelledError:
         print("Program execution stopped by user request.")
     finally:
-        motor_a.stop()
-        motor_b.stop()
+        for motor in motors.values():
+            motor.stop()
         recipe_task = None
 
 def run_recipe_callback(recipe):
@@ -95,15 +97,15 @@ async def main():
     print("Initializing systems...")
     
     # 1. Start Stepper Motor Background Loop tasks
-    asyncio.create_task(motor_a.run_loop())
-    asyncio.create_task(motor_b.run_loop())
+    for motor in motors.values():
+        asyncio.create_task(motor.run_loop())
     
     # 2. Start Captive Portal DNS Server (Resolves all queries to ESP32 IP: 192.168.4.1)
     dns_server = DNSServer(ip="192.168.4.1")
     asyncio.create_task(dns_server.run())
     
     # 3. Start Web Server on port 80
-    web_server = WebServer(motor_a, motor_b, sensor_data=sensor_data, host="0.0.0.0", port=80, redirect_host="robot.com")
+    web_server = WebServer(motors, sensor_data=sensor_data, host="0.0.0.0", port=80, redirect_host="robot.com")
     await web_server.start(run_recipe_callback)
     
     # Keep the main loop alive

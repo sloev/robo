@@ -3,9 +3,8 @@ import json
 import os
 
 class WebServer:
-    def __init__(self, stepper_a, stepper_b, sensor_data=None, host="0.0.0.0", port=80, redirect_host="robot.com"):
-        self.stepper_a = stepper_a
-        self.stepper_b = stepper_b
+    def __init__(self, motors, sensor_data=None, host="0.0.0.0", port=80, redirect_host="robot.com"):
+        self.motors = motors
         self.sensor_data = sensor_data if sensor_data is not None else {"vision": "none"}
         self.host = host
         self.port = port
@@ -143,32 +142,21 @@ class WebServer:
                 self.sensor_data.update(data)
                 resp_data = {"status": "updated"}
             elif path == '/api/status' and method == 'GET':
-                resp_data = {
-                    "motorA": {
-                        "current": self.stepper_a.current_position,
-                        "target": self.stepper_a.target_position,
-                        "moving": self.stepper_a.is_moving,
-                        "speed_delay": self.stepper_a.step_delay_ms
-                    },
-                    "motorB": {
-                        "current": self.stepper_b.current_position,
-                        "target": self.stepper_b.target_position,
-                        "moving": self.stepper_b.is_moving,
-                        "speed_delay": self.stepper_b.step_delay_ms
+                resp_data = {}
+                for name, motor in self.motors.items():
+                    resp_data[name] = {
+                        "current": motor.current_position,
+                        "target": motor.target_position,
+                        "moving": motor.is_moving,
+                        "speed_delay": motor.step_delay_ms
                     }
-                }
             elif path == '/api/manual' and method == 'POST':
                 data = json.loads(body_bytes.decode('utf-8'))
                 motor = data.get('motor')
                 steps = int(data.get('steps', 0))
                 speed = int(data.get('speed', 2))
                 
-                target_motor = None
-                if motor == 'A':
-                    target_motor = self.stepper_a
-                elif motor == 'B':
-                    target_motor = self.stepper_b
-                    
+                target_motor = self.motors.get(motor)
                 if target_motor:
                     target_motor.set_speed(speed)
                     if steps == 0:
@@ -193,8 +181,8 @@ class WebServer:
                     resp_data = {"error": "Another program is already running"}
             elif path == '/api/stop' and method == 'POST':
                 # Stop motors
-                self.stepper_a.stop()
-                self.stepper_b.stop()
+                for motor in self.motors.values():
+                    motor.stop()
                 
                 # Terminate running script
                 self.run_recipe_cb(None)
