@@ -16,8 +16,17 @@ const server = http.createServer((req, res) => {
   if (reqPath === '/api/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
-      A: { current: 1250, target: 1250, moving: false, speed_delay: 2 },
-      B: { current: -840, target: -840, moving: false, speed_delay: 2 }
+      motors: {
+        A: { current: 1250, target: 1250, moving: false, speed_delay: 2 },
+        B: { current: -840, target: -840, moving: false, speed_delay: 2 }
+      },
+      sensors: {
+        vision: "none",
+        sound: "none",
+        button_a: "pressed",
+        button_b: "released",
+        potentiometer: 42
+      }
     }));
     return;
   }

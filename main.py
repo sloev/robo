@@ -1,4 +1,5 @@
 import uasyncio as asyncio
+from machine import Pin, ADC
 from stepper import Stepper
 from dns_server import DNSServer
 from web_server import WebServer
@@ -13,11 +14,25 @@ MOTOR_PINS = {
 # Initialize Stepper Motors
 motors = {name: Stepper(pins) for name, pins in MOTOR_PINS.items()}
 
+# Initialize Hardware Senses (Buttons/Switches with internal Pull-up)
+btn_a = Pin(12, Pin.IN, Pin.PULL_UP)
+btn_b = Pin(13, Pin.IN, Pin.PULL_UP)
+
+# Initialize Hardware Senses (Analog Potentiometer / Dial)
+pot = ADC(Pin(14))
+pot.atten(ADC.ATTN_11DB) # 0-3.3V full range
+
 # Active recipe task reference
 recipe_task = None
 
-# Shared sensor readings dictionary
-sensor_data = {"vision": "none"}
+# Shared sensor readings dictionary (starts with default off values)
+sensor_data = {
+    "vision": "none",
+    "sound": "none",
+    "button_a": "released",
+    "button_b": "released",
+    "potentiometer": 0
+}
 
 async def run_blocks(blocks):
     """Recursively execute compiled workflow blocks."""
@@ -62,10 +77,25 @@ async def run_blocks(blocks):
         elif action == 'if':
             sensor_name = block.get('sensor')
             target_val = block.get('value')
+            op = block.get('op', 'eq') # comparison operator: 'eq', 'gt', 'lt'
             body = block.get('body', [])
             
-            current_val = sensor_data.get(sensor_name, 'none')
-            if current_val == target_val:
+            current_val = sensor_data.get(sensor_name)
+            
+            # Match condition
+            matched = False
+            if op == 'eq':
+                matched = (str(current_val) == str(target_val))
+            elif op == 'gt':
+                try:
+                    matched = (float(current_val) > float(target_val))
+                except: pass
+            elif op == 'lt':
+                try:
+                    matched = (float(current_val) < float(target_val))
+                except: pass
+                
+            if matched:
                 await run_blocks(body)
 
 async def execute_recipe(recipe):
@@ -104,6 +134,22 @@ def run_recipe_callback(recipe):
     recipe_task = asyncio.create_task(execute_recipe(recipe))
     return True
 
+async def poll_hardware_sensors():
+    """Background loop that polls GPIO sensors and updates the state dictionary."""
+    while True:
+        # 0 = pressed (due to PULL_UP resistor wired to GND)
+        sensor_data["button_a"] = "pressed" if btn_a.value() == 0 else "released"
+        sensor_data["button_b"] = "pressed" if btn_b.value() == 0 else "released"
+        
+        try:
+            # Read 16-bit ADC value (0 - 65535) and map to 0-100% dial range
+            raw_adc = pot.read_u16()
+            sensor_data["potentiometer"] = int((raw_adc / 65535) * 100)
+        except Exception as e:
+            pass
+            
+        await asyncio.sleep_ms(50)
+
 async def main():
     print("Initializing systems...")
     
@@ -111,11 +157,14 @@ async def main():
     for motor in motors.values():
         asyncio.create_task(motor.run_loop())
     
-    # 2. Start Captive Portal DNS Server (Resolves all queries to ESP32 IP: 192.168.4.1)
+    # 2. Start GPIO Hardware Sensors Background Poller
+    asyncio.create_task(poll_hardware_sensors())
+    
+    # 3. Start Captive Portal DNS Server (Resolves all queries to ESP32 IP: 192.168.4.1)
     dns_server = DNSServer(ip="192.168.4.1")
     asyncio.create_task(dns_server.run())
     
-    # 3. Start Web Server on port 80
+    # 4. Start Web Server on port 80
     web_server = WebServer(motors, sensor_data=sensor_data, host="0.0.0.0", port=80, redirect_host="robot.com")
     await web_server.start(run_recipe_callback)
     

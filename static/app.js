@@ -212,6 +212,101 @@ function createBlockElement(type) {
     
     return container;
   }
+
+  if (type === 'if-button') {
+    const container = document.createElement('div');
+    container.className = 'loop-container';
+    container.style.borderLeft = '6px solid var(--orange-accent)';
+    container.style.backgroundColor = 'rgba(255, 171, 25, 0.02)';
+    container.dataset.blockType = 'if-button';
+    
+    container.innerHTML = `
+      <div class="loop-header">
+        <div class="loop-header-left">
+          <span>🔘 If Button</span>
+          <select class="if-button-name">
+            <option value="button_a">A (GP12)</option>
+            <option value="button_b">B (GP13)</option>
+          </select>
+          <span>is</span>
+          <select class="if-button-state">
+            <option value="pressed">Pressed</option>
+            <option value="released">Released</option>
+          </select>
+          <span>then:</span>
+        </div>
+        <button class="block-remove">&times;</button>
+      </div>
+      <div class="loop-body"></div>
+    `;
+    
+    const body = container.querySelector('.loop-body');
+    const removeBtn = container.querySelector('.block-remove');
+    
+    setTimeout(() => setActiveContainer(body), 50);
+    
+    body.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setActiveContainer(body);
+    });
+    
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.remove();
+      if (activeContainer === body) {
+        setActiveContainer(mainWorkspace);
+      }
+      updateEmptyMessages();
+    });
+    
+    return container;
+  }
+
+  if (type === 'if-dial') {
+    const container = document.createElement('div');
+    container.className = 'loop-container';
+    container.style.borderLeft = '6px solid var(--orange-accent)';
+    container.style.backgroundColor = 'rgba(255, 171, 25, 0.02)';
+    container.dataset.blockType = 'if-dial';
+    
+    container.innerHTML = `
+      <div class="loop-header">
+        <div class="loop-header-left">
+          <span>🎛️ If Dial (GP14) is</span>
+          <select class="if-dial-op">
+            <option value="gt">Greater than</option>
+            <option value="lt">Less than</option>
+            <option value="eq">Equal to</option>
+          </select>
+          <input type="number" value="50" min="0" max="100" class="if-dial-val">%
+          <span>then:</span>
+        </div>
+        <button class="block-remove">&times;</button>
+      </div>
+      <div class="loop-body"></div>
+    `;
+    
+    const body = container.querySelector('.loop-body');
+    const removeBtn = container.querySelector('.block-remove');
+    
+    setTimeout(() => setActiveContainer(body), 50);
+    
+    body.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setActiveContainer(body);
+    });
+    
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.remove();
+      if (activeContainer === body) {
+        setActiveContainer(mainWorkspace);
+      }
+      updateEmptyMessages();
+    });
+    
+    return container;
+  }
   
   // Normal blocks
   const block = document.createElement('div');
@@ -354,6 +449,32 @@ function compileWorkspace(container) {
           action: 'if',
           sensor: 'sound',
           value: value,
+          body: nestedBlocks
+        });
+      } else if (blockType === 'if-button') {
+        const button = child.querySelector('.if-button-name').value;
+        const state = child.querySelector('.if-button-state').value;
+        const loopBody = child.querySelector('.loop-body');
+        const nestedBlocks = compileWorkspace(loopBody);
+        
+        blocks.push({
+          action: 'if',
+          sensor: button,
+          value: state,
+          op: 'eq',
+          body: nestedBlocks
+        });
+      } else if (blockType === 'if-dial') {
+        const op = child.querySelector('.if-dial-op').value;
+        const val = parseInt(child.querySelector('.if-dial-val').value) || 0;
+        const loopBody = child.querySelector('.loop-body');
+        const nestedBlocks = compileWorkspace(loopBody);
+        
+        blocks.push({
+          action: 'if',
+          sensor: 'potentiometer',
+          value: val,
+          op: op,
           body: nestedBlocks
         });
       }
@@ -1252,7 +1373,7 @@ async function updateStatus() {
     const status = await resp.json();
     
     // Check if the motors list has changed from what we currently display
-    const statusMotors = Object.keys(status);
+    const statusMotors = Object.keys(status.motors);
     const listsMatch = configuredMotors.length === statusMotors.length && 
                        configuredMotors.every(m => statusMotors.includes(m));
                        
@@ -1264,13 +1385,40 @@ async function updateStatus() {
     
     configuredMotors.forEach(motorName => {
       const valEl = document.getElementById(`status-motor-${motorName.toLowerCase()}-pos`);
-      if (valEl && status[motorName]) {
-        valEl.innerText = status[motorName].current;
-        if (status[motorName].moving) {
+      if (valEl && status.motors[motorName]) {
+        valEl.innerText = status.motors[motorName].current;
+        if (status.motors[motorName].moving) {
           isMoving = true;
         }
       }
     });
+
+    // Update physical sensors indicators
+    if (status.sensors) {
+      const btnAEl = document.getElementById('status-btn-a');
+      const btnBEl = document.getElementById('status-btn-b');
+      const dialEl = document.getElementById('status-dial');
+      
+      if (btnAEl && status.sensors.button_a) {
+        btnAEl.innerText = status.sensors.button_a.toUpperCase();
+        if (status.sensors.button_a === 'pressed') {
+          btnAEl.style.color = 'var(--cyan-accent)';
+        } else {
+          btnAEl.style.color = '';
+        }
+      }
+      if (btnBEl && status.sensors.button_b) {
+        btnBEl.innerText = status.sensors.button_b.toUpperCase();
+        if (status.sensors.button_b === 'pressed') {
+          btnBEl.style.color = 'var(--purple-accent)';
+        } else {
+          btnBEl.style.color = '';
+        }
+      }
+      if (dialEl && status.sensors.potentiometer !== undefined) {
+        dialEl.innerText = `${status.sensors.potentiometer}%`;
+      }
+    }
     
     if (isMoving) {
       statusRobotMode.innerText = autopilotActive ? "AUTOPILOT" : "DRIVING";

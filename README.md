@@ -106,23 +106,30 @@ Motors consume a lot of electricity in quick pulses. This can cause the ESP32 br
 
 ---
 
-## 🔌 Connecting Extra Senses (Sensors)
+## 🔌 Connecting Extra Senses (Sensors & Switches)
 
-You can easily expand your creation's senses by connecting other hardware sensors to the ESP32-S2 Mini!
+You can easily expand your creation's senses by connecting buttons, switches, dials, and other simple sensors directly to the ESP32-S2 Mini. The system has built-in support for digital and analog inputs!
 
-### Example: Ultrasonic Range Finder (HC-SR04)
-This sensor acts like a bat's sonar, letting your build measure distances to walls, obstacles, or target objects.
+### 🔘 1. Buttons & Switches (Digital Sensors)
+You can connect buttons or toggle/micro-switches to **GPIO 12 (Button A)** and **GPIO 13 (Button B)**.
+*   **Wiring:** Connect one leg of the button/switch to the GPIO pin (GP12 or GP13) and the other leg to **GND**.
+*   **How it works:** The board uses internal pull-up resistors, keeping the signal `HIGH` (released) by default. When pressed/toggled, it connects to GND, pulling the signal `LOW` (pressed).
+*   **Coding Mode:** Use the `If Button [A/B] is [Pressed/Released]` blocks to create conditional behaviors (e.g., *"If Button A is Pressed, then Move Motor A by 500 steps"*).
 
-#### 1. Wiring it to the Brain:
-*   **VCC:** Connect to the 5V Rail
-*   **GND:** Connect to the GND Rail
-*   **Trig (Trigger):** Connect to GP12
-*   **Echo:** Connect to GP13
+### 🎛️ 2. Dials & Potentiometers (Analog Sensors)
+Connect an analog dial (potentiometer, e.g., 10kΩ) to **GPIO 14** to adjust speeds, thresholds, or angles.
+*   **Wiring:** 
+    *   Connect the **left pin** to **GND**.
+    *   Connect the **right pin** to the ESP32's **3.3V pin** (do NOT use 5V for analog signals!).
+    *   Connect the **middle pin (wiper)** to **GPIO 14**.
+*   **How it works:** Turning the dial changes the voltage from 0V to 3.3V. The brain's Analog-to-Digital Converter (ADC) reads this and scales it from `0%` to `100%`.
+*   **Coding Mode:** Use the `If Dial is [Greater than / Less than / Equal to] [X]%` block to trigger movements at specific dial positions (e.g., *"If Dial is Greater than 80%, then Stop Motors"*).
 
-#### 2. Using it in all Modes:
-*   **🧩 Coding Mode:** You can add an `If Sensor [distance] < 15cm then [Stop Motors]` block! You can edit the MicroPython interpreter `main.py` to read pins GP12/GP13 using Python's `time` library to calculate pulse durations.
-*   **🕹️ Manual Mode:** Read the ultrasonic values in the background and display the real-time distance directly inside the **Status Monitors** panel!
-*   **🧠 AI Explorer:** The creation can use the sensor as a physical backup to trigger obstacle escapes if it drives into a wall or is blocked by an object the phone camera cannot see.
+### 🍎 3. More Low-Hanging Fruits (Easy Upgrades)
+Because the inputs are standard digital and analog pins, you can connect many other cheap sensors:
+*   **Infrared Line/Obstacle Sensors (TCRT5000):** These have a digital output that behaves exactly like a button. Connect their `OUT` pin to **GP12** or **GP13**. When they detect a line or object, they pull the signal low—triggering your `If Button is Pressed` block!
+*   **Light Sensors (LDR Photoresistors):** Build a simple voltage divider with a photoresistor and a 10k resistor. Connect the output to **GP14**. The light level will show up on your dashboard as the **Dial** percentage, letting you code light-sensitive creations (e.g., *"If Dial is Less than 30% [it's dark], then Move Motor A"*).
+*   **Limit/Micro-Switches:** Wire these to GP12/GP13 just like buttons. Perfect for creating a crane that automatically stops winding when the carriage hits a physical limit switch!
 
 ---
 

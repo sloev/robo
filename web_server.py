@@ -142,14 +142,17 @@ class WebServer:
                 self.sensor_data.update(data)
                 resp_data = {"status": "updated"}
             elif path == '/api/status' and method == 'GET':
-                resp_data = {}
-                for name, motor in self.motors.items():
-                    resp_data[name] = {
-                        "current": motor.current_position,
-                        "target": motor.target_position,
-                        "moving": motor.is_moving,
-                        "speed_delay": motor.step_delay_ms
-                    }
+                resp_data = {
+                    "motors": {
+                        name: {
+                            "current": motor.current_position,
+                            "target": motor.target_position,
+                            "moving": motor.is_moving,
+                            "speed_delay": motor.step_delay_ms
+                        } for name, motor in self.motors.items()
+                    },
+                    "sensors": self.sensor_data
+                }
             elif path == '/api/manual' and method == 'POST':
                 data = json.loads(body_bytes.decode('utf-8'))
                 motor = data.get('motor')
