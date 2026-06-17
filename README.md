@@ -35,13 +35,13 @@ Drive your creation directly using virtual vertical joysticks! Slide them up or 
 ### 🧠 3. AI Explorer Mode (Kinematic Discovery)
 This is where the magic happens! Your creation doesn't need to know what it is. In this mode, the phone watches the creation from a stand and **helps it discover its own body** (whether it's a crane, a car, or a catapult).
 
-1.  **Scan the Sticker:** Put a bright colored sticker on the moving part of your build. Click **Start Training** and tap that sticker on your phone screen to lock the target.
-2.  **Kinematic Babbling:** The creation automatically wiggles its motors. The camera measures how each wiggle moves the sticker on the screen.
+1.  **Background Calibration:** Click **Start Training**. The dashboard automatically captures the static background scene. Keep the camera completely still and hands out of the frame!
+2.  **Kinematic Babbling:** The creation automatically wiggles its motors. Using magic background differencing, the camera detects how each wiggle moves the creation's body parts in real time.
 3.  **Self-Discovery:** 
     *   *"Oh, I am a crane! Turning Motor A lifts my arm up!"*
     *   *"Oh, I am a car! Turning Motor A drives me forward, and Motor B steers me!"*
     *   *"Oh, I am a catapult! Motor A winds up my spring cog!"*
-4.  **Autonomous Autopilot:** Click **Start Autopilot** and watch your creation navigate its moving parts to follow colors or wander around using what it learned!
+4.  **Autonomous Autopilot:** Click **Start Autopilot** and watch your creation navigate its parts. If you wave a hand or move objects, it will track the movement and move its own body to follow it!
 
 ![AI Explorer in Action](screenshots/view-ai.jpg)
 

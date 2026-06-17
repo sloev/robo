@@ -838,25 +838,25 @@ async function onClapDetected() {
 }
 
 
-// --- 📷 CLIENT-SIDE COMPUTER VISION COLOR TRACKING ---
+// --- 📷 CLIENT-SIDE COMPUTER VISION MOTION/CHANGE TRACKING ---
 
 const visionVideo = document.getElementById('vision-video');
 const visionCanvas = document.getElementById('vision-canvas');
 const visionPlaceholder = document.getElementById('vision-placeholder');
 const btnStartVision = document.getElementById('btn-start-vision');
 const btnStopVision = document.getElementById('btn-stop-vision');
-const colorPreview = document.getElementById('color-preview');
+const btnCalibrateBg = document.getElementById('btn-calibrate-bg');
 
 let visionActive = false;
 let visionStream = null;
-let targetColor = { r: 255, g: 0, b: 0 }; // Default tracking color: Red
-let colorTolerance = 55; // Sensitivity margin for matching
+let backgroundFrameData = null; // Stored background reference
+let motionThreshold = 40; // Pixel change sensitivity threshold
 let visionResult = 'none'; // 'left', 'center', 'right', or 'none'
 
 // Centroid tracking coordinate states shared with neural network
 let currentCentroid = { x: 0, y: 0, detected: false };
 
-// Frame differencing variables to detect if the robot is moving or stuck (blocked)
+// Frame differencing variables to detect if the creation is moving or stuck
 let lastFrameData = null;
 let currentFrameDiff = 0;
 
@@ -865,6 +865,22 @@ visionCanvas.width = 320;
 visionCanvas.height = 240;
 
 const ctx = visionCanvas.getContext('2d');
+
+// Copy current camera frame into background reference
+function captureBackground() {
+  if (!visionActive) return;
+  try {
+    ctx.drawImage(visionVideo, 0, 0, visionCanvas.width, visionCanvas.height);
+    const imgData = ctx.getImageData(0, 0, visionCanvas.width, visionCanvas.height);
+    if (!backgroundFrameData || backgroundFrameData.length !== imgData.data.length) {
+      backgroundFrameData = new Uint8ClampedArray(imgData.data.length);
+    }
+    backgroundFrameData.set(imgData.data);
+    console.log("Background frame captured successfully!");
+  } catch (err) {
+    console.error("Failed to capture background:", err);
+  }
+}
 
 btnStartVision.addEventListener('click', async () => {
   if (visionActive) return;
@@ -878,9 +894,15 @@ btnStartVision.addEventListener('click', async () => {
     visionVideo.style.display = 'block';
     visionCanvas.style.display = 'block';
     visionPlaceholder.style.display = 'none';
+    btnCalibrateBg.disabled = false;
     
     visionActive = true;
     requestAnimationFrame(processFrame);
+    
+    // Auto-capture background after 1.2s to allow camera exposure to stabilize
+    setTimeout(() => {
+      captureBackground();
+    }, 1200);
   } catch (err) {
     alert("Could not access camera: " + err.message);
   }
@@ -892,7 +914,9 @@ async function stopVisionFeed() {
   visionResult = 'none';
   currentCentroid.detected = false;
   lastFrameData = null;
+  backgroundFrameData = null;
   currentFrameDiff = 0;
+  btnCalibrateBg.disabled = true;
   
   if (visionStream) {
     visionStream.getTracks().forEach(track => track.stop());
@@ -916,37 +940,12 @@ async function stopVisionFeed() {
 
 btnStopVision.addEventListener('click', stopVisionFeed);
 
-// Click-to-pick target tracking color
-visionCanvas.addEventListener('click', (e) => {
-  if (!visionActive) return;
-  
-  const rect = visionCanvas.getBoundingClientRect();
-  const x = Math.floor(((e.clientX - rect.left) / rect.width) * visionCanvas.width);
-  const y = Math.floor(((e.clientY - rect.top) / rect.height) * visionCanvas.height);
-  
-  // Pick color to track
-  try {
-    const pixel = ctx.getImageData(x, y, 1, 1).data;
-    targetColor = { r: pixel[0], g: pixel[1], b: pixel[2] };
-    colorPreview.style.backgroundColor = `rgb(${targetColor.r}, ${targetColor.g}, ${targetColor.b})`;
-    
-    // If we are in color registration training step, check if the color is registered successfully
-    if (trainingState === 'COLOR_REGISTER') {
-      setTimeout(() => {
-        if (currentCentroid.detected) {
-          logConsole(`Robot scanned successfully! Centroid locked at (${Math.floor(currentCentroid.x)}, ${Math.floor(currentCentroid.y)})`);
-          startCountdownAndCalibrate();
-        } else {
-          logConsole("Scan failed. Marker not recognized. Click again on a bright, distinct color on the robot.");
-        }
-      }, 120);
-    }
-  } catch (err) {
-    console.error("Color picker failed:", err);
-  }
+btnCalibrateBg.addEventListener('click', () => {
+  captureBackground();
+  logConsole("Background calibrated successfully!");
 });
 
-// Image Processing loop (Color Blob Tracking + Visual Motion Diff + UI overlays)
+// Image Processing loop (Background Differencing + Visual Motion Diff + UI overlays)
 function processFrame() {
   if (!visionActive) return;
   
@@ -958,7 +957,7 @@ function processFrame() {
     const imgData = ctx.getImageData(0, 0, visionCanvas.width, visionCanvas.height);
     const data = imgData.data;
     
-    // 1. Calculate frame-to-frame change (difference) to detect if robot is blocked/moving
+    // 1. Calculate frame-to-frame change (difference) to detect if creation is blocked/moving
     if (lastFrameData) {
       let diffSum = 0;
       let pixelStep = 8;
@@ -978,31 +977,44 @@ function processFrame() {
     }
     lastFrameData.set(data);
     
-    // 2. Color Blob Tracking (tracking robot's visual marker)
+    // 2. Background differencing to find moving/changed parts (magic tracking)
     let sumX = 0;
     let sumY = 0;
     let matchCount = 0;
     
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i+1];
-      const b = data[i+2];
-      
-      const dist = Math.sqrt(
-        (r - targetColor.r) ** 2 +
-        (g - targetColor.g) ** 2 +
-        (b - targetColor.b) ** 2
-      );
-      
-      if (dist < colorTolerance) {
-        const idx = i / 4;
-        const x = idx % visionCanvas.width;
-        const y = Math.floor(idx / visionCanvas.width);
+    if (backgroundFrameData) {
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i+1];
+        const b = data[i+2];
         
-        sumX += x;
-        sumY += y;
-        matchCount++;
+        const bg_r = backgroundFrameData[i];
+        const bg_g = backgroundFrameData[i+1];
+        const bg_b = backgroundFrameData[i+2];
+        
+        // Euclidean distance in RGB color space
+        const dist = Math.sqrt(
+          (r - bg_r) ** 2 +
+          (g - bg_g) ** 2 +
+          (b - bg_b) ** 2
+        );
+        
+        if (dist > motionThreshold) {
+          const idx = i / 4;
+          const x = idx % visionCanvas.width;
+          const y = Math.floor(idx / visionCanvas.width);
+          
+          sumX += x;
+          sumY += y;
+          matchCount++;
+          
+          // Draw a light red tint overlay on changed pixels
+          data[i] = Math.min(255, data[i] + 40);
+        }
       }
+      
+      // Update canvas with highlighted pixels
+      ctx.putImageData(imgData, 0, 0);
     }
     
     // Draw visual sector grid division lines (35% and 65%)
@@ -1017,7 +1029,8 @@ function processFrame() {
     ctx.moveTo(div2, 0); ctx.lineTo(div2, visionCanvas.height);
     ctx.stroke();
     
-    if (matchCount > 40) {
+    // Require at least 150 matching pixels to filter out noise
+    if (matchCount > 150) {
       const avgX = sumX / matchCount;
       const avgY = sumY / matchCount;
       
@@ -1031,7 +1044,7 @@ function processFrame() {
         visionResult = 'center';
       }
       
-      // Draw crosshair target on robot marker
+      // Draw crosshair target on the tracked movement centroid
       ctx.strokeStyle = 'var(--cyan-accent)';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -1078,7 +1091,7 @@ async function sendVisionResult() {
 
 let learningModeActive = false;
 let autopilotActive = false;
-let trainingState = 'IDLE'; // 'IDLE', 'COLOR_REGISTER', 'BABBLING'
+let trainingState = 'IDLE'; // 'IDLE', 'BG_CAPTURE', 'BABBLING'
 let learningSamples = [];
 
 // Single-Layer Perceptron weights and biases mapping (dx, dy) -> Motor speeds (A, B)
@@ -1110,8 +1123,8 @@ async function triggerCalibMove(motor, steps) {
   }
 }
 
-// NN Start Button triggers color registration step
-btnLearnStart.addEventListener('click', () => {
+// NN Start Button triggers background calibration step
+btnLearnStart.addEventListener('click', async () => {
   if (learningModeActive) return;
   
   // Guard check: camera feed must be active
@@ -1121,16 +1134,19 @@ btnLearnStart.addEventListener('click', () => {
   }
   
   if (trainingState === 'IDLE') {
-    trainingState = 'COLOR_REGISTER';
-    btnLearnStart.innerText = "🎯 SCANNED?";
-    btnLearnStart.classList.add('btn-stop');
-    btnLearnStart.classList.remove('btn-run');
+    trainingState = 'BG_CAPTURE';
+    btnLearnStart.innerText = "📸 CALIBRATING...";
+    btnLearnStart.disabled = true;
     
     learnConsole.innerText = "Console: WIZARD STARTED.";
-    logConsole("STEP 1: SCAN THE CREATION!");
-    logConsole("Click directly on your creation's colored tracking marker in the camera view above to register its color.");
-  } else if (trainingState === 'COLOR_REGISTER') {
-    logConsole("Still waiting for creation scan. Click on your creation's colored marker in the video viewport.");
+    logConsole("STEP 1: BACKGROUND CALIBRATION");
+    logConsole("Capturing background scene... Please make sure your creation is STILL and hands are out of the frame.");
+    
+    await delay(1200); // Wait 1.2s for camera stability
+    captureBackground();
+    logConsole("Background captured successfully!");
+    
+    startCountdownAndCalibrate();
   }
 });
 
@@ -1143,7 +1159,7 @@ async function startCountdownAndCalibrate() {
   btnLearnTest.disabled = true;
   btnLearnTest.innerText = "🤖 START AUTOPILOT";
   
-  logConsole("Robot locked! Keep workspace clear.");
+  logConsole("Creation locked! Keep workspace clear.");
   await delay(600);
   
   logConsole("Starting kinematics babble in 3...");
@@ -1162,55 +1178,60 @@ async function runBabblingCalibration() {
   logConsole("Executing motor babble sequence...");
   
   try {
+    // Helper function to resolve current centroid coordinate (home is 160, 120)
+    const getCent = () => currentCentroid.detected ? 
+      { x: currentCentroid.x, y: currentCentroid.y } : 
+      { x: 160, y: 120 };
+
     // --- Step 1: Babble Motor A (+) ---
     logConsole("Testing Left Motor A (+)...");
     await delay(500);
-    let startCent = { x: currentCentroid.x, y: currentCentroid.y };
+    let startCent = getCent();
     await triggerCalibMove('A', 350);
     await delay(1600);
     
-    if (!currentCentroid.detected) throw new Error("Lost tracking target! Place the target back and try again.");
-    let dx = currentCentroid.x - startCent.x;
-    let dy = currentCentroid.y - startCent.y;
+    let endCent = getCent();
+    let dx = endCent.x - startCent.x;
+    let dy = endCent.y - startCent.y;
     learningSamples.push({ motorA: 1.0, motorB: 0.0, dx: dx, dy: dy });
     logConsole(`A(+) displacement: dx=${dx.toFixed(1)}px, dy=${dy.toFixed(1)}px`);
     
     // --- Step 2: Babble Motor A (-) ---
     logConsole("Testing Left Motor A (-)...");
     await delay(500);
-    startCent = { x: currentCentroid.x, y: currentCentroid.y };
+    startCent = getCent();
     await triggerCalibMove('A', -350);
     await delay(1600);
     
-    if (!currentCentroid.detected) throw new Error("Lost tracking target!");
-    dx = currentCentroid.x - startCent.x;
-    dy = currentCentroid.y - startCent.y;
+    endCent = getCent();
+    dx = endCent.x - startCent.x;
+    dy = endCent.y - startCent.y;
     learningSamples.push({ motorA: -1.0, motorB: 0.0, dx: dx, dy: dy });
     logConsole(`A(-) displacement: dx=${dx.toFixed(1)}px, dy=${dy.toFixed(1)}px`);
     
     // --- Step 3: Babble Motor B (+) ---
     logConsole("Testing Right Motor B (+)...");
     await delay(500);
-    startCent = { x: currentCentroid.x, y: currentCentroid.y };
+    startCent = getCent();
     await triggerCalibMove('B', 350);
     await delay(1600);
     
-    if (!currentCentroid.detected) throw new Error("Lost tracking target!");
-    dx = currentCentroid.x - startCent.x;
-    dy = currentCentroid.y - startCent.y;
+    endCent = getCent();
+    dx = endCent.x - startCent.x;
+    dy = endCent.y - startCent.y;
     learningSamples.push({ motorA: 0.0, motorB: 1.0, dx: dx, dy: dy });
     logConsole(`B(+) displacement: dx=${dx.toFixed(1)}px, dy=${dy.toFixed(1)}px`);
     
     // --- Step 4: Babble Motor B (-) ---
     logConsole("Testing Right Motor B (-)...");
     await delay(500);
-    startCent = { x: currentCentroid.x, y: currentCentroid.y };
+    startCent = getCent();
     await triggerCalibMove('B', -350);
     await delay(1600);
     
-    if (!currentCentroid.detected) throw new Error("Lost tracking target!");
-    dx = currentCentroid.x - startCent.x;
-    dy = currentCentroid.y - startCent.y;
+    endCent = getCent();
+    dx = endCent.x - startCent.x;
+    dy = endCent.y - startCent.y;
     learningSamples.push({ motorA: 0.0, motorB: -1.0, dx: dx, dy: dy });
     logConsole(`B(-) displacement: dx=${dx.toFixed(1)}px, dy=${dy.toFixed(1)}px`);
     
