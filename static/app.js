@@ -731,7 +731,11 @@ document.getElementById('btn-run-program').addEventListener('click', async () =>
         alert("Error sending program: " + resp.statusText);
       }
     } catch (err) {
-      alert("Connection error: " + err.message);
+      if (window.location.hostname.includes("github.io")) {
+        alert("Demo Mode: Hardware disconnected. Command simulation mode.");
+      } else {
+        alert("Connection error: " + err.message);
+      }
     }
   } else {
     const recipe = compileWorkspace(mainWorkspace);
@@ -753,7 +757,11 @@ document.getElementById('btn-run-program').addEventListener('click', async () =>
         alert("Error sending program: " + resp.statusText);
       }
     } catch (err) {
-      alert("Connection error: " + err.message);
+      if (window.location.hostname.includes("github.io")) {
+        alert("Demo Mode: Hardware disconnected. Command simulation mode.");
+      } else {
+        alert("Connection error: " + err.message);
+      }
     }
   }
 });

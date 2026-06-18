@@ -1,4 +1,4 @@
-import uasyncio as asyncio
+import asyncio
 from machine import Pin, ADC
 from stepper import Stepper
 from dns_server import DNSServer

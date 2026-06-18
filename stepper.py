@@ -1,4 +1,4 @@
-import uasyncio as asyncio
+import asyncio
 from machine import Pin
 
 class Stepper:

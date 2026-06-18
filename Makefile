@@ -10,6 +10,22 @@ FIRMWARE ?= firmware.bin
 # Tool to use: mpremote (default, recommended) or ampy
 TOOL ?= mpremote
 
+# Python and tool executables
+PYTHON_CMD ?= python3
+PIP_CMD ?= pip
+MPREMOTE_CMD ?= mpremote
+ESPTOOL_CMD ?= esptool.py
+AMPY_CMD ?= ampy
+
+# Use local virtual environment if it exists
+ifneq (,$(wildcard venv/bin/activate))
+	PYTHON_CMD = venv/bin/python3
+	PIP_CMD = venv/bin/pip
+	MPREMOTE_CMD = venv/bin/mpremote
+	ESPTOOL_CMD = venv/bin/esptool.py
+	AMPY_CMD = venv/bin/ampy
+endif
+
 .PHONY: all upload reset repl flash-firmware erase-flash install-tools help
 
 all: help
@@ -24,55 +40,56 @@ help:
 	@echo "  make flash-firmware  Flash the MicroPython firmware binary (defined by FIRMWARE=)"
 
 install-tools:
-	pip install mpremote esptool
+	$(PYTHON_CMD) -m venv venv
+	venv/bin/pip install mpremote esptool adafruit-ampy pyserial
 
 upload:
 	@echo "Uploading project files to $(PORT) using $(TOOL)..."
 ifeq ($(TOOL), mpremote)
 	# Create static directory if it doesn't exist
-	mpremote connect $(PORT) fs mkdir :static || true
+	$(MPREMOTE_CMD) connect $(PORT) fs mkdir :static || true
 	# Copy files
-	mpremote connect $(PORT) fs cp boot.py :boot.py
-	mpremote connect $(PORT) fs cp main.py :main.py
-	mpremote connect $(PORT) fs cp stepper.py :stepper.py
-	mpremote connect $(PORT) fs cp dns_server.py :dns_server.py
-	mpremote connect $(PORT) fs cp web_server.py :web_server.py
-	mpremote connect $(PORT) fs cp static/index.html.gz :static/index.html.gz
-	mpremote connect $(PORT) fs cp static/style.css.gz :static/style.css.gz
-	mpremote connect $(PORT) fs cp static/app.js.gz :static/app.js.gz
-	mpremote connect $(PORT) fs cp static/blockly_compressed.js.gz :static/blockly_compressed.js.gz
-	mpremote connect $(PORT) fs cp static/en.js.gz :static/en.js.gz
-	mpremote connect $(PORT) fs mkdir :static/media || true
-	for f in static/media/*; do mpremote connect $(PORT) fs cp $$f :static/media/$$(basename $$f) || true; done
+	$(MPREMOTE_CMD) connect $(PORT) fs cp boot.py :boot.py
+	$(MPREMOTE_CMD) connect $(PORT) fs cp main.py :main.py
+	$(MPREMOTE_CMD) connect $(PORT) fs cp stepper.py :stepper.py
+	$(MPREMOTE_CMD) connect $(PORT) fs cp dns_server.py :dns_server.py
+	$(MPREMOTE_CMD) connect $(PORT) fs cp web_server.py :web_server.py
+	$(MPREMOTE_CMD) connect $(PORT) fs cp static/index.html.gz :static/index.html.gz
+	$(MPREMOTE_CMD) connect $(PORT) fs cp static/style.css.gz :static/style.css.gz
+	$(MPREMOTE_CMD) connect $(PORT) fs cp static/app.js.gz :static/app.js.gz
+	$(MPREMOTE_CMD) connect $(PORT) fs cp static/blockly_compressed.js.gz :static/blockly_compressed.js.gz
+	$(MPREMOTE_CMD) connect $(PORT) fs cp static/en.js.gz :static/en.js.gz
+	$(MPREMOTE_CMD) connect $(PORT) fs mkdir :static/media || true
+	for f in static/media/*; do $(MPREMOTE_CMD) connect $(PORT) fs cp $$f :static/media/$$(basename $$f) || true; done
 else
 	# Fallback using ampy (requires installation of adafruit-ampy)
-	ampy --port $(PORT) --baud $(BAUD) put boot.py
-	ampy --port $(PORT) --baud $(BAUD) put main.py
-	ampy --port $(PORT) --baud $(BAUD) put stepper.py
-	ampy --port $(PORT) --baud $(BAUD) put dns_server.py
-	ampy --port $(PORT) --baud $(BAUD) put web_server.py
+	$(AMPY_CMD) --port $(PORT) --baud $(BAUD) put boot.py
+	$(AMPY_CMD) --port $(PORT) --baud $(BAUD) put main.py
+	$(AMPY_CMD) --port $(PORT) --baud $(BAUD) put stepper.py
+	$(AMPY_CMD) --port $(PORT) --baud $(BAUD) put dns_server.py
+	$(AMPY_CMD) --port $(PORT) --baud $(BAUD) put web_server.py
 	# Put static folder
-	ampy --port $(PORT) --baud $(BAUD) put static
+	$(AMPY_CMD) --port $(PORT) --baud $(BAUD) put static
 endif
 	@echo "Upload complete!"
 
 reset:
 	@echo "Resetting board on $(PORT)..."
 ifeq ($(TOOL), mpremote)
-	mpremote connect $(PORT) reset
+	$(MPREMOTE_CMD) connect $(PORT) reset
 else
 	# Soft-reboot using serial sequence Ctrl+C then Ctrl+D
-	python3 -c "import serial; s=serial.Serial('$(PORT)', $(BAUD)); s.write(b'\x03\x04')"
+	$(PYTHON_CMD) -c "import serial; s=serial.Serial('$(PORT)', $(BAUD)); s.write(b'\x03\x04')"
 endif
 
 repl:
 	@echo "Opening REPL console. Press Ctrl+X to exit."
-	mpremote connect $(PORT) repl
+	$(MPREMOTE_CMD) connect $(PORT) repl
 
 erase-flash:
 	@echo "Erasing ESP32 flash memory..."
-	esptool.py --port $(PORT) erase_flash
+	$(ESPTOOL_CMD) --port $(PORT) erase_flash
 
 flash-firmware:
 	@echo "Flashing MicroPython firmware '$(FIRMWARE)' to ESP32-S2 at 0x1000..."
-	esptool.py --chip esp32s2 --port $(PORT) --baud 460800 write_flash -z 0x1000 $(FIRMWARE)
+	$(ESPTOOL_CMD) --chip esp32s2 --port $(PORT) --baud 460800 write_flash -z 0x1000 $(FIRMWARE)

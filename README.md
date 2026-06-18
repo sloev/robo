@@ -4,6 +4,8 @@ Welcome to the **Kinetic Builder Dashboard**! This is a fun, visual way to build
 
 It doesn't have to be a standard robot—you can build a **crane**, a **car**, a **catapult**, a **drawing machine**, a **conveyor belt**, or a **robotic arm**! As long as it uses the motors and sensors, you can bring it to life.
 
+**[🌐 View the Live Dashboard Demo on GitHub Pages](https://sloev.github.io/robo/)** *(Note: Hardware connections are simulated in the web demo).*
+
 The brain board acts as its own Wi-Fi hotspot. When you connect your phone, tablet, or computer to it, this modern dashboard pops up automatically—no internet needed!
 
 ---

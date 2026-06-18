@@ -1,6 +1,6 @@
-import usocket as socket
-import uselect as select
-import uasyncio as asyncio
+import socket
+import select
+import asyncio
 
 class DNSServer:
     def __init__(self, ip="192.168.4.1"):

@@ -1,4 +1,4 @@
-import uasyncio as asyncio
+import asyncio
 import json
 import os
 
@@ -48,7 +48,10 @@ class WebServer:
                     val = parts[1].strip()
                     headers[name] = val
                     if name == 'content-length':
-                        content_length = int(val)
+                        try:
+                            content_length = int(val)
+                        except ValueError:
+                            pass
 
             # Clean path (strip query parameters if any)
             clean_path = path.split('?')[0]
@@ -133,12 +136,13 @@ class WebServer:
             await writer.drain()
             
             # Send file in chunks to keep memory usage low
+            chunk = bytearray(512)
             with open(filepath, 'rb') as f:
                 while True:
-                    chunk = f.read(512)
-                    if not chunk:
+                    num_bytes = f.readinto(chunk)
+                    if not num_bytes:
                         break
-                    writer.write(chunk)
+                    writer.write(chunk[:num_bytes])
                     await writer.drain()
             
             writer.close()
@@ -162,67 +166,71 @@ class WebServer:
         status_code = 200
         
         try:
-            body_bytes = b''
-            if content_length > 0:
-                body_bytes = await reader.readexactly(content_length)
-                
-            if path == '/api/sensors' and method == 'POST':
-                data = json.loads(body_bytes.decode('utf-8'))
-                self.sensor_data.update(data)
-                resp_data = {"status": "updated"}
-            elif path == '/api/status' and method == 'GET':
-                resp_data = {
-                    "motors": {
-                        name: {
-                            "current": motor.current_position,
-                            "target": motor.target_position,
-                            "moving": motor.is_moving,
-                            "speed_delay": motor.step_delay_ms
-                        } for name, motor in self.motors.items()
-                    },
-                    "sensors": self.sensor_data
-                }
-            elif path == '/api/manual' and method == 'POST':
-                data = json.loads(body_bytes.decode('utf-8'))
-                motor = data.get('motor')
-                steps = int(data.get('steps', 0))
-                speed = int(data.get('speed', 2))
-                
-                target_motor = self.motors.get(motor)
-                if target_motor:
-                    target_motor.set_speed(speed)
-                    if steps == 0:
-                        target_motor.stop()
-                        resp_data = {"status": "stopped", "motor": motor}
-                    else:
-                        target_motor.move(steps)
-                        resp_data = {"status": "moving", "motor": motor, "steps": steps}
-                else:
-                    status_code = 400
-                    resp_data = {"error": "Invalid motor selection"}
-            elif path == '/api/run' and method == 'POST':
-                data = json.loads(body_bytes.decode('utf-8'))
-                recipe = data.get('recipe')
-                code = data.get('code')
-                
-                program = code if code is not None else recipe
-                success = self.run_recipe_cb(program)
-                if success:
-                    resp_data = {"status": "running"}
-                else:
-                    status_code = 409
-                    resp_data = {"error": "Another program is already running"}
-            elif path == '/api/stop' and method == 'POST':
-                # Stop motors
-                for motor in self.motors.values():
-                    motor.stop()
-                
-                # Terminate running script
-                self.run_recipe_cb(None)
-                resp_data = {"status": "stopped"}
+            if content_length > 8192:
+                status_code = 413
+                resp_data = {"error": "Payload Too Large"}
             else:
-                status_code = 404
-                resp_data = {"error": "API endpoint not found"}
+                body_bytes = b''
+                if content_length > 0:
+                    body_bytes = await reader.readexactly(content_length)
+                    
+                if path == '/api/sensors' and method == 'POST':
+                    data = json.loads(body_bytes.decode('utf-8'))
+                    self.sensor_data.update(data)
+                    resp_data = {"status": "updated"}
+                elif path == '/api/status' and method == 'GET':
+                    resp_data = {
+                        "motors": {
+                            name: {
+                                "current": motor.current_position,
+                                "target": motor.target_position,
+                                "moving": motor.is_moving,
+                                "speed_delay": motor.step_delay_ms
+                            } for name, motor in self.motors.items()
+                        },
+                        "sensors": self.sensor_data
+                    }
+                elif path == '/api/manual' and method == 'POST':
+                    data = json.loads(body_bytes.decode('utf-8'))
+                    motor = data.get('motor')
+                    steps = int(data.get('steps', 0))
+                    speed = int(data.get('speed', 2))
+                    
+                    target_motor = self.motors.get(motor)
+                    if target_motor:
+                        target_motor.set_speed(speed)
+                        if steps == 0:
+                            target_motor.stop()
+                            resp_data = {"status": "stopped", "motor": motor}
+                        else:
+                            target_motor.move(steps)
+                            resp_data = {"status": "moving", "motor": motor, "steps": steps}
+                    else:
+                        status_code = 400
+                        resp_data = {"error": "Invalid motor selection"}
+                elif path == '/api/run' and method == 'POST':
+                    data = json.loads(body_bytes.decode('utf-8'))
+                    recipe = data.get('recipe')
+                    code = data.get('code')
+                    
+                    program = code if code is not None else recipe
+                    success = self.run_recipe_cb(program)
+                    if success:
+                        resp_data = {"status": "running"}
+                    else:
+                        status_code = 409
+                        resp_data = {"error": "Another program is already running"}
+                elif path == '/api/stop' and method == 'POST':
+                    # Stop motors
+                    for motor in self.motors.values():
+                        motor.stop()
+                    
+                    # Terminate running script
+                    self.run_recipe_cb(None)
+                    resp_data = {"status": "stopped"}
+                else:
+                    status_code = 404
+                    resp_data = {"error": "API endpoint not found"}
                 
         except Exception as e:
             print("API Error:", e)
@@ -239,6 +247,8 @@ class WebServer:
             status_text = "Not Found"
         elif status_code == 409:
             status_text = "Conflict"
+        elif status_code == 413:
+            status_text = "Payload Too Large"
         elif status_code == 500:
             status_text = "Internal Server Error"
             
