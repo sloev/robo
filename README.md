@@ -109,6 +109,16 @@ Motors consume a lot of electricity in quick pulses. This can cause the ESP32 br
 
 ---
 
+### ⚡ The "Minimum Version" (No Protoboard, No Capacitor!)
+If you want to build the absolute simplest version of this project, you don't even need the capacitor or a protoboard! You can wire the components directly together:
+1. Solder standard dupont jumper wires directly from the ESP32-S2's `5V` and `GND` pins to the `+` and `-` power pins on **both** ULN2003 driver boards.
+2. Wire the control pins directly (GP1-4 to Driver A, GP5-11 to Driver B).
+3. Plug in the Steppers.
+4. Power the ESP32-S2 directly using a **USB Power Bank**. 
+*Note: Because you don't have a smoothing capacitor, running both motors at maximum speed simultaneously might occasionally cause the ESP32 to brown-out and reset, but it works perfectly for most simple builds and learning!*
+
+---
+
 ## 🛠️ Step-by-Step Build Guide
 
 1.  **Mount the Motors:** Screw your **28BYJ-48 stepper motors** into your custom cardboard, wood, or 3D-printed creation (e.g. wheels for a car, a pulley spool for a crane, or a launching arm for a catapult).
