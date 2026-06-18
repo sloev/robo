@@ -246,13 +246,54 @@
   </div>
 
   <div style="max-width: 1200px; margin: 4rem auto 0; padding: 0 5%;">
-    <div style="background: linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid var(--accent); padding: 3rem; border-radius: 24px; text-align: center;">
-      <h2 style="font-size: 2rem; margin-bottom: 1rem; color: var(--text);">⚡ The Zero-Component "Minimum Build"</h2>
-      <p style="color: var(--muted); font-size: 1.1rem; max-width: 800px; margin: 0 auto;">
-        Don't have a protoboard or a smoothing capacitor? No problem! You can build the absolute simplest version of this project by soldering standard dupont jumper wires directly from the ESP32-S2's <code>5V</code> and <code>GND</code> pins to the power pins on both ULN2003 driver boards. Plug in a USB Power Bank, and you're good to go!
-      </p>
-      <p style="color: var(--muted); font-size: 0.9rem; margin-top: 1.5rem; opacity: 0.8;">
-        <em>Note: Without a smoothing capacitor, running both motors at absolute maximum speed simultaneously might cause occasional brown-out resets, but this simple setup is perfect for most builds and learning!</em>
+    <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 3rem; border-radius: 24px;">
+      <div style="text-align: center; margin-bottom: 3rem;">
+        <h2 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--text);">⚡ The Zero-Component "Minimum Build"</h2>
+        <p style="color: var(--muted); font-size: 1.1rem; max-width: 800px; margin: 0 auto;">
+          No fancy capacitors, no protoboards, no complicated tools. This is the absolute simplest way to build the robot. It's so easy, a 12-year-old can put it together in an afternoon!
+        </p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+        
+        <div style="background: rgba(255,255,255,0.03); padding: 2rem; border-radius: 16px; border-left: 4px solid var(--accent);">
+          <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">🛒 1. Order the Core Parts</h3>
+          <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">
+            Go to AliExpress and search for: <br>
+            • <b>1x ESP32-S2 Mini</b> (~$2.00)<br>
+            • <b>2x 28BYJ-48 Stepper Motors</b> (Make sure they come with the <b>ULN2003 Driver Boards</b>! ~$3.00)<br>
+            • <b>1x Pack of Female-to-Female Dupont Wires</b> (~$1.00)
+          </p>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); padding: 2rem; border-radius: 16px; border-left: 4px solid var(--cyan-accent);">
+          <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">🧱 2. Print the LEGO® Adapters</h3>
+          <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">
+            While your parts are shipping, use a 3D printer (at home, school, or a local library) to print the <a href="https://www.printables.com/model/1099371-lego-compatible-brikkitron-enclosure-for-28byj-48" style="color: var(--cyan-accent); font-weight: bold; text-decoration: none;">Brikkitron Enclosures</a>. These let you snap your motors directly into standard LEGO® Technic pieces so you don't have to build a chassis from scratch!
+          </p>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); padding: 2rem; border-radius: 16px; border-left: 4px solid var(--purple-accent);">
+          <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">🔥 3. Solder the Power (The Only Hard Part!)</h3>
+          <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">
+            Take two Dupont jumper wires, strip the ends, and solder them directly to the <b>5V</b> and <b>GND</b> holes on the ESP32-S2 Mini. Then, plug the other ends into the <b>+</b> and <b>-</b> power pins on both of your ULN2003 driver boards to share the power.
+          </p>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); padding: 2rem; border-radius: 16px; border-left: 4px solid var(--donate);">
+          <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">🔌 4. Plug It All In!</h3>
+          <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">
+            • Plug Female-to-Female wires from ESP32 pins <b>1, 2, 3, 4</b> into Driver Board A.<br>
+            • Plug wires from ESP32 pins <b>5, 7, 9, 11</b> into Driver Board B.<br>
+            • Plug the white motor cables into the driver boards.<br>
+            • Plug a standard USB Phone Power Bank into the ESP32. <b>You're done!</b>
+          </p>
+        </div>
+
+      </div>
+
+      <p style="color: var(--muted); font-size: 0.85rem; margin-top: 2rem; text-align: center; opacity: 0.7;">
+        <em>Pro-Tip: Because this simple version skips the "smoothing capacitor", running both motors at absolute maximum speed simultaneously might occasionally cause the robot to reboot. But it works perfectly for 90% of beginner projects!</em>
       </p>
     </div>
   </div>
