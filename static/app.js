@@ -131,6 +131,54 @@ Blockly.Blocks['if-sound'] = {
   }
 };
 
+Blockly.Blocks['if-tilt'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("📱 If Phone is tilted")
+        .appendField(new Blockly.FieldDropdown([
+          ["Forward", "forward"],
+          ["Backward", "backward"],
+          ["Left", "left"],
+          ["Right", "right"]
+        ]), "VALUE");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FFAB19");
+  }
+};
+
+Blockly.Blocks['if-shake'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("📳 If Phone is shaken");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FFAB19");
+  }
+};
+
+Blockly.Blocks['if-compass'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("🧭 If Phone points")
+        .appendField(new Blockly.FieldDropdown([
+          ["North", "north"],
+          ["South", "south"],
+          ["East", "east"],
+          ["West", "west"]
+        ]), "VALUE");
+    this.appendStatementInput("SUBSTACK")
+        .setCheck(null);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour("#FFAB19");
+  }
+};
+
 Blockly.Blocks['if-button'] = {
   init: function() {
     this.appendDummyInput()
@@ -282,6 +330,18 @@ const toolboxJson = {
         {
           "kind": "block",
           "type": "if-sound"
+        },
+        {
+          "kind": "block",
+          "type": "if-tilt"
+        },
+        {
+          "kind": "block",
+          "type": "if-shake"
+        },
+        {
+          "kind": "block",
+          "type": "if-compass"
         },
         {
           "kind": "block",
@@ -515,6 +575,29 @@ function blocklyToRecipeStep(block) {
       action: 'if',
       sensor: 'sound',
       value: value,
+      body: nestedBlocks
+    };
+  }
+  
+  if (type === 'if-tilt' || type === 'if-compass') {
+    const value = block.getFieldValue('VALUE');
+    const substackBlock = block.getInputTargetBlock('SUBSTACK');
+    const nestedBlocks = substackBlock ? compileBlocklyStack(substackBlock) : [];
+    return {
+      action: 'if',
+      sensor: type === 'if-tilt' ? 'tilt' : 'compass',
+      value: value,
+      body: nestedBlocks
+    };
+  }
+
+  if (type === 'if-shake') {
+    const substackBlock = block.getInputTargetBlock('SUBSTACK');
+    const nestedBlocks = substackBlock ? compileBlocklyStack(substackBlock) : [];
+    return {
+      action: 'if',
+      sensor: 'shake',
+      value: 'shaken',
       body: nestedBlocks
     };
   }
@@ -2143,3 +2226,60 @@ async function runAutopilotStep() {
     carAutoTimer = setTimeout(runAutopilotStep, 1500);
   }
 }
+
+// --- 📱 WEB DEVICE SENSORS (TILT, SHAKE, COMPASS) ---
+let currentTilt = 'flat';
+let isShaken = 'still';
+let currentCompass = 'none';
+
+if (window.DeviceOrientationEvent) {
+  window.addEventListener('deviceorientation', (event) => {
+    let tilt = 'flat';
+    if (event.beta < -20) tilt = 'forward';
+    else if (event.beta > 20) tilt = 'backward';
+    else if (event.gamma < -20) tilt = 'left';
+    else if (event.gamma > 20) tilt = 'right';
+    currentTilt = tilt;
+    
+    if (event.alpha !== null) {
+      let a = event.alpha;
+      let comp = 'none';
+      if (a >= 315 || a < 45) comp = 'north';
+      else if (a >= 45 && a < 135) comp = 'west';
+      else if (a >= 135 && a < 225) comp = 'south';
+      else if (a >= 225 && a < 315) comp = 'east';
+      currentCompass = comp;
+    }
+  });
+}
+
+if (window.DeviceMotionEvent) {
+  window.addEventListener('devicemotion', (event) => {
+    const acc = event.accelerationIncludingGravity;
+    if (acc) {
+      const mag = Math.sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z);
+      if (mag > 15) { // Earth gravity is 9.8
+        isShaken = 'shaken';
+        setTimeout(() => { isShaken = 'still'; }, 1000);
+      }
+    }
+  });
+}
+
+let lastSentWebSensors = {};
+setInterval(async () => {
+  const current = { tilt: currentTilt, shake: isShaken, compass: currentCompass };
+  if (current.tilt !== lastSentWebSensors.tilt || 
+      current.shake !== lastSentWebSensors.shake || 
+      current.compass !== lastSentWebSensors.compass) {
+      
+      lastSentWebSensors = { ...current };
+      try {
+        await fetch('/api/sensors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(current)
+        });
+      } catch(e) {}
+  }
+}, 300);
