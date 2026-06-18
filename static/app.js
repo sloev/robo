@@ -1711,7 +1711,15 @@ async function updateStatus() {
     connectionText.innerText = "CONNECTED";
   } catch (err) {
     connectionDot.className = "status-dot";
-    connectionText.innerText = "OFFLINE";
+    connectionText.innerText = window.location.hostname.includes("github.io") ? "DEMO MODE" : "OFFLINE";
+    if (window.location.hostname.includes("github.io")) {
+       connectionText.parentElement.style.cursor = "pointer";
+       connectionText.parentElement.onclick = () => {
+         if (confirm("Demo Mode.\n\nTo control real hardware:\n1. Connect to 'Robo-Control' Wi-Fi\n2. Click OK to open the dashboard")) {
+           window.location.href = "http://192.168.4.1/";
+         }
+       };
+    }
     statusRobotMode.innerText = "UNKNOWN";
     statusRobotMode.style.color = "var(--red-accent)";
   }

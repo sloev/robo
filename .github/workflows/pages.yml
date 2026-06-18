@@ -5,6 +5,8 @@ on:
     branches: ["main", "master"]
     paths:
       - 'static/**'
+      - 'website/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -31,10 +33,16 @@ jobs:
         with:
           enablement: true
         
+      - name: Prepare Pages
+        run: |
+          mkdir public
+          cp -r website/* public/
+          cp -r static public/ui-demo
+          
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './static'
+          path: './public'
           
       - name: Deploy to GitHub Pages
         id: deployment
