@@ -1144,6 +1144,9 @@ btnStartVision.addEventListener('click', async () => {
   if (visionActive) return;
   
   try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("Camera API not supported. If accessing via local HTTP, mobile browsers block the camera. Use localhost, HTTPS, or a desktop browser.");
+    }
     visionStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment', width: 320, height: 240 }
     });
@@ -1791,6 +1794,9 @@ function captureCarBackground() {
 btnCarStartVision.addEventListener('click', async () => {
   if (carVisionActive) return;
   try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("Camera API not supported. If accessing via local HTTP, mobile browsers block the camera. Use localhost, HTTPS, or a desktop browser.");
+    }
     carVisionStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment', width: 320, height: 240 }
     });
@@ -1828,11 +1834,11 @@ btnCarStopVision.addEventListener('click', () => {
   btnCarAuto.innerText = "🤖 AUTOPILOT: OFF";
   
   if (carMappingTimer) {
-    clearInterval(carMappingTimer);
+    clearTimeout(carMappingTimer);
     carMappingTimer = null;
   }
   if (carAutoTimer) {
-    clearInterval(carAutoTimer);
+    clearTimeout(carAutoTimer);
     carAutoTimer = null;
   }
   
@@ -2000,7 +2006,7 @@ btnCarMapStart.addEventListener('click', () => {
     btnCarMapStart.classList.remove('btn-stop');
     btnCarAuto.disabled = false;
     if (carMappingTimer) {
-      clearInterval(carMappingTimer);
+      clearTimeout(carMappingTimer);
       carMappingTimer = null;
     }
     logCarConsole("Mapping paused.");
@@ -2013,10 +2019,9 @@ btnCarMapStart.addEventListener('click', () => {
     btnCarMapStart.classList.remove('btn-run');
     btnCarMapStart.classList.add('btn-stop');
     btnCarAuto.disabled = true;
-    logCarConsole("Mapping started! Wander routine activated...");
+    logCarConsole("Mapping started. Car will wander safely...");
     
-    // Background wander loop: drives forward, checks if stuck, recovers
-    carMappingTimer = setInterval(runWanderStep, 1800);
+    // Start recursive wander loop
     runWanderStep();
   }
 });
@@ -2049,6 +2054,10 @@ async function runWanderStep() {
     await triggerCalibMove('A', 400);
     await triggerCalibMove('B', 400);
   }
+  
+  if (isMappingActive) {
+    carMappingTimer = setTimeout(runWanderStep, 1800);
+  }
 }
 
 // Self-driving autopilot logic
@@ -2060,7 +2069,7 @@ btnCarAuto.addEventListener('click', () => {
     btnCarAuto.classList.remove('btn-stop');
     btnCarAuto.classList.add('btn-clear');
     if (carAutoTimer) {
-      clearInterval(carAutoTimer);
+      clearTimeout(carAutoTimer);
       carAutoTimer = null;
     }
     logCarConsole("Autopilot stopped.");
@@ -2073,7 +2082,6 @@ btnCarAuto.addEventListener('click', () => {
     btnCarAuto.classList.add('btn-stop');
     logCarConsole("Autopilot started! Running autonomous obstacle avoidance...");
     
-    carAutoTimer = setInterval(runAutopilotStep, 1500);
     runAutopilotStep();
   }
 });
@@ -2129,5 +2137,9 @@ async function runAutopilotStep() {
     logCarConsole("Safe path. Driving forward...");
     await triggerCalibMove('A', 400);
     await triggerCalibMove('B', 400);
+  }
+  
+  if (isCarAutopilotActive) {
+    carAutoTimer = setTimeout(runAutopilotStep, 1500);
   }
 }
