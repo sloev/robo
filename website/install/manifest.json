@@ -1,0 +1,13 @@
+{
+  "name": "Kinetic Builder Firmware",
+  "version": "1.0.0",
+  "builds": [
+    {
+      "chipFamily": "ESP32-S2",
+      "parts": [
+        { "path": "firmware.bin", "offset": 4096 },
+        { "path": "robo-filesystem.bin", "offset": 2097152 }
+      ]
+    }
+  ]
+}

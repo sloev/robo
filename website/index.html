@@ -198,11 +198,15 @@
     <h1>Bring your creations to life.</h1>
     <p class="subtitle">A visual, zero-install workspace to build, program, and pilot your own robotic creations powered by the ESP32-S2.</p>
     
-    <div class="btn-group">
+    <div class="btn-group" style="align-items: center;">
       <a href="ui-demo/index.html" class="btn">
         Launch UI Demo
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
+      <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+      <esp-web-install-button manifest="install/manifest.json">
+        <button slot="activate" class="btn" style="background: #0fbd8c; border: 1px solid rgba(255,255,255,0.1);">⚡ Install via USB</button>
+      </esp-web-install-button>
       <a href="https://github.com/sloev/robo#readme" class="btn secondary">Read the Docs</a>
     </div>
   </header>

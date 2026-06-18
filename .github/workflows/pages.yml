@@ -39,6 +39,17 @@ jobs:
           cp -r website/* public/
           cp -r static public/ui-demo
           
+          # Build LittleFS filesystem image
+          pip install littlefs-python
+          python build_fs.py
+          
+          # Create install directory for web flasher
+          mkdir -p public/install
+          mv robo-filesystem.bin public/install/
+          
+          # Download MicroPython ESP32-S2 Firmware
+          wget https://micropython.org/resources/firmware/ESP32_GENERIC_S2-20240602-v1.23.0.bin -O public/install/firmware.bin
+          
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
