@@ -9,188 +9,99 @@
     :root {
       --bg: #09090b;
       --surface: #18181b;
+      --surface-light: #27272a;
       --border: #27272a;
       --text: #fafafa;
       --muted: #a1a1aa;
       --accent: #3b82f6;
       --accent-hover: #2563eb;
+      --success: #0fbd8c;
       --gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      --gradient-text: linear-gradient(135deg, #60a5fa, #a78bfa);
+      --donate: #ffdd00;
     }
     
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Outfit', sans-serif;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+    body { background-color: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
 
     nav {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1.5rem 5%;
-      border-bottom: 1px solid var(--border);
-      background: rgba(9, 9, 11, 0.8);
-      backdrop-filter: blur(12px);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 5%; border-bottom: 1px solid var(--border);
+      background: rgba(9, 9, 11, 0.8); backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 100;
     }
-
-    .logo {
-      font-weight: 800;
-      font-size: 1.5rem;
-      letter-spacing: -0.5px;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+    .logo { font-weight: 800; font-size: 1.5rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 0.5rem; }
+    
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-weight: 600; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    
+    .btn-donate {
+      background: var(--donate); color: #000; padding: 0.5rem 1rem; border-radius: 999px;
+      font-weight: 800; text-decoration: none; transition: transform 0.2s; display: flex; align-items: center; gap: 0.4rem;
     }
+    .btn-donate:hover { transform: scale(1.05); }
 
-    .nav-links a {
-      color: var(--muted);
-      text-decoration: none;
-      font-weight: 600;
-      transition: color 0.2s;
-    }
-
-    .nav-links a:hover {
-      color: var(--text);
-    }
-
-    .hero {
-      padding: 8rem 5%;
-      text-align: center;
-      position: relative;
-    }
-
+    .hero { padding: 8rem 5%; text-align: center; position: relative; }
     .hero::before {
-      content: '';
-      position: absolute;
-      top: -20%;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 600px;
-      height: 600px;
-      background: var(--gradient);
-      filter: blur(120px);
-      opacity: 0.15;
-      z-index: -1;
-      border-radius: 50%;
+      content: ''; position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px; background: var(--gradient); filter: blur(120px); opacity: 0.15; z-index: -1; border-radius: 50%;
     }
-
-    h1 {
-      font-size: clamp(3rem, 8vw, 5rem);
-      line-height: 1.1;
-      margin-bottom: 1.5rem;
-      font-weight: 800;
-      background: var(--gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    p.subtitle {
-      font-size: 1.25rem;
-      color: var(--muted);
-      max-width: 600px;
-      margin: 0 auto 3rem;
-    }
+    h1 { font-size: clamp(3rem, 8vw, 5rem); line-height: 1.1; margin-bottom: 1.5rem; font-weight: 800; background: var(--gradient-text); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    p.subtitle { font-size: 1.25rem; color: var(--muted); max-width: 600px; margin: 0 auto 3rem; }
 
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--accent);
-      color: white;
-      text-decoration: none;
-      padding: 1rem 2rem;
-      border-radius: 9999px;
-      font-weight: 600;
-      font-size: 1.1rem;
-      transition: all 0.2s ease;
-      border: 1px solid rgba(255,255,255,0.1);
+      display: inline-flex; align-items: center; gap: 0.5rem; background: var(--accent); color: white;
+      text-decoration: none; padding: 1rem 2rem; border-radius: 9999px; font-weight: 600; font-size: 1.1rem;
+      transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
     }
+    .btn:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); }
+    .btn.secondary { background: var(--surface); border: 1px solid var(--border); }
+    .btn.secondary:hover { background: var(--surface-light); box-shadow: none; }
+    .btn.success { background: var(--success); }
+    .btn.success:hover { background: #0ca378; box-shadow: 0 10px 20px rgba(15, 189, 140, 0.3); }
+    .btn-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; align-items: center; }
 
-    .btn:hover {
-      background: var(--accent-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
-    }
+    .section-title { text-align: center; font-size: 2.5rem; margin: 6rem 0 3rem; font-weight: 800; }
+    
+    /* Alternating Showcase */
+    .showcase { max-width: 1200px; margin: 0 auto; padding: 0 5%; display: flex; flex-direction: column; gap: 6rem; }
+    .showcase-item { display: flex; align-items: center; gap: 4rem; }
+    .showcase-item:nth-child(even) { flex-direction: row-reverse; }
+    .showcase-text { flex: 1; }
+    .showcase-text h2 { font-size: 2rem; margin-bottom: 1rem; color: var(--text); }
+    .showcase-text p { color: var(--muted); font-size: 1.1rem; margin-bottom: 1.5rem; }
+    .showcase-text ul { color: var(--muted); list-style-position: inside; padding-left: 0.5rem; }
+    .showcase-text li { margin-bottom: 0.5rem; }
+    .showcase-img { flex: 1; text-align: center; }
+    .showcase-img img { width: 100%; max-width: 500px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.4); transition: transform 0.3s; }
+    .showcase-img img:hover { transform: scale(1.02); }
 
-    .btn.secondary {
-      background: var(--surface);
-      border: 1px solid var(--border);
-    }
+    /* BOM Grid */
+    .bom-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 0 5%; }
+    .bom-card { background: var(--surface); border: 1px solid var(--border); padding: 2rem; border-radius: 20px; transition: transform 0.2s; }
+    .bom-card:hover { transform: translateY(-5px); border-color: rgba(255, 255, 255, 0.2); }
+    .bom-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .bom-card h3 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+    .bom-card p { color: var(--muted); font-size: 0.95rem; margin-bottom: 1rem; }
+    .bom-badge { display: inline-block; background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; margin-top: auto; }
 
-    .btn.secondary:hover {
-      background: #27272a;
-      box-shadow: none;
-    }
-
-    .btn-group {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .features {
-      padding: 5rem 5%;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .feature-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 2rem;
-      border-radius: 24px;
-      transition: transform 0.3s ease;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-5px);
-      border-color: rgba(59, 130, 246, 0.5);
-    }
-
-    .feature-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .feature-card h3 {
-      font-size: 1.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .feature-card p {
-      color: var(--muted);
-    }
-
-    footer {
-      text-align: center;
-      padding: 3rem;
-      border-top: 1px solid var(--border);
-      color: var(--muted);
-      margin-top: 5rem;
+    footer { text-align: center; padding: 3rem; border-top: 1px solid var(--border); color: var(--muted); margin-top: 8rem; }
+    
+    @media (max-width: 768px) {
+      .showcase-item, .showcase-item:nth-child(even) { flex-direction: column; gap: 2rem; text-align: center; }
+      .showcase-text ul { list-style: none; padding: 0; }
+      h1 { font-size: 2.5rem; }
     }
   </style>
 </head>
 <body>
 
   <nav>
-    <div class="logo">⚙️ Kinetic Builder</div>
+    <div class="logo">⚙️ Robo-Control</div>
     <div class="nav-links">
-      <a href="https://github.com/sloev/robo" target="_blank">GitHub Source</a>
+      <a href="https://github.com/sloev/robo" target="_blank">GitHub</a>
+      <a href="https://buymeacoffee.com/sloev" target="_blank" class="btn-donate">☕ Buy Me A Coffee</a>
     </div>
   </nav>
 
@@ -198,39 +109,137 @@
     <h1>Bring your creations to life.</h1>
     <p class="subtitle">A visual, zero-install workspace to build, program, and pilot your own robotic creations powered by the ESP32-S2.</p>
     
-    <div class="btn-group" style="align-items: center;">
+    <div class="btn-group">
       <a href="ui-demo/index.html" class="btn">
         Launch UI Demo
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
+      
       <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
       <esp-web-install-button manifest="install/manifest.json">
-        <button slot="activate" class="btn" style="background: #0fbd8c; border: 1px solid rgba(255,255,255,0.1);">⚡ Install via USB</button>
+        <button slot="activate" class="btn success">⚡ Install via USB</button>
       </esp-web-install-button>
+
       <a href="https://github.com/sloev/robo#readme" class="btn secondary">Read the Docs</a>
     </div>
   </header>
 
-  <section class="features">
-    <div class="feature-card">
-      <div class="feature-icon">🧩</div>
-      <h3>Visual Coding</h3>
-      <p>Drag and drop command blocks to build complex workflows. Add if-statements, wait times, and loop functions without writing a single line of text.</p>
+  <h2 class="section-title">Four Amazing Modes</h2>
+  <div class="showcase">
+    <!-- Mode 1 -->
+    <div class="showcase-item">
+      <div class="showcase-text">
+        <h2>🧩 Coding Mode</h2>
+        <p>Your visual programming workspace. Drag and drop command blocks to build complex workflows without writing a single line of code.</p>
+        <ul>
+          <li>Set Motor Speed on-the-fly</li>
+          <li>If Vision tracks target (uses phone camera)</li>
+          <li>If Sound hears clap (uses phone mic)</li>
+        </ul>
+      </div>
+      <div class="showcase-img">
+        <img src="screenshots/view-coding.jpg" alt="Coding Mode">
+      </div>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon">🕹️</div>
-      <h3>Manual Drive</h3>
-      <p>Take manual control of your creation. Slide vertical joysticks to rotate joints, drive wheels, and wind spools instantly.</p>
+
+    <!-- Mode 2 -->
+    <div class="showcase-item">
+      <div class="showcase-text">
+        <h2>🕹️ Manual Drive Mode</h2>
+        <p>Take manual control of your creation. The dashboard automatically builds a virtual vertical joystick for every motor you connect.</p>
+        <ul>
+          <li>Slide up or down to rotate cogs and move joints</li>
+          <li>Drive wheels and steering mechanisms instantly</li>
+          <li>Release to automatically stop</li>
+        </ul>
+      </div>
+      <div class="showcase-img">
+        <img src="screenshots/view-manual.jpg" alt="Manual Drive Mode">
+      </div>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon">🧠</div>
-      <h3>Kinematic Discovery</h3>
-      <p>Use your device's camera to watch your robot map its own body. Turn on Autopilot and watch it navigate and avoid obstacles.</p>
+
+    <!-- Mode 3 -->
+    <div class="showcase-item">
+      <div class="showcase-text">
+        <h2>🧠 AI Explorer Mode</h2>
+        <p>Watch your robot map its own body! In this mode, the phone camera watches your creation and helps it discover its kinematics.</p>
+        <ul>
+          <li>Background Calibration & Static differencing</li>
+          <li>Kinematic Babbling: auto-wiggle discovery</li>
+          <li>Autonomous Autopilot: visually tracks objects!</li>
+        </ul>
+      </div>
+      <div class="showcase-img">
+        <img src="screenshots/view-ai.jpg" alt="AI Explorer Mode">
+      </div>
     </div>
-  </section>
+
+    <!-- Mode 4 -->
+    <div class="showcase-item">
+      <div class="showcase-text">
+        <h2>🚗 Car Mapper Mode</h2>
+        <p>Turn your stepper motor creation into an autonomous self-driving car. Maps the room using your phone's camera!</p>
+        <ul>
+          <li>Dynamic 2D map overlay on live video</li>
+          <li>Maps safe paths (Green) and obstacles (Red)</li>
+          <li>Collision Avoidance Autopilot</li>
+        </ul>
+      </div>
+      <div class="showcase-img">
+        <img src="screenshots/view-car.jpg" alt="Car Mapper Mode">
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Bill of Materials (BOM)</h2>
+  <p style="text-align: center; color: var(--muted); margin-top: -2rem; margin-bottom: 3rem;">Everything you need to build your own. Find these incredibly cheap on AliExpress.</p>
+  
+  <div class="bom-grid">
+    <div class="bom-card">
+      <div class="bom-icon">🤖</div>
+      <h3>ESP32-S2 Mini</h3>
+      <p>The brain of the operation. Extremely powerful, built-in Wi-Fi, and acts as its own captive portal hotspot.</p>
+      <div class="bom-badge">~$2.50 on AliExpress</div>
+    </div>
+    
+    <div class="bom-card">
+      <div class="bom-icon">⚙️</div>
+      <h3>28BYJ-48 Steppers</h3>
+      <p>The muscles. You will need the motors and their included ULN2003 driver boards to drive joints or wheels.</p>
+      <div class="bom-badge">~$1.50 each on AliExpress</div>
+    </div>
+
+    <div class="bom-card">
+      <div class="bom-icon">⚡</div>
+      <h3>1000µF Capacitor</h3>
+      <p>Crucial power buffer! Motors pull quick spikes of current. Place this across the 5V and GND rails to prevent reboots.</p>
+      <div class="bom-badge">~$1.00 for a pack</div>
+    </div>
+
+    <div class="bom-card">
+      <div class="bom-icon">🔋</div>
+      <h3>USB Power Bank</h3>
+      <p>Any standard portable phone charger. Plugs directly into the ESP32-S2 Mini to power the brain and the motors.</p>
+      <div class="bom-badge">Use one you already own!</div>
+    </div>
+
+    <div class="bom-card">
+      <div class="bom-icon">🔌</div>
+      <h3>Breadboard / Perfboard</h3>
+      <p>To connect the power rails together. Use standard dupont jumper wires to connect the ESP32 to the driver boards.</p>
+      <div class="bom-badge">~$2.00 on AliExpress</div>
+    </div>
+
+    <div class="bom-card">
+      <div class="bom-icon">🔘</div>
+      <h3>Optional Senses</h3>
+      <p>Expand your robot with Microswitches, 10k Potentiometers (Dials), Light Sensors (LDR), or IR Line Sensors (TCRT5000).</p>
+      <div class="bom-badge">Pennies on AliExpress</div>
+    </div>
+  </div>
 
   <footer>
-    <p>&copy; 2026 Kinetic Builder OS. Built for the ESP32.</p>
+    <p>&copy; 2026 Kinetic Builder OS. Built for the ESP32. <br><a href="https://buymeacoffee.com/sloev" style="color: var(--donate); text-decoration: none; margin-top: 0.5rem; display: inline-block;">Support the project!</a></p>
   </footer>
 
 </body>

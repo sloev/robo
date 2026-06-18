@@ -37,6 +37,7 @@ jobs:
         run: |
           mkdir public
           cp -r website/* public/
+          cp -r screenshots public/screenshots
           cp -r static public/ui-demo
           
           # Build LittleFS filesystem image
