@@ -57,18 +57,31 @@ class Stepper:
         """Background coroutine that handles stepping to the target position."""
         self.running = True
         try:
+            import time
             while self.running:
                 if self.current_position != self.target_position:
                     direction = 1 if self.target_position > self.current_position else -1
-                    self.step_index = (self.step_index + direction) % 8
                     
-                    # Apply coil sequence
-                    vals = self.sequence[self.step_index]
-                    for pin, val in zip(self.pins, vals):
-                        pin.value(val)
+                    # Dynamically batch steps to overcome asyncio event loop overhead.
+                    # We block synchronously for up to ~15ms to achieve physical motor speed limits.
+                    batch_size = max(1, 15 // self.step_delay_ms)
+                    steps_to_take = min(abs(self.target_position - self.current_position), batch_size)
+                    
+                    for i in range(steps_to_take):
+                        self.step_index = (self.step_index + direction) % 8
                         
-                    self.current_position += direction
-                    # Non-blocking sleep for step delay
+                        # Apply coil sequence
+                        vals = self.sequence[self.step_index]
+                        for pin, val in zip(self.pins, vals):
+                            pin.value(val)
+                            
+                        self.current_position += direction
+                        
+                        # Use precise hardware sleep between batched steps
+                        if i < steps_to_take - 1:
+                            time.sleep_us(self.step_delay_ms * 1000)
+                            
+                    # Yield to other tasks for the duration of the final step
                     await asyncio.sleep_ms(self.step_delay_ms)
                 else:
                     self.release()
