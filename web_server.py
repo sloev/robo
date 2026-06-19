@@ -135,14 +135,15 @@ class WebServer:
             writer.write(header.encode('utf-8'))
             await writer.drain()
             
-            # Send file in chunks to keep memory usage low
-            chunk = bytearray(512)
+            # Send file in chunks using memoryview to avoid RAM fragmentation and increase speed
+            chunk = bytearray(2048)
+            mv = memoryview(chunk)
             with open(filepath, 'rb') as f:
                 while True:
                     num_bytes = f.readinto(chunk)
                     if not num_bytes:
                         break
-                    writer.write(chunk[:num_bytes])
+                    writer.write(mv[:num_bytes])
                     await writer.drain()
             
             writer.close()

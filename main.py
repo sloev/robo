@@ -1,4 +1,5 @@
 import asyncio
+import gc
 from machine import Pin, ADC
 from stepper import Stepper
 from dns_server import DNSServer
@@ -196,9 +197,10 @@ async def main():
     web_server = WebServer(motors, sensor_data=sensor_data, host="0.0.0.0", port=80, redirect_host="robot.com")
     await web_server.start(run_recipe_callback)
     
-    # Keep the main loop alive
+    # Keep the main loop alive and manage memory fragmentation
     while True:
-        await asyncio.sleep(1)
+        gc.collect()
+        await asyncio.sleep(5)
 
 # Start event loop
 if __name__ == '__main__':
