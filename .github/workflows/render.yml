@@ -55,7 +55,10 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
       - name: Render Base
-        run: xvfb-run make vehicle_base.obj screenshots/vehicle_base_render.png
+        run: |
+          xvfb-run make -B screenshots/vehicle_base_render.png
+          xvfb-run make -B vehicle_base.obj
+          xvfb-run make -B vehicle_base.stl
       - uses: actions/upload-artifact@v4
         with:
           name: asset-base
@@ -73,7 +76,10 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
       - name: Render Lid
-        run: xvfb-run make vehicle_lid.obj screenshots/vehicle_lid_render.png
+        run: |
+          xvfb-run make -B screenshots/vehicle_lid_render.png
+          xvfb-run make -B vehicle_lid.obj
+          xvfb-run make -B vehicle_lid.stl
       - uses: actions/upload-artifact@v4
         with:
           name: asset-lid
@@ -91,7 +97,10 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
       - name: Render Couplers
-        run: xvfb-run make vehicle_couplers.obj screenshots/vehicle_couplers_render.png
+        run: |
+          xvfb-run make -B screenshots/vehicle_couplers_render.png
+          xvfb-run make -B vehicle_couplers.obj
+          xvfb-run make -B vehicle_couplers.stl
       - uses: actions/upload-artifact@v4
         with:
           name: asset-couplers
@@ -109,7 +118,10 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
       - name: Render Phone Clamp
-        run: xvfb-run make vehicle_phone_clamp.obj screenshots/vehicle_phone_clamp_render.png
+        run: |
+          xvfb-run make -B screenshots/vehicle_phone_clamp_render.png
+          xvfb-run make -B vehicle_phone_clamp.obj
+          xvfb-run make -B vehicle_phone_clamp.stl
       - uses: actions/upload-artifact@v4
         with:
           name: asset-phone-clamp
@@ -127,7 +139,7 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
       - name: Render Showcase
-        run: xvfb-run make screenshots/vehicle_render.png
+        run: xvfb-run make -B screenshots/vehicle_render.png
       - uses: actions/upload-artifact@v4
         with:
           name: asset-showcase
@@ -152,6 +164,9 @@ jobs:
           
           # Rebuild the master ZIP archive containing all current OBJs
           zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj || true
+          
+          # Clean up downloaded-artifacts so they don't get committed by accident
+          rm -rf downloaded-artifacts
       - name: Pull latest changes to avoid push conflicts
         run: git config pull.rebase true && git pull origin master || true
       - name: Commit Generated Assets

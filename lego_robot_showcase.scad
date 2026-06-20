@@ -36,8 +36,6 @@ module showcase_electronics() {
     color("red") translate([-50, motor_y, shaft_z]) rotate([0, 90, 0]) cylinder(d=4.5, h=20, center=true);
     color("red") translate([50, motor_y, shaft_z]) rotate([0, 90, 0]) cylinder(d=4.5, h=20, center=true);
     
-    // Show the clamp hovering in showcase mode
-    color("#8e44ad") translate([0, length/2 + 2.5, 100]) phone_clamp_jaw();
 }
 
 
