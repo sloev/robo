@@ -111,6 +111,14 @@ module vehicle_base() {
             translate([0, 0, 15]) cube([2.5, 12.5, 30], center=true);
         }
         
+        // Left Horizontal Motor Mount Screw Holes (Depth 6mm, avoids outer skin)
+        translate([-40, motor_y - 17.5, motor_z]) rotate([0, -90, 0]) cylinder(d=2.5, h=6);
+        translate([-40, motor_y + 17.5, motor_z]) rotate([0, -90, 0]) cylinder(d=2.5, h=6);
+        
+        // Right Horizontal Motor Mount Screw Holes
+        translate([40, motor_y - 17.5, motor_z]) rotate([0, 90, 0]) cylinder(d=2.5, h=6);
+        translate([40, motor_y + 17.5, motor_z]) rotate([0, 90, 0]) cylinder(d=2.5, h=6);
+        
         // External Axle Hole Indicators (0.5mm indented into outer walls)
         translate([-width/2 + 0.5, motor_y, shaft_z + 6]) rotate([90, 0, -90]) 
             linear_extrude(1) text("v AXLE v", size=4, halign="center", font="Liberation Sans:style=Bold");
@@ -205,20 +213,18 @@ module uln2003_mount(x, y) {
 }
 
 module motor_bays() {
-    // Left Rigid Motor Mount (Mirrored M3 ears)
-    translate([-34, motor_y - 17.5, floor_z]) difference() { cylinder(d=8, h=motor_z-floor_z); translate([0,0,-1]) cylinder(d=2.8, h=30); }
-    translate([-34, motor_y + 17.5, floor_z]) difference() { cylinder(d=8, h=motor_z-floor_z); translate([0,0,-1]) cylinder(d=2.8, h=30); }
+    // Left Horizontal Cradle (Supports the motor body, leaves massive gap for cable)
     difference() {
-        translate([-39, motor_y - 10, floor_z]) cube([15, 20, motor_z-floor_z]);
-        translate([-41, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=28.5, h=20);
+        translate([-40, motor_y - 14, floor_z]) cube([15, 28, motor_z - floor_z]);
+        translate([-45, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=28.5, h=25);
+        translate([-45, motor_y - 8, floor_z - 1]) cube([25, 16, motor_z]);
     }
     
-    // Right Rigid Motor Mount
-    translate([34, motor_y - 17.5, floor_z]) difference() { cylinder(d=8, h=motor_z-floor_z); translate([0,0,-1]) cylinder(d=2.8, h=30); }
-    translate([34, motor_y + 17.5, floor_z]) difference() { cylinder(d=8, h=motor_z-floor_z); translate([0,0,-1]) cylinder(d=2.8, h=30); }
+    // Right Horizontal Cradle
     difference() {
-        translate([24, motor_y - 10, floor_z]) cube([15, 20, motor_z-floor_z]);
-        translate([21, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=28.5, h=20);
+        translate([25, motor_y - 14, floor_z]) cube([15, 28, motor_z - floor_z]);
+        translate([20, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=28.5, h=25);
+        translate([20, motor_y - 8, floor_z - 1]) cube([25, 16, motor_z]);
     }
 }
 
