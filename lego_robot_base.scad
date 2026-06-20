@@ -199,4 +199,4 @@ module motor_bays() {
 
 
 // Color applied for individual render view
-color("#2c3e50") vehicle_base();
+color("#5b9bd5") vehicle_base();

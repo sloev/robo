@@ -34,10 +34,13 @@ dirLight.position.set(100, 200, 100);
 scene.add(dirLight);
 
 // Materials using exact hex colors
-const matBase = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.6, metalness: 0.1 });
+const matBase = new THREE.MeshStandardMaterial({ color: 0x5b9bd5, roughness: 0.6, metalness: 0.1 });
 const matLid = new THREE.MeshStandardMaterial({ color: 0xe74c3c, roughness: 0.6, metalness: 0.1 });
 const matClamp = new THREE.MeshStandardMaterial({ color: 0x27ae60, roughness: 0.6, metalness: 0.1 });
 const matCoupler = new THREE.MeshStandardMaterial({ color: 0xf1c40f, roughness: 0.6, metalness: 0.1 });
+// Non-printed components shown for realism
+const matMotor = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.4, metalness: 0.5 });
+const matBoard = new THREE.MeshStandardMaterial({ color: 0x8e44ad, roughness: 0.6, metalness: 0.1 });
 
 const parts = {};
 let isExploded = false;
@@ -131,26 +134,56 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_lid.stl', 
 
 // 3. Phone clamp is naturally generated fully assembled! (Z=65 to 130).
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clamp.stl', matClamp, 
-    [0, 0, 0],   // Assembled (Already in place)
-    [0, 50, 50], // Exploded (lifted and moved forward)
+    [0, 0, 0],     // Assembled (Already in place)
+    [0, 60, -150], // Exploded (lifted and pushed well clear of the lid, out the front)
     'clamp'
 );
 
 // 4. Couplers. We load the same model twice (left and right).
 // Left coupler: D-socket faces +X (towards motor). The model's default orientation points D-socket to +X.
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
-    [-50, 33.6, -44],   // Assembled (on the shaft, just outside the left wall)
-    [-85, 33.6, -44],   // Exploded
+    [-41.2, 33.6, -44], // Assembled (captive in the left wall: flange trapped inside, axle socket out)
+    [-90, 33.6, -44],   // Exploded
     'couplerLeft'
 );
 
 // Right coupler: D-socket must face -X. So we rotate it 180 degrees around Y!
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
-    [50, 33.6, -44],    // Assembled (on the shaft, just outside the right wall)
-    [85, 33.6, -44],    // Exploded
+    [41.2, 33.6, -44],  // Assembled (captive in the right wall: flange trapped inside, axle socket out)
+    [90, 33.6, -44],    // Exploded
     'couplerRight',
     [0, Math.PI, 0]     // Assembled Rotation (will be applied to wrapper)
 );
+
+// --- Non-printed internals for realism (grey motors, purple boards) ---
+// Placed using OpenSCAD coordinates [x, y, z] (same convention as the base,
+// which is generated at the origin). OpenSCAD space maps to Three.js as
+// [x, z, -y]. They explode straight down with the base so the "guts" stay
+// nested inside the chassis as the lid lifts off.
+let internalCount = 0;
+function addInternal(geometry, material, oscadPos, rot) {
+    const mesh = new THREE.Mesh(geometry, material);
+    if (rot) mesh.rotation.set(...rot);
+    const assembled = new THREE.Vector3(oscadPos[0], oscadPos[2], -oscadPos[1]);
+    const exploded = assembled.clone().add(new THREE.Vector3(0, -50, 0));
+    scene.add(mesh);
+    parts['internal_' + (internalCount++)] = {
+        mesh: mesh,
+        assembledPos: assembled,
+        explodedPos: exploded,
+        targetPos: assembled.clone()
+    };
+    mesh.position.copy(assembled);
+}
+
+// Two 28BYJ-48 stepper motors (Ø28 x 19mm), axis along X, cradled at the rear.
+for (const sx of [-29.5, 29.5])
+    addInternal(new THREE.CylinderGeometry(14, 14, 19, 32), matMotor, [sx, 44, 25.6], [0, 0, Math.PI / 2]);
+// Two ULN2003 driver boards (35 x 31.5mm) sitting flat on their trays.
+for (const sx of [-20, 20])
+    addInternal(new THREE.BoxGeometry(35, 1.6, 31.5), matBoard, [sx, 2, 7]);
+// ESP32-S2 Mini (34.3 x 25.4mm) friction-fit at the rear, USB-C to the back wall.
+addInternal(new THREE.BoxGeometry(25.4, 1.6, 34.3), matBoard, [0, -45, 7]);
 
 // Button logic
 document.getElementById('explode-btn').addEventListener('click', () => {
