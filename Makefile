@@ -93,3 +93,28 @@ erase-flash:
 flash-firmware:
 	@echo "Flashing MicroPython firmware '$(FIRMWARE)' to ESP32-S2 at 0x1000..."
 	$(ESPTOOL_CMD) --chip esp32s2 --port $(PORT) --baud 460800 write_flash -z 0x1000 $(FIRMWARE)
+
+# --- LEGO VEHICLE AUTOMATION TARGETS ---
+
+.PHONY: install-deps render-vehicle
+
+# Installs necessary CLI 3D utilities via APT
+install-deps:
+	sudo apt-get update
+	sudo apt-get install -y openscad meshlab
+
+# Headlessly renders the three individual parts and converts to Slicer-ready OBJs
+render-vehicle:
+	@echo "Rendering Chassis Base to STL..."
+	openscad -o vehicle_base.stl -D 'part_to_render="base"' lego_robot_vehicle.scad
+	@echo "Rendering Sliding Lid to STL..."
+	openscad -o vehicle_lid.stl -D 'part_to_render="lid"' lego_robot_vehicle.scad
+	@echo "Rendering Captive Couplers to STL..."
+	openscad -o vehicle_couplers.stl -D 'part_to_render="couplers"' lego_robot_vehicle.scad
+	@echo "Converting assets to OBJ..."
+	meshlabserver -i vehicle_base.stl -o vehicle_base.obj
+	meshlabserver -i vehicle_lid.stl -o vehicle_lid.obj
+	meshlabserver -i vehicle_couplers.stl -o vehicle_couplers.obj
+	@echo "Rendering screenshot for webapp..."
+	openscad -o screenshots/vehicle_render.png --colorscheme Nature --imgsize 1200,800 lego_robot_vehicle.scad
+	@echo "Done! All files ready for slicer."

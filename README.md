@@ -119,6 +119,19 @@ If you want to build the absolute simplest version of this project, you don't ev
 
 ---
 
+## 🏎️ The Custom 3D Printed Chassis
+
+Check out our fully integrated Lego-compatible chassis design. The CI automatically renders this from our parametric OpenSCAD source directly into Slicer-ready assets and generates the screenshot below!
+
+![Lego Robot Vehicle Chassis](screenshots/vehicle_render.png)
+
+**Download the latest auto-generated 3D Models:**
+* [⬇️ Chassis Base (.obj)](https://github.com/sloev/robo/raw/master/vehicle_base.obj)
+* [⬇️ Sliding Lid (.obj)](https://github.com/sloev/robo/raw/master/vehicle_lid.obj)
+* [⬇️ Captive Couplers (.obj)](https://github.com/sloev/robo/raw/master/vehicle_couplers.obj)
+
+---
+
 ## 🛠️ Step-by-Step Build Guide
 
 1.  **Mount the Motors:** Screw your **28BYJ-48 stepper motors** into your custom cardboard, wood, or 3D-printed creation (e.g. wheels for a car, a pulley spool for a crane, or a launching arm for a catapult).
