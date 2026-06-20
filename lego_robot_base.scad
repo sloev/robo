@@ -160,9 +160,12 @@ module motor_bays() {
 module esp32_snap_tray() {
     // Easy-print snap-tray: uses solid bars instead of tiny dots/pins for standoffs
     translate([0, -45, floor_z]) {
-        // Solid horizontal support bars to lift board over solder joints
-        translate([-11, -15, 0]) cube([22, 4, 4]);
-        translate([-11, 11, 0]) cube([22, 4, 4]);
+        // Square corner standoffs: massive central gap for underside wire routing
+        for (dx = [-10.7, 10.7]) {
+            for (dy = [-14, 14]) {
+                translate([dx, dy, 2]) cube([5, 5, 4], center=true);
+            }
+        }
         
         // Flexible locking hooks (X-axis)
         for (dx = [-12.7, 12.7]) {
