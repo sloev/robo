@@ -176,9 +176,46 @@ function addInternal(geometry, material, oscadPos, rot) {
     mesh.position.copy(assembled);
 }
 
-// Two 28BYJ-48 stepper motors (Ø28 x 19mm), axis along X, cradled at the rear.
-for (const sx of [-29.5, 29.5])
-    addInternal(new THREE.CylinderGeometry(14, 14, 19, 32), matMotor, [sx, 44, 25.6], [0, 0, Math.PI / 2]);
+// Detailed 28BYJ-48 stepper: body can, offset flat-D shaft + boss, two mount
+// ears with Ø4 holes (35mm apart), and the cable connector + 5 wires. Single
+// grey colour. Local frame: body axis X, "up" +Y, shaft exits +X offset +8 in Y.
+function makeMotor() {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 19, 36), matMotor);
+    body.rotation.z = Math.PI / 2; g.add(body);
+    const boss = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, 1.5, 24), matMotor);
+    boss.rotation.z = Math.PI / 2; boss.position.set(10.25, 8, 0); g.add(boss);
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 9, 16), matMotor);
+    shaft.rotation.z = Math.PI / 2; shaft.position.set(15.5, 8, 0); g.add(shaft);
+    // Mount ears: disc tab with a Ø4 hole, at the front face, 35mm apart along Z.
+    const earShape = new THREE.Shape(); earShape.absarc(0, 0, 3.5, 0, Math.PI * 2, false);
+    const earHole = new THREE.Path(); earHole.absarc(0, 0, 2, 0, Math.PI * 2, true);
+    earShape.holes.push(earHole);
+    const earGeo = new THREE.ExtrudeGeometry(earShape, { depth: 0.8, bevelEnabled: false });
+    for (const dz of [-17.5, 17.5]) {
+        const ear = new THREE.Mesh(earGeo, matMotor);
+        ear.rotation.y = Math.PI / 2; ear.position.set(9, 0, dz); g.add(ear);
+        const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.8, 7, 4), matMotor);
+        bridge.position.set(9, 0, dz - Math.sign(dz) * 1.75); g.add(bridge);
+    }
+    // Cable connector housing + 5 wire stubs (exit upward/inward).
+    const conn = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 14.6), matMotor);
+    conn.position.set(-2, 13, 0); g.add(conn);
+    for (const wz of [-4, -2, 0, 2, 4]) {
+        const w = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 5, 8), matMotor);
+        w.position.set(-2, 17.5, wz); g.add(w);
+    }
+    return g;
+}
+for (const m of [{ x: -30, flip: true }, { x: 30, flip: false }]) {
+    const motor = makeMotor();
+    if (m.flip) motor.rotation.y = Math.PI;   // shaft toward the opposite wall
+    const assembled = new THREE.Vector3(m.x, 25.6, -44);   // OpenSCAD (±30, 44, 25.6)
+    const exploded = assembled.clone().add(new THREE.Vector3(0, -50, 0));
+    motor.position.copy(assembled);
+    scene.add(motor);
+    parts['motor_' + (internalCount++)] = { mesh: motor, assembledPos: assembled, explodedPos: exploded, targetPos: assembled.clone() };
+}
 // Two ULN2003 driver boards (35 x 31.5mm) sitting flat on their trays.
 for (const sx of [-20, 20])
     addInternal(new THREE.BoxGeometry(35, 1.6, 31.5), matBoard, [sx, 2, 7]);

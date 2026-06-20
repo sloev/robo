@@ -27,18 +27,21 @@ module vehicle_base() {
             
             translate([0, 22, floor_z - 0.1]) linear_extrude(0.7) text("--- WIRES ---", size=3, halign="center");
             
-            // --- Discreet AI Phone Mount (front of chassis) ---
-            // Track box for the sliding jaw (beefed up for stability)
-            translate([0, length/2 + 4, 24]) cube([32, 8, 48], center=true);
-            // Solid phone resting shelf: a thick (6mm) full-width foot fused to
-            // the front wall along its whole width -- no fragile thin cantilever.
-            translate([0, length/2 + 8, 3]) cube([88, 18, 6], center=true);
-            // Taller front retaining wall to stop the phone sliding off
-            translate([0, length/2 + 16, 9]) cube([88, 3, 18], center=true);
-            // Triangular gusset webs bracing the shelf up to the front wall
+            // --- AI Phone Cradle (front of chassis) ---
+            // Full-width front bumper: a flat, full-width back-rest the phone
+            // leans against, with the clamp slider T-slot down its centre. (A
+            // phone needs a flat surface across its whole width, not just the
+            // 32mm track, or it rocks.)
+            translate([0, length/2 + 4, 24]) cube([88, 8, 48], center=true);
+            // Deep solid resting shelf, fused full-width to the bumper.
+            translate([0, length/2 + 13, 3]) cube([88, 26, 6], center=true);
+            // Front retaining lip set ~14mm forward of the back-rest so a real
+            // phone (8-11mm, plus a case) actually fits in the slot.
+            translate([0, length/2 + 24, 11]) cube([88, 4, 22], center=true);
+            // Gusset webs bracing the shelf + lip back to the bumper.
             for (gx = [-42, -21, 0, 21, 42])
-                translate([gx + 1.5, length/2 - 1, 5]) rotate([0, -90, 0])
-                    linear_extrude(3) polygon([[0, 0], [14, 0], [0, 11]]);
+                translate([gx + 1.5, length/2 + 8, 5]) rotate([0, -90, 0])
+                    linear_extrude(3) polygon([[0, 0], [18, 0], [0, 12]]);
             
             // Rubber band anchor pegs on the sides for the top clamp
             translate([-width/2 - 2, 55, 10]) rotate([0, 90, 0]) {
@@ -130,9 +133,11 @@ module base_shell() {
         translate([0, length/2, height - 1.6])
             cube([83.5, 5, 10], center=true);
 
-        // Inner Side Grooves for Lid Rails (Z=44.8 to 46.4)
-        translate([0, 0, 45.6])
-            cube([83.4, length + 2, 1.8], center=true);
+        // Inner Side Grooves for Lid Rails (Z=44.8 to 46.4). Open at the front
+        // for the lid to slide in, but stopped before the back (USB-C) wall so
+        // it never cuts a slit through it -- the solid back wall is the lid stop.
+        translate([0, 2.4, 45.6])
+            cube([83.4, length - 1.2, 1.8], center=true);
     }
 }
 
