@@ -111,15 +111,19 @@ render-vehicle:
 	openscad -o vehicle_lid.stl -D 'part_to_render="lid"' lego_robot_vehicle.scad
 	@echo "Rendering Captive Couplers to STL..."
 	openscad -o vehicle_couplers.stl -D 'part_to_render="couplers"' lego_robot_vehicle.scad
+	@echo "Rendering Portrait Phone Stand to STL..."
+	openscad -o vehicle_phone_stand.stl -D 'part_to_render="phone_stand"' lego_robot_vehicle.scad
 	@echo "Converting assets to OBJ..."
 	ctmconv vehicle_base.stl vehicle_base.obj
 	ctmconv vehicle_lid.stl vehicle_lid.obj
 	ctmconv vehicle_couplers.stl vehicle_couplers.obj
+	ctmconv vehicle_phone_stand.stl vehicle_phone_stand.obj
 	@echo "Creating ZIP archive of all parts..."
-	zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj
+	zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_stand.obj
 	@echo "Rendering screenshots for webapp..."
 	openscad -o screenshots/vehicle_render.png --colorscheme Nature --imgsize 1200,800 lego_robot_vehicle.scad
 	openscad -o screenshots/vehicle_base_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="base"' lego_robot_vehicle.scad
 	openscad -o screenshots/vehicle_lid_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="lid"' lego_robot_vehicle.scad
 	openscad -o screenshots/vehicle_couplers_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="couplers"' lego_robot_vehicle.scad
+	openscad -o screenshots/vehicle_phone_stand_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="phone_stand"' lego_robot_vehicle.scad
 	@echo "Done! All files ready for slicer."

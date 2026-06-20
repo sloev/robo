@@ -34,31 +34,17 @@ Drive your creation directly using virtual vertical joysticks! Slide them up or 
 
 ---
 
-### 🧠 3. AI Explorer Mode (Kinematic Discovery)
-This is where the magic happens! Your creation doesn't need to know what it is. In this mode, the phone watches the creation from a stand and **helps it discover its own body** (whether it's a crane, a car, or a catapult).
+### 🧠 3. Autonomous AI (Car Mode)
+This is where the magic happens! Turn your stepper motor creation into an autonomous self-driving car using your phone's built-in sensors. By snapping your phone vertically into the custom Lego-compatible **Portrait Phone Mount** on the front of the chassis, your phone acts as the robot's eyes, ears, and inner ear!
 
-1.  **Background Calibration:** Click **Start Training**. The dashboard automatically captures the static background scene. Keep the camera completely still and hands out of the frame!
-2.  **Kinematic Babbling:** The creation automatically wiggles its motors. Using magic background differencing, the camera detects how each wiggle moves the creation's body parts in real time.
-3.  **Self-Discovery:** 
-    *   *"Oh, I am a crane! Turning Motor A lifts my arm up!"*
-    *   *"Oh, I am a car! Turning Motor A drives me forward, and Motor B steers me!"*
-    *   *"Oh, I am a catapult! Motor A winds up my spring cog!"*
-4.  **Autonomous Autopilot:** Click **Start Autopilot** and watch your creation navigate its parts. If you wave a hand or move objects, it will track the movement and move its own body to follow it!
+1.  **Sensor Fusion (Dead Reckoning):** The dashboard creates a sensor fusion of the phone's internal gyroscope, accelerometer, and magnetometer to understand its odometry and heading entirely on its own!
+2.  **Learning Mode (Kinematic Discovery):** The robot wiggles its motors and uses the phone's sensors to reverse-engineer its own kinematics (whether it's built as a differential drive or an Ackermann steering setup).
+3.  **Autonomous Mapping:** Place the car in the room and start the Live Mode. As the car wanders around, it uses the camera and IMU to dynamically create a live 2D map overlay of its environment.
+4.  **Vision & Audio Navigation:** Using lightweight TensorFlow.js models running purely offline in the PWA, the phone actively detects obstacles using the front/rear cameras, and can react to loud noises or even utter simple sounds when encountering sudden movements or blockages!
 
-![AI Explorer in Action](screenshots/view-ai.jpg)
+Because all the heavy machine-learning and sensor processing happens in the browser on your powerful smartphone, the ESP32-S2 is freed up to focus entirely on perfect stepper motor coordination!
 
----
-
-### 🚗 4. Car Mapper Mode (Autonomous Mapping & Avoidance)
-Turn your stepper motor creation into an autonomous self-driving car! This mode explains how to build a car (either dual-motor **Differential Drive** or single-motor **Ackermann Steering & Traction**) and maps the room using the camera!
-
-1.  **Car Selection & Design:** Follow the on-screen templates to assemble wheels and steering axles.
-2.  **Autonomous Arena Mapping:** Place the car in the room and turn on the camera. As the car wanders around, it dynamically creates a 2D map overlay on top of the live video feed.
-    *   **Green Cells:** Safe paths where the car successfully drove.
-    *   **Red Cells:** Obstacles (where the car wiggled its wheels but was physically blocked from moving forward).
-3.  **Collision Avoidance Autopilot:** Turn on Autopilot, and the car will navigate itself around the room avoiding the mapped Red obstacles. Waving a hand or foot in front of it is instantly detected as a moving obstacle, and the car will steer away in real time!
-
-![Car Mapper in Action](screenshots/view-car.jpg)
+![AI Car Mode in Action](screenshots/view-car.jpg)
 
 ---
 
@@ -128,9 +114,10 @@ Check out our fully integrated Lego-compatible chassis design. The CI automatica
 
 ### Individual Components
 <div align="center">
-  <img src="screenshots/vehicle_base_render.png" width="30%">
-  <img src="screenshots/vehicle_lid_render.png" width="30%">
-  <img src="screenshots/vehicle_couplers_render.png" width="30%">
+  <img src="screenshots/vehicle_base_render.png" width="24%">
+  <img src="screenshots/vehicle_lid_render.png" width="24%">
+  <img src="screenshots/vehicle_couplers_render.png" width="24%">
+  <img src="screenshots/vehicle_phone_stand_render.png" width="24%">
 </div>
 
 **Download the latest auto-generated 3D Models:**
@@ -138,6 +125,7 @@ Check out our fully integrated Lego-compatible chassis design. The CI automatica
 * [⬇️ Chassis Base (.obj)](https://github.com/sloev/robo/raw/master/vehicle_base.obj)
 * [⬇️ Sliding Lid (.obj)](https://github.com/sloev/robo/raw/master/vehicle_lid.obj)
 * [⬇️ Captive Couplers (.obj)](https://github.com/sloev/robo/raw/master/vehicle_couplers.obj)
+* [⬇️ Portrait Phone AI Stand (.obj)](https://github.com/sloev/robo/raw/master/vehicle_phone_stand.obj)
 
 ---
 

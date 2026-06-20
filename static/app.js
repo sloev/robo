@@ -782,9 +782,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById(targetId).classList.add('active');
     
     // Auto-stop video feeds when switching to a different view
-    if (targetId !== 'view-ai' && typeof visionActive !== 'undefined' && visionActive) {
-      stopVisionFeed();
-    }
+
     if (targetId !== 'view-car' && typeof carVisionActive !== 'undefined' && carVisionActive) {
       const stopBtn = document.getElementById('btn-car-stop-vision');
       if (stopBtn) stopBtn.click();

@@ -49,6 +49,8 @@ if (part_to_render == "all") {
 } else if (part_to_render == "couplers") {
     color("#f1c40f") motor_coupler();
     color("#f1c40f") translate([0, 20, 0]) motor_coupler();
+} else if (part_to_render == "phone_stand") {
+    color("#8e44ad") phone_stand();
 }
 
 
@@ -311,4 +313,46 @@ module showcase_electronics() {
     // Highlight the Technic Axle insertion path
     color("red") translate([-50, motor_y, shaft_z]) rotate([0, 90, 0]) cylinder(d=4.5, h=20, center=true);
     color("red") translate([50, motor_y, shaft_z]) rotate([0, 90, 0]) cylinder(d=4.5, h=20, center=true);
+    
+    // Optional Phone Stand snapped to the lid
+    color("#8e44ad") translate([0, -20, height + 4.8]) phone_stand();
+}
+
+module phone_stand() {
+    // A separate, Lego-compatible phone stand that snaps onto the lid
+    // Allows the phone to be mounted vertically for the Car Mode Sensor Fusion AI
+    difference() {
+        union() {
+            // Base plate (10x4 studs)
+            translate([0, 0, 1.6]) cube([10*8 - 0.2, 4*8 - 0.2, 3.2], center=true);
+            // Upright clamping walls
+            translate([0, 0, 15]) cube([75, 16, 30], center=true);
+        }
+        
+        // Bottom Lego Cavity
+        translate([0, 0, 1.6]) cube([10*8 - 3.2, 4*8 - 3.2, 3.4], center=true);
+        
+        // Phone cutout (12mm thick, open on sides for wide phones)
+        translate([0, 0, 16]) cube([85, 12, 32], center=true);
+        
+        // Camera and screen windows (allows front and rear cameras to see)
+        translate([0, 8, 20]) cube([45, 10, 30], center=true);
+        translate([0, -8, 20]) cube([45, 10, 30], center=true);
+        
+        // Label
+        translate([0, -7, 1.6]) linear_extrude(0.6) text("PORTRAIT AI", size=4, halign="center", font="Liberation Sans:style=Bold");
+    }
+    
+    // Bottom Lego Receiving Tubes
+    start_x = - 4.5 * lego_pitch;
+    start_y = - 1.5 * lego_pitch;
+    for (i = [0 : 9]) {
+        for (j = [0 : 3]) {
+            translate([start_x + i * lego_pitch, start_y + j * lego_pitch, 0])
+            difference() {
+                cylinder(d=6.51, h=3.2);
+                translate([0,0,-0.1]) cylinder(d=4.8, h=3.4);
+            }
+        }
+    }
 }
