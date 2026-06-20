@@ -1,6 +1,6 @@
-# 🤖 ESP32-S2 Mini Kinetic Builder Dashboard
+# 🤖 BlockBot Dashboard
 
-Welcome to the **Kinetic Builder Dashboard**! This is a fun, visual way to build and program **anything you can imagine** using an **ESP32-S2 Mini** brain and motorized stepper muscles. 
+Welcome to the **BlockBot Dashboard**! This is a fun, visual way to build and program **anything you can imagine** using an **ESP32-S2 Mini** brain and motorized stepper muscles. 
 
 It doesn't have to be a standard robot—you can build a **crane**, a **car**, a **catapult**, a **drawing machine**, a **conveyor belt**, or a **robotic arm**! As long as it uses the motors and sensors, you can bring it to life.
 
@@ -185,4 +185,4 @@ Because the inputs are standard digital and analog pins, you can connect many ot
 1.  Install flashing tools on your computer: `make install-tools`
 2.  Upload all files to the ESP32: `make upload`
 3.  Reset the board to start: `make reset`
-4.  Connect your phone's Wi-Fi to the network **"Robo-Control"**, open `http://robot.com` and start creating!
+4.  Connect your phone's Wi-Fi to the network **"BlockBot"**, open `http://robot.com` and start creating!
