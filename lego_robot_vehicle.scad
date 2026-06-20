@@ -32,17 +32,23 @@ motor_z = shaft_z - 8.0;
 part_to_render = "all"; 
 
 if (part_to_render == "all") {
-    vehicle_base();
-    translate([0, 0, height + 15]) sliding_lid();
-    translate([-65, motor_y, 0]) motor_coupler();
-    translate([65, motor_y, 0]) motor_coupler();
+    color("#2c3e50") vehicle_base();
+    color("#e74c3c") translate([0, 0, height + 20]) sliding_lid(); // Hovering lid
+    
+    // Show couplers in their assembled positions
+    color("#f1c40f") translate([-41.2, motor_y, shaft_z]) rotate([0, 90, 0]) motor_coupler();
+    color("#f1c40f") translate([41.2, motor_y, shaft_z]) rotate([0, -90, 0]) motor_coupler();
+    
+    // Virtual Electronic Components (Only for "all" screenshot showcase)
+    %showcase_electronics();
+    
 } else if (part_to_render == "base") {
-    vehicle_base();
+    color("#2c3e50") vehicle_base();
 } else if (part_to_render == "lid") {
-    sliding_lid();
+    color("#e74c3c") sliding_lid();
 } else if (part_to_render == "couplers") {
-    motor_coupler();
-    translate([0, 20, 0]) motor_coupler();
+    color("#f1c40f") motor_coupler();
+    color("#f1c40f") translate([0, 20, 0]) motor_coupler();
 }
 
 
@@ -218,9 +224,10 @@ module sliding_lid() {
                 translate([0, 0, -0.8]) cube([83.0, 126.4, 1.4], center=true);
                 
                 // Top Studs (Shifted to perfectly align with global Lego Grid)
-                start_x = - (box_w_lu * lego_pitch) / 2 + 4;
+                // We limit width to 10 units since the lid fits inside the thick walls
+                start_x = - ((box_w_lu - 2) * lego_pitch) / 2 + 4;
                 start_y = - (box_l_lu * lego_pitch) / 2 + 4;
-                for (i = [0 : box_w_lu - 1]) {
+                for (i = [0 : box_w_lu - 3]) {
                     for (j = [0 : box_l_lu - 1]) {
                         translate([start_x + i*8, start_y + j*8 - 0.8, 1.6])
                             cylinder(d=4.8, h=1.8);
@@ -259,4 +266,31 @@ module motor_coupler() {
             cube([1.8, 5.1, 6.5], center=true);
         }
     }
+}
+
+module showcase_electronics() {
+    // Left Stepper Motor
+    translate([-34, motor_y, motor_z]) rotate([0, 90, 0]) {
+        color("silver") cylinder(d=28, h=19, center=true);
+        color("dodgerblue") translate([0, 8, 0]) cube([15, 15, 19], center=true); // cable box
+    }
+    // Right Stepper Motor
+    translate([34, motor_y, motor_z]) rotate([0, -90, 0]) {
+        color("silver") cylinder(d=28, h=19, center=true);
+        color("dodgerblue") translate([0, 8, 0]) cube([15, 15, 19], center=true);
+    }
+    
+    // ESP32-S2 Mini Board
+    translate([0, -45, floor_z + 4]) {
+        color("purple") cube([34.3, 25.4, 1.6], center=true);
+        color("silver") translate([0, -10, 2]) cube([10, 8, 3], center=true); // USB-C
+    }
+    
+    // ULN2003 Driver Boards
+    color("green") translate([-20, 2, floor_z + 17.5]) rotate([0, -90, 0]) cube([35, 32, 1.6], center=true);
+    color("green") translate([20, 2, floor_z + 17.5]) rotate([0, 90, 0]) cube([35, 32, 1.6], center=true);
+    
+    // Highlight the Technic Axle insertion path
+    color("red") translate([-50, motor_y, shaft_z]) rotate([0, 90, 0]) cylinder(d=4.5, h=20, center=true);
+    color("red") translate([50, motor_y, shaft_z]) rotate([0, 90, 0]) cylinder(d=4.5, h=20, center=true);
 }
