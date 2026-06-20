@@ -30,4 +30,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: Auto-render latest SCAD assets and screenshots"
-          file_pattern: "screenshots/vehicle_render.png *.stl *.obj"
+          file_pattern: "screenshots/*.png *.stl *.obj *.zip"

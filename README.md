@@ -121,11 +121,20 @@ If you want to build the absolute simplest version of this project, you don't ev
 
 ## 🏎️ The Custom 3D Printed Chassis
 
-Check out our fully integrated Lego-compatible chassis design. The CI automatically renders this from our parametric OpenSCAD source directly into Slicer-ready assets and generates the screenshot below!
+Check out our fully integrated Lego-compatible chassis design. The CI automatically renders this from our parametric OpenSCAD source directly into Slicer-ready assets!
 
+### Fully Assembled
 ![Lego Robot Vehicle Chassis](screenshots/vehicle_render.png)
 
+### Individual Components
+<div align="center">
+  <img src="screenshots/vehicle_base_render.png" width="30%">
+  <img src="screenshots/vehicle_lid_render.png" width="30%">
+  <img src="screenshots/vehicle_couplers_render.png" width="30%">
+</div>
+
 **Download the latest auto-generated 3D Models:**
+* [📦 Download All Models (.zip)](https://github.com/sloev/robo/raw/master/vehicle_models.zip)
 * [⬇️ Chassis Base (.obj)](https://github.com/sloev/robo/raw/master/vehicle_base.obj)
 * [⬇️ Sliding Lid (.obj)](https://github.com/sloev/robo/raw/master/vehicle_lid.obj)
 * [⬇️ Captive Couplers (.obj)](https://github.com/sloev/robo/raw/master/vehicle_couplers.obj)

@@ -115,6 +115,11 @@ render-vehicle:
 	meshlabserver -i vehicle_base.stl -o vehicle_base.obj
 	meshlabserver -i vehicle_lid.stl -o vehicle_lid.obj
 	meshlabserver -i vehicle_couplers.stl -o vehicle_couplers.obj
-	@echo "Rendering screenshot for webapp..."
+	@echo "Creating ZIP archive of all parts..."
+	zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj
+	@echo "Rendering screenshots for webapp..."
 	openscad -o screenshots/vehicle_render.png --colorscheme Nature --imgsize 1200,800 lego_robot_vehicle.scad
+	openscad -o screenshots/vehicle_base_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="base"' lego_robot_vehicle.scad
+	openscad -o screenshots/vehicle_lid_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="lid"' lego_robot_vehicle.scad
+	openscad -o screenshots/vehicle_couplers_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="couplers"' lego_robot_vehicle.scad
 	@echo "Done! All files ready for slicer."
