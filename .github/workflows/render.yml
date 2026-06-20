@@ -21,7 +21,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y openscad meshlab xvfb
+          sudo apt-get install -y openscad openctm-tools xvfb
 
       - name: Create screenshots directory if missing
         run: mkdir -p screenshots

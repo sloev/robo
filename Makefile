@@ -101,7 +101,7 @@ flash-firmware:
 # Installs necessary CLI 3D utilities via APT
 install-deps:
 	sudo apt-get update
-	sudo apt-get install -y openscad meshlab
+	sudo apt-get install -y openscad openctm-tools
 
 # Headlessly renders the three individual parts and converts to Slicer-ready OBJs
 render-vehicle:
@@ -112,9 +112,9 @@ render-vehicle:
 	@echo "Rendering Captive Couplers to STL..."
 	openscad -o vehicle_couplers.stl -D 'part_to_render="couplers"' lego_robot_vehicle.scad
 	@echo "Converting assets to OBJ..."
-	meshlabserver -i vehicle_base.stl -o vehicle_base.obj
-	meshlabserver -i vehicle_lid.stl -o vehicle_lid.obj
-	meshlabserver -i vehicle_couplers.stl -o vehicle_couplers.obj
+	ctmconv vehicle_base.stl vehicle_base.obj
+	ctmconv vehicle_lid.stl vehicle_lid.obj
+	ctmconv vehicle_couplers.stl vehicle_couplers.obj
 	@echo "Creating ZIP archive of all parts..."
 	zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj
 	@echo "Rendering screenshots for webapp..."
