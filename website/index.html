@@ -88,10 +88,37 @@
 
     footer { text-align: center; padding: 3rem; border-top: 1px solid var(--border); color: var(--muted); margin-top: 8rem; }
     
+    /* Carousel Styles */
+    .testimonial-section { max-width: 1200px; margin: 6rem auto; padding: 0 5%; }
+    .testimonial-header { text-align: center; margin-bottom: 3rem; }
+    .testimonial-header h2 { font-size: 2.5rem; margin-bottom: 0.5rem; background: var(--gradient-text); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+    
+    .carousel-wrapper { position: relative; overflow: hidden; border-radius: 24px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); backdrop-filter: blur(10px); padding: 4rem 2rem; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
+    .carousel-track { display: flex; transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
+    .carousel-slide { min-width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.6s; transform: scale(0.95); }
+    .carousel-slide.active { opacity: 1; transform: scale(1); }
+    
+    .testimonial-card { display: flex; flex-direction: column; gap: 2rem; align-items: center; max-width: 800px; margin: 0 auto; background: var(--surface); padding: 2rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    @media (min-width: 768px) { .testimonial-card { flex-direction: row; } }
+    
+    .testimonial-img { width: 100%; max-width: 300px; height: 300px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); }
+    .testimonial-content { flex: 1; text-align: left; }
+    .testimonial-quote { font-size: 1.25rem; font-style: italic; color: var(--text); margin-bottom: 1.5rem; line-height: 1.6; }
+    .testimonial-author { display: flex; align-items: center; gap: 1rem; }
+    .testimonial-author-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+    .testimonial-link { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 0.95rem; margin-top: 1rem; transition: color 0.2s; }
+    .testimonial-link:hover { color: var(--accent-hover); text-decoration: underline; }
+
+    .carousel-nav { display: flex; justify-content: center; gap: 0.5rem; margin-top: 2rem; }
+    .carousel-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); cursor: pointer; transition: background 0.3s; }
+    .carousel-dot.active { background: var(--accent); }
+    
     @media (max-width: 768px) {
       .showcase-item, .showcase-item:nth-child(even) { flex-direction: column; gap: 2rem; text-align: center; }
       .showcase-text ul { list-style: none; padding: 0; }
       h1 { font-size: 2.5rem; }
+      .testimonial-content { text-align: center; }
+      .testimonial-author { justify-content: center; }
     }
   </style>
 </head>
@@ -187,6 +214,64 @@
       </div>
       <div class="showcase-img">
         <img src="screenshots/view-car.jpg" alt="Car Mapper Mode">
+      </div>
+    </div>
+  </div>
+
+  <div class="testimonial-section">
+    <div class="testimonial-header">
+      <h2>🌟 Community Show & Tell</h2>
+      <p style="color: var(--muted); font-size: 1.1rem;">See what builders are creating. <a href="https://github.com/sloev/robo/discussions/2" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">Join the discussion ➔</a></p>
+    </div>
+
+    <div class="carousel-wrapper">
+      <div class="carousel-track" id="testimonial-track">
+        
+        <!-- Slide 1 -->
+        <div class="carousel-slide active">
+          <div class="testimonial-card">
+            <img src="https://github.com/user-attachments/assets/123df735-6a85-403c-957e-3cf943f5dd5d" alt="Show and Tell from @sloev" class="testimonial-img">
+            <div class="testimonial-content">
+              <blockquote class="testimonial-quote">
+                "Buster Valbjørn made this nice first try!"
+              </blockquote>
+              <div class="testimonial-author">
+                <div class="testimonial-author-avatar">S</div>
+                <div>
+                  <div style="font-weight: 600; color: var(--text);">@sloev</div>
+                  <div style="color: var(--muted); font-size: 0.85rem;">GitHub Community</div>
+                </div>
+              </div>
+              <a href="https://github.com/sloev/robo/discussions/2#discussioncomment-17374964" target="_blank" class="testimonial-link">Read original post ↗</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Placeholder Slide 2 (For the rotating effect) -->
+        <div class="carousel-slide">
+          <div class="testimonial-card">
+            <div class="testimonial-img" style="background: var(--surface-light); display: flex; align-items: center; justify-content: center; font-size: 4rem;">🛠️</div>
+            <div class="testimonial-content">
+              <blockquote class="testimonial-quote">
+                "Your creation could be featured here! Share your ESP32 robot, crane, or catapult in our GitHub Discussions."
+              </blockquote>
+              <div class="testimonial-author">
+                <div class="testimonial-author-avatar" style="background: var(--success);">Y</div>
+                <div>
+                  <div style="font-weight: 600; color: var(--text);">You</div>
+                  <div style="color: var(--muted); font-size: 0.85rem;">Next Builder</div>
+                </div>
+              </div>
+              <a href="https://github.com/sloev/robo/discussions/2" target="_blank" class="testimonial-link">Post your build ↗</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="carousel-nav" id="carousel-nav">
+        <div class="carousel-dot active" data-index="0"></div>
+        <div class="carousel-dot" data-index="1"></div>
       </div>
     </div>
   </div>
@@ -325,5 +410,44 @@
     <p>&copy; 2026 Kinetic Builder OS. Built for the ESP32. <br><a href="https://buymeacoffee.com/sloev" style="color: var(--donate); text-decoration: none; margin-top: 0.5rem; display: inline-block;">Support the project!</a></p>
   </footer>
 
+  <script>
+    // Carousel Logic
+    document.addEventListener('DOMContentLoaded', () => {
+      const track = document.getElementById('testimonial-track');
+      const slides = Array.from(track.querySelectorAll('.carousel-slide'));
+      const dots = Array.from(document.querySelectorAll('.carousel-dot'));
+      let currentIndex = 0;
+      let interval;
+
+      function goToSlide(index) {
+        slides[currentIndex].classList.remove('active');
+        dots[currentIndex].classList.remove('active');
+        
+        currentIndex = index;
+        
+        slides[currentIndex].classList.add('active');
+        dots[currentIndex].classList.add('active');
+        track.style.transform = `translateX(-${currentIndex * 100}%)`;
+      }
+
+      function nextSlide() {
+        goToSlide((currentIndex + 1) % slides.length);
+      }
+
+      // Initialize Auto-Rotate
+      if (slides.length > 1) {
+        interval = setInterval(nextSlide, 6000);
+        
+        // Dot clicks
+        dots.forEach((dot, index) => {
+          dot.addEventListener('click', () => {
+            clearInterval(interval);
+            goToSlide(index);
+            interval = setInterval(nextSlide, 6000); // Restart interval after manual navigation
+          });
+        });
+      }
+    });
+  </script>
 </body>
 </html>
