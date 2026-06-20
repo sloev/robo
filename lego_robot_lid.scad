@@ -14,7 +14,7 @@ module sliding_lid() {
                 // We limit width to 10 units since the lid fits inside the thick walls
                 start_x = - ((box_w_lu - 2) * lego_pitch) / 2 + 4;
                 start_y = - (box_l_lu * lego_pitch) / 2 + 4;
-                for (i = [0 : box_w_lu - 3]) {
+                for (i = [0, box_w_lu - 3]) {
                     for (j = [0 : box_l_lu - 1]) {
                         translate([start_x + i*8, start_y + j*8 - 0.8, 1.6])
                             cylinder(d=4.8, h=1.8);

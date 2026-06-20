@@ -132,7 +132,7 @@ module base_shell() {
     // Bottom Lego Receiving Tubes
     start_x = - (box_w_lu * lego_pitch) / 2 + 4;
     start_y = - (box_l_lu * lego_pitch) / 2 + 4;
-    for (i = [1 : box_w_lu - 1]) {
+    for (i = [1, box_w_lu - 1]) {
         for (j = [1 : box_l_lu - 1]) {
             translate([start_x + i * lego_pitch, start_y + j * lego_pitch, 0])
             difference() {
