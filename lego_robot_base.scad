@@ -8,24 +8,24 @@ module vehicle_base() {
             uln2003_flat_tray(-20, 2);
             uln2003_flat_tray(20, 2);
             motor_bays();
-            
+
             // Friction detent bumps for the sliding lid
             translate([83.0/2 - 1, length/2 - 5, 45.6]) sphere(d=1);
             translate([-83.0/2 + 1, length/2 - 5, 45.6]) sphere(d=1);
             
             // Security screw anchor block at the rear
-            translate([-5, length/2 - 6, floor_z])
+            translate([-5, length/2 - 6, floor_z - 0.1])
                 difference() {
-                    cube([10, 6, height - floor_z]);
+                    cube([10, 6, height - floor_z + 0.1]);
                     translate([5, 3, height - floor_z - 10]) cylinder(d=2.5, h=15); // pilot hole
                 }
                 
             // Internal Assembly Instructions & Wire Routing Paths
-            translate([0, motor_y - 22, floor_z]) linear_extrude(0.6) text("1. 28BYJ-48 MOTORS", size=3.5, halign="center", font="Liberation Sans:style=Bold");
-            translate([0, 2, floor_z]) linear_extrude(0.6) text("2. ULN2003 BOARDS", size=3.5, halign="center", font="Liberation Sans:style=Bold");
-            translate([0, -25, floor_z]) linear_extrude(0.6) text("3. ESP32-S2 MINI", size=3.5, halign="center", font="Liberation Sans:style=Bold");
+            translate([0, motor_y - 22, floor_z - 0.1]) linear_extrude(0.7) text("1. 28BYJ-48 MOTORS", size=3.5, halign="center", font="Liberation Sans:style=Bold");
+            translate([0, 2, floor_z - 0.1]) linear_extrude(0.7) text("2. ULN2003 BOARDS", size=3.5, halign="center", font="Liberation Sans:style=Bold");
+            translate([0, -25, floor_z - 0.1]) linear_extrude(0.7) text("3. ESP32-S2 MINI", size=3.5, halign="center", font="Liberation Sans:style=Bold");
             
-            translate([0, 22, floor_z]) linear_extrude(0.6) text("--- WIRES ---", size=3, halign="center");
+            translate([0, 22, floor_z - 0.1]) linear_extrude(0.7) text("--- WIRES ---", size=3, halign="center");
             
             // Discreet AI Phone Mount (Bottom Lip at front of chassis)
             // Track box for the sliding jaw (beefed up for extreme stability)
@@ -135,7 +135,7 @@ module base_shell() {
 
 module esp32_snap_tray() {
     // Zero-screw friction-fit mount with massive bottom wire gap
-    translate([0, -45, floor_z]) {
+    translate([0, -45, floor_z - 0.1]) {
         for (dx = [-10.7, 10.7]) {
             for (dy = [-15.15, 15.15]) {
                 translate([dx, dy, 0]) {
@@ -157,7 +157,7 @@ module esp32_snap_tray() {
 
 module uln2003_flat_tray(x, y) {
     // Flat toolless snap-tray for perfect wire routing straight to motors and ESP32
-    translate([x, y, floor_z]) {
+    translate([x, y, floor_z - 0.1]) {
         // Corner standoffs to clear bottom solder joints
         for(dx=[-17.5, 17.5]) {
             for(dy=[-16, 16]) {
@@ -181,16 +181,16 @@ module uln2003_flat_tray(x, y) {
 module motor_bays() {
     // Left Horizontal Cradle (Supports the motor body, leaves massive gap for cable)
     difference() {
-        translate([-40, motor_y - 14, floor_z]) cube([15, 28, motor_z - floor_z]);
+        translate([-40, motor_y - 14, floor_z - 0.1]) cube([15, 28, motor_z - floor_z + 0.1]);
         translate([-45, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=28.5, h=25);
-        translate([-45, motor_y - 8, floor_z - 1]) cube([25, 16, motor_z]);
+        translate([-45, motor_y - 8, floor_z - 1.1]) cube([25, 16, motor_z]);
     }
     
     // Right Horizontal Cradle
     difference() {
-        translate([25, motor_y - 14, floor_z]) cube([15, 28, motor_z - floor_z]);
+        translate([25, motor_y - 14, floor_z - 0.1]) cube([15, 28, motor_z - floor_z + 0.1]);
         translate([20, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=28.5, h=25);
-        translate([20, motor_y - 8, floor_z - 1]) cube([25, 16, motor_z]);
+        translate([20, motor_y - 8, floor_z - 1.1]) cube([25, 16, motor_z]);
     }
 }
 
