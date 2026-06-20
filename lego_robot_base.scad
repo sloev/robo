@@ -20,7 +20,12 @@ module vehicle_base() {
                     translate([5, 3, height - floor_z - 10]) cylinder(d=2.5, h=15); // pilot hole
                 }
                 
-
+            // Internal Assembly Instructions & Wire Routing Paths
+            translate([0, motor_y - 22, floor_z]) linear_extrude(0.6) text("1. 28BYJ-48 MOTORS", size=3.5, halign="center", font="Liberation Sans:style=Bold");
+            translate([0, 2, floor_z]) linear_extrude(0.6) text("2. ULN2003 BOARDS", size=3.5, halign="center", font="Liberation Sans:style=Bold");
+            translate([0, -25, floor_z]) linear_extrude(0.6) text("3. ESP32-S2 MINI", size=3.5, halign="center", font="Liberation Sans:style=Bold");
+            
+            translate([0, 22, floor_z]) linear_extrude(0.6) text("--- WIRES ---", size=3, halign="center");
             
             // Discreet AI Phone Mount (Bottom Lip at front of chassis)
             // Track box for the sliding jaw (beefed up for extreme stability)
@@ -140,6 +145,51 @@ module base_shell() {
 }
 
 
+module esp32_snap_tray() {
+    // Zero-screw friction-fit mount with massive bottom wire gap
+    translate([0, -45, floor_z]) {
+        for (dx = [-10.7, 10.7]) {
+            for (dy = [-15.15, 15.15]) {
+                translate([dx, dy, 0]) {
+                    cylinder(d=4, h=4); // Standoff
+                    cylinder(d=1.8, h=5.6); // Locating pin
+                }
+            }
+        }
+        // Flexible locking hooks
+        for (dx = [-12.7, 12.7]) {
+            translate([dx + (dx>0 ? 0.5 : -2.5), -5, 0]) {
+                cube([2, 10, 6.5]); // Upright flex arm
+                translate([dx>0 ? -1 : 1, 0, 5.5]) cube([2, 10, 1]); // Snap lip
+            }
+        }
+    }
+}
+
+
+module uln2003_flat_tray(x, y) {
+    // Flat toolless snap-tray for perfect wire routing straight to motors and ESP32
+    translate([x, y, floor_z]) {
+        // Corner standoffs to clear bottom solder joints
+        for(dx=[-17.5, 17.5]) {
+            for(dy=[-16, 16]) {
+                translate([dx + (dx<0?3:-3), dy + (dy<0?3:-3), 0]) cylinder(d=5, h=2);
+            }
+        }
+        // Flexible locking hooks along the X edges
+        for(dx=[-17.5, 17.5]) {
+            translate([dx + (dx>0 ? 0.5 : -2.5), -10, 0]) {
+                cube([2, 20, 5.5]); // Upright flex arm
+                translate([dx>0 ? -1 : 1, 0, 4.5]) cube([2, 20, 1]); // Snap lip
+            }
+        }
+        // End stops to prevent Y-axis sliding
+        translate([-10, 16, 0]) cube([20, 2, 4]);
+        translate([-10, -18, 0]) cube([20, 2, 4]);
+    }
+}
+
+
 module motor_bays() {
     // Left Horizontal Cradle (Supports the motor body, leaves massive gap for cable)
     difference() {
@@ -153,52 +203,6 @@ module motor_bays() {
         translate([25, motor_y - 14, floor_z]) cube([15, 28, motor_z - floor_z]);
         translate([20, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=28.5, h=25);
         translate([20, motor_y - 8, floor_z - 1]) cube([25, 16, motor_z]);
-    }
-}
-
-
-module esp32_snap_tray() {
-    // Easy-print snap-tray: uses solid bars instead of tiny dots/pins for standoffs
-    translate([0, -45, floor_z]) {
-        // Square corner standoffs: massive central gap for underside wire routing
-        for (dx = [-10.7, 10.7]) {
-            for (dy = [-14, 14]) {
-                translate([dx, dy, 2]) cube([5, 5, 4], center=true);
-            }
-        }
-        
-        // Flexible locking hooks (X-axis)
-        for (dx = [-12.7, 12.7]) {
-            translate([dx + (dx>0 ? 0.5 : -2.5), -5, 0]) {
-                cube([2, 10, 6.5]); // Upright flex arm
-                translate([dx>0 ? -1 : 1, 0, 5.5]) cube([2, 10, 1]); // Snap lip
-            }
-        }
-        
-        // End stops (Y-axis) to prevent sliding
-        translate([-12, 17, 0]) cube([24, 2, 6]);
-        translate([-12, -19, 0]) cube([24, 2, 6]);
-    }
-}
-
-
-module uln2003_flat_tray(x, y) {
-    // Easy-print snap-tray: uses solid bars instead of tiny dots/pins
-    translate([x, y, floor_z]) {
-        // Solid horizontal support bars
-        translate([-14, -16, 0]) cube([28, 4, 2]);
-        translate([-14, 12, 0]) cube([28, 4, 2]);
-        
-        // Flexible locking hooks along the X edges
-        for(dx=[-17.5, 17.5]) {
-            translate([dx + (dx>0 ? 0.5 : -2.5), -10, 0]) {
-                cube([2, 20, 5.5]); // Upright flex arm
-                translate([dx>0 ? -1 : 1, 0, 4.5]) cube([2, 20, 1]); // Snap lip
-            }
-        }
-        // End stops to prevent Y-axis sliding
-        translate([-10, 16, 0]) cube([20, 2, 4]);
-        translate([-10, -18, 0]) cube([20, 2, 4]);
     }
 }
 
