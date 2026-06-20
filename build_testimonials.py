@@ -76,16 +76,9 @@ def main():
         slide_html = f"""
         <div class="carousel-slide {active_class}">
           <div class="testimonial-card">
-            <img src="{img_url}" alt="Build by {author}" class="testimonial-img">
+            <img src="{img_url}" alt="Community Build" class="testimonial-img">
             <div class="testimonial-content">
               <blockquote class="testimonial-quote">"{text}"</blockquote>
-              <div class="testimonial-author">
-                <div class="testimonial-author-avatar">{avatar_letter}</div>
-                <div>
-                  <div style="font-weight: 600; color: var(--text);">@{author}</div>
-                  <div style="color: var(--muted); font-size: 0.85rem;">GitHub Community</div>
-                </div>
-              </div>
               <a href="{url}" target="_blank" class="testimonial-link">Read original post ↗</a>
             </div>
           </div>
@@ -106,13 +99,6 @@ def main():
             <div class="testimonial-img" style="background: var(--surface-light); display: flex; align-items: center; justify-content: center; font-size: 4rem;">🛠️</div>
             <div class="testimonial-content">
               <blockquote class="testimonial-quote">"Your creation could be featured here! Share your ESP32 robot, crane, or catapult in our GitHub Discussions."</blockquote>
-              <div class="testimonial-author">
-                <div class="testimonial-author-avatar" style="background: var(--success);">Y</div>
-                <div>
-                  <div style="font-weight: 600; color: var(--text);">You</div>
-                  <div style="color: var(--muted); font-size: 0.85rem;">Next Builder</div>
-                </div>
-              </div>
               <a href="https://github.com/sloev/robo/discussions/2" target="_blank" class="testimonial-link">Post your build ↗</a>
             </div>
           </div>
