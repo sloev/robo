@@ -152,6 +152,8 @@ jobs:
           
           # Rebuild the master ZIP archive containing all current OBJs
           zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj || true
+      - name: Pull latest changes to avoid push conflicts
+        run: git config pull.rebase true && git pull origin master || true
       - name: Commit Generated Assets
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
