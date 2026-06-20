@@ -1,28 +1,35 @@
 include <lego_robot_common.scad>
 
 module phone_clamp_jaw() {
-    // Separate part: Clamps over the top of the phone, pulled down by rubber bands
-    // to the side pegs on the chassis
-    difference() {
-        union() {
-            // Main body
-            cube([75, 12, 10], center=true);
-            // Pegs for rubber bands
-            translate([-37.5, 0, 0]) rotate([0, 90, 0]) {
-                cylinder(d=4, h=8, center=true);
-                translate([0, 0, -3]) cylinder(d=6, h=2, center=true); // Flange
-            }
-            translate([37.5, 0, 0]) rotate([0, 90, 0]) {
-                cylinder(d=4, h=8, center=true);
-                translate([0, 0, 3]) cylinder(d=6, h=2, center=true);
-            }
+    // Align with the chassis Y coordinate for easy visualization in showcase
+    // The inner channel in the chassis is at y = length/2 + 2 = 66
+    
+    // T-bar slider (130mm long to support up to 160mm tall phones)
+    translate([0, length/2 + 2, 65]) {
+        // Wide inner part (slides in the 20x3.2 channel)
+        cube([19, 2.6, 130], center=true);
+        // Neck (slides in the 12x4 opening)
+        translate([0, 2.5, 0]) cube([11, 4, 130], center=true);
+    }
+    
+    // Jaw at the top
+    translate([0, length/2 + 10.5, 125]) {
+        // Main block over phone
+        cube([24, 25, 10], center=true);
+        
+        // Drop down lip in front of phone
+        translate([0, 11, -10]) cube([24, 3, 10], center=true);
+        
+        // Pegs for elastic bands
+        translate([-13, -5, 0]) rotate([0, 90, 0]) {
+            cylinder(d=4, h=6, center=true);
+            translate([0, 0, -2]) cylinder(d=6, h=1, center=true);
         }
-        // Groove for the phone (10mm thick phone capacity)
-        translate([0, 0, -3]) cube([80, 10, 8], center=true);
-        // Camera cutout in the center so it doesn't block top edge lenses
-        cube([30, 20, 15], center=true);
+        translate([13, -5, 0]) rotate([0, 90, 0]) {
+            cylinder(d=4, h=6, center=true);
+            translate([0, 0, 2]) cylinder(d=6, h=1, center=true);
+        }
     }
 }
-
 
 phone_clamp_jaw();

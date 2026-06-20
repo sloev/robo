@@ -25,7 +25,8 @@ Welcome to the general assembly guide for BlockBot! This guide covers the core p
 
 ## Step 4: Portrait Phone Clamp (For AI Autonomy)
 If you want to use the Autonomous AI Car mode:
-1. Rest the bottom edge of your smartphone on the ultra-thin lip located at the front-bottom of the chassis base.
-2. Place the small `vehicle_phone_clamp` jaw piece over the top edge of your phone.
-3. Hook a rubber band onto the tiny peg on the left side of the jaw, stretch it down, and hook it onto the peg on the left side of the chassis base. Repeat for the right side.
-4. The tension will firmly hold your phone vertically against the front wall of the robot!
+1. Rest the bottom edge of your smartphone on the front lip of the chassis base.
+2. Take the tall `vehicle_phone_clamp` T-bar and insert its rail into the vertical T-slot located on the front wall of the chassis base.
+3. Slide it down until the top jaw firmly grips the top edge of your phone.
+4. Hook a rubber band onto the tiny peg on the left side of the sliding jaw, stretch it down, and hook it onto the peg on the left side of the chassis base. Repeat for the right side.
+5. The elastic tension will constantly pull the slider down, locking the phone vertically and securely against the front wall!
