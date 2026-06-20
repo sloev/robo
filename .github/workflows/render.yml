@@ -172,9 +172,10 @@ jobs:
           # Clean up downloaded-artifacts so they don't get committed by accident
           rm -rf downloaded-artifacts
       - name: Pull latest changes to avoid push conflicts
-        run: |
-          git config pull.rebase true
-          git pull origin master
+        # --autostash stashes the freshly-synced assets, rebases onto any newer
+        # origin/master, then reapplies them -- so a moved remote can't cause a
+        # non-fast-forward push, and the dirty work tree doesn't block the rebase.
+        run: git pull --rebase --autostash origin master
       - name: Commit Generated Assets
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
