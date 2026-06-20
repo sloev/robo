@@ -8,9 +8,19 @@ scene.background = new THREE.Color('#1a1a1a');
 const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
 camera.position.set(0, 150, 250);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(container.clientWidth, container.clientHeight);
-container.appendChild(renderer.domElement);
+let renderer;
+try {
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    container.appendChild(renderer.domElement);
+} catch (e) {
+    container.innerHTML = `<div style="color: white; padding: 20px; text-align: center; font-family: sans-serif;">
+        <h3>3D Viewer Error</h3>
+        <p>Could not initialize WebGL: ${e.message}</p>
+        <p>Please ensure hardware acceleration is enabled in your browser.</p>
+    </div>`;
+    throw e; // Stop execution of the rest of the script
+}
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 40, 0);
