@@ -12,26 +12,148 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  render:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.filter.outputs.base }}
+      lid: ${{ steps.filter.outputs.lid }}
+      couplers: ${{ steps.filter.outputs.couplers }}
+      phone_clamp: ${{ steps.filter.outputs.phone_clamp }}
+      showcase: ${{ steps.filter.outputs.showcase }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            base:
+              - 'lego_robot_base.scad'
+              - 'lego_robot_common.scad'
+              - 'Makefile'
+            lid:
+              - 'lego_robot_lid.scad'
+              - 'lego_robot_common.scad'
+              - 'Makefile'
+            couplers:
+              - 'lego_robot_couplers.scad'
+              - 'lego_robot_common.scad'
+              - 'Makefile'
+            phone_clamp:
+              - 'lego_robot_phone_clamp.scad'
+              - 'lego_robot_common.scad'
+              - 'Makefile'
+            showcase:
+              - '*.scad'
+              - 'Makefile'
+
+  render-base:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.base == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
+      - name: Render Base
+        run: xvfb-run make vehicle_base.obj screenshots/vehicle_base_render.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asset-base
+          path: |
+            vehicle_base.stl
+            vehicle_base.obj
+            screenshots/vehicle_base_render.png
+
+  render-lid:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.lid == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
+      - name: Render Lid
+        run: xvfb-run make vehicle_lid.obj screenshots/vehicle_lid_render.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asset-lid
+          path: |
+            vehicle_lid.stl
+            vehicle_lid.obj
+            screenshots/vehicle_lid_render.png
+
+  render-couplers:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.couplers == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
+      - name: Render Couplers
+        run: xvfb-run make vehicle_couplers.obj screenshots/vehicle_couplers_render.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asset-couplers
+          path: |
+            vehicle_couplers.stl
+            vehicle_couplers.obj
+            screenshots/vehicle_couplers_render.png
+
+  render-phone-clamp:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.phone_clamp == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
+      - name: Render Phone Clamp
+        run: xvfb-run make vehicle_phone_clamp.obj screenshots/vehicle_phone_clamp_render.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asset-phone-clamp
+          path: |
+            vehicle_phone_clamp.stl
+            vehicle_phone_clamp.obj
+            screenshots/vehicle_phone_clamp_render.png
+
+  render-showcase:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.showcase == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
+      - name: Render Showcase
+        run: xvfb-run make screenshots/vehicle_render.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asset-showcase
+          path: screenshots/vehicle_render.png
+
+  commit-assets:
+    needs: [detect-changes, render-base, render-lid, render-couplers, render-phone-clamp, render-showcase]
+    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: downloaded-artifacts
+      - name: Sync artifacts to repo
         run: |
-          sudo apt-get update
-          sudo apt-get install -y openscad openctm-tools xvfb
-
-      - name: Create screenshots directory if missing
-        run: mkdir -p screenshots
-
-      - name: Render STLs, OBJs, and Screenshot
-        run: |
-          xvfb-run make render-vehicle
-
+          # Copy downloaded artifacts into their correct locations
+          find downloaded-artifacts -type f -name "*.stl" -exec cp {} . \;
+          find downloaded-artifacts -type f -name "*.obj" -exec cp {} . \;
+          mkdir -p screenshots
+          find downloaded-artifacts -type f -name "*.png" -exec cp {} screenshots/ \;
+          
+          # Rebuild the master ZIP archive containing all current OBJs
+          zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj || true
       - name: Commit Generated Assets
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: Auto-render latest SCAD assets and screenshots"
+          commit_message: "chore: Auto-render changed SCAD assets and screenshots"
           file_pattern: "screenshots/*.png *.stl *.obj *.zip"
