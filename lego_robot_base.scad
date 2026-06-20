@@ -27,13 +27,18 @@ module vehicle_base() {
             
             translate([0, 22, floor_z - 0.1]) linear_extrude(0.7) text("--- WIRES ---", size=3, halign="center");
             
-            // Discreet AI Phone Mount (Bottom Lip at front of chassis)
-            // Track box for the sliding jaw (beefed up for extreme stability)
-            translate([0, length/2 + 4, 24]) cube([32, 8, 48], center=true); 
-            // Phone resting lip
-            translate([0, length/2 + 14, 1.5]) cube([75, 12, 3], center=true); 
-            // Front retaining wall of the lip (strengthened)
-            translate([0, length/2 + 21.5, 4]) cube([75, 3, 8], center=true);
+            // --- Discreet AI Phone Mount (front of chassis) ---
+            // Track box for the sliding jaw (beefed up for stability)
+            translate([0, length/2 + 4, 24]) cube([32, 8, 48], center=true);
+            // Solid phone resting shelf: a thick (6mm) full-width foot fused to
+            // the front wall along its whole width -- no fragile thin cantilever.
+            translate([0, length/2 + 8, 3]) cube([88, 18, 6], center=true);
+            // Taller front retaining wall to stop the phone sliding off
+            translate([0, length/2 + 16, 9]) cube([88, 3, 18], center=true);
+            // Triangular gusset webs bracing the shelf up to the front wall
+            for (gx = [-42, -21, 0, 21, 42])
+                translate([gx + 1.5, length/2 - 1, 5]) rotate([0, -90, 0])
+                    linear_extrude(3) polygon([[0, 0], [14, 0], [0, 11]]);
             
             // Rubber band anchor pegs on the sides for the top clamp
             translate([-width/2 - 2, 55, 10]) rotate([0, 90, 0]) {
@@ -48,12 +53,15 @@ module vehicle_base() {
         
         // --- CENTRALIZED CUTS ---
         
-        // Lego Technic Grid Holes through the side walls.
-        // Only the UPPER row is full-width: a full-width hole at floor height
-        // (z=4.8) would slice the electronics-bay floor into strips, so it is
-        // omitted to keep the floor completely flat.
-        for (y = [-60 : 8 : 60])
-            translate([0, y, 33.6]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
+        // Lego Technic Grid Holes through the (now solid 8mm) side walls, on the
+        // true LEGO grid: hole centre at 5.8 + n*9.6 => 34.6mm, Ø4.8, with the
+        // Ø6.2 x 0.9 bevel on each outer face like a real Technic brick. Only
+        // this upper row is used; a row at floor height would cut the flat floor.
+        for (y = [-60 : 8 : 60]) {
+            translate([0, y, 34.6]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
+            translate([-width/2, y, 34.6]) rotate([0,  90, 0]) cylinder(d=6.2, h=0.9);
+            translate([ width/2, y, 34.6]) rotate([0, -90, 0]) cylinder(d=6.2, h=0.9);
+        }
         
         // T-slot cut for the phone clamp slider (deepened and widened for strength)
         translate([0, length/2 + 4, 24]) {
@@ -104,35 +112,28 @@ module vehicle_base() {
 
 module base_shell() {
     difference() {
-        union() {
-            // Outer Body
-            translate([0, 0, height/2]) cube([width, length, height], center=true);
-            
-            // Internal Wall Thickeners (Merged here to prevent zero-thickness face errors)
-            translate([-width/2 + wall_t - 0.1, -length/2 + wall_t, floor_z])
-                cube([6.4 + 0.1, length - 2*wall_t, height - floor_z]);
-            translate([width/2 - wall_t - 6.4, -length/2 + wall_t, floor_z])
-                cube([6.4 + 0.1, length - 2*wall_t, height - floor_z]);
-        }
-        
-        // Inner Volume (starts precisely at Z=4.8 to leave 1.6mm floor above the 3.2mm cavity)
-        translate([0, 0, floor_z + height/2]) 
-            cube([width - 2*wall_t, length - 2*wall_t, height], center=true);
-            
+        // Outer Body
+        translate([0, 0, height/2]) cube([width, length, height], center=true);
+
+        // Inner cavity. The long SIDE walls are a full LEGO unit (side_wall = 8mm)
+        // thick, so the lid (79.6mm) slides into a real 1-unit wall and the
+        // Technic holes / motor mounts sit in solid material. The end walls stay
+        // thin (wall_t) to leave length for the motors and electronics.
+        translate([0, 0, floor_z + height/2])
+            cube([width - 2*side_wall, length - 2*wall_t, height], center=true);
+
         // Bottom Lego Cavity
-        translate([0, 0, 3.2/2 - 0.1]) 
+        translate([0, 0, 3.2/2 - 0.1])
             cube([width - 2.4, length - 2.4, 3.2 + 0.2], center=true);
-            
-        // Rear Wall Cutaway for Sliding Lid (Open at the top to prevent a fragile 1.6mm bridge)
+
+        // Rear Wall Cutaway for Sliding Lid (open at the top to avoid a fragile bridge)
         translate([0, length/2, height - 1.6])
-            cube([83.5, 5, 10], center=true); 
-            
+            cube([83.5, 5, 10], center=true);
+
         // Inner Side Grooves for Lid Rails (Z=44.8 to 46.4)
         translate([0, 0, 45.6])
             cube([83.4, length + 2, 1.8], center=true);
     }
-    
-
 }
 
 

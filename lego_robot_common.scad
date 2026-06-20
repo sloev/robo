@@ -8,7 +8,9 @@ $fn = 60;
 // --- LEGO & ENCLOSURE PARAMETERS ---
 lego_pitch = 8.0;
 lego_height = 9.6;
-wall_t = 1.6;
+wall_t = 1.6;        // thin end walls (front/back) for electronics clearance
+side_wall = 8.0;     // long side walls: a full LEGO unit so the lid seats and
+                     // Technic holes/motor mounts sit in solid wall
 
 // Outer Dimensions
 box_w_lu = 12; // 96.0 mm (Outer Width)
