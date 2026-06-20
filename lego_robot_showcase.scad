@@ -8,6 +8,8 @@ color("#2c3e50") vehicle_base();
 color("#e74c3c") translate([0, 0, height + 20]) sliding_lid();
 color("#f1c40f") translate([-41.2, motor_y, shaft_z]) rotate([0, 90, 0]) motor_coupler();
 color("#f1c40f") translate([41.2, motor_y, shaft_z]) rotate([0, -90, 0]) motor_coupler();
+color("#27ae60") phone_clamp_jaw();
+
 module showcase_electronics() {
     // Left Stepper Motor
     translate([-34, motor_y, motor_z]) rotate([0, 90, 0]) {

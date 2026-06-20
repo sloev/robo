@@ -32,4 +32,5 @@ module phone_clamp_jaw() {
     }
 }
 
-phone_clamp_jaw();
+// Color applied for individual render view
+color("#27ae60") phone_clamp_jaw();

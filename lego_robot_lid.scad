@@ -33,4 +33,5 @@ module sliding_lid() {
 }
 
 
-sliding_lid();
+// Color applied for individual render view
+color("#e74c3c") sliding_lid();
