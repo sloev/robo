@@ -103,27 +103,57 @@ install-deps:
 	sudo apt-get update
 	sudo apt-get install -y openscad openctm-tools
 
-# Headlessly renders the three individual parts and converts to Slicer-ready OBJs
-render-vehicle:
-	@echo "Rendering Chassis Base to STL..."
-	openscad -o vehicle_base.stl -D 'part_to_render="base"' lego_robot_vehicle.scad
-	@echo "Rendering Sliding Lid to STL..."
-	openscad -o vehicle_lid.stl -D 'part_to_render="lid"' lego_robot_vehicle.scad
-	@echo "Rendering Captive Couplers to STL..."
-	openscad -o vehicle_couplers.stl -D 'part_to_render="couplers"' lego_robot_vehicle.scad
-	@echo "Rendering Portrait Phone Clamp to STL..."
-	openscad -o vehicle_phone_clamp.stl -D 'part_to_render="phone_clamp"' lego_robot_vehicle.scad
-	@echo "Converting assets to OBJ..."
-	ctmconv vehicle_base.stl vehicle_base.obj
-	ctmconv vehicle_lid.stl vehicle_lid.obj
-	ctmconv vehicle_couplers.stl vehicle_couplers.obj
-	ctmconv vehicle_phone_clamp.stl vehicle_phone_clamp.obj
-	@echo "Creating ZIP archive of all parts..."
-	zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj
-	@echo "Rendering screenshots for webapp..."
-	openscad -o screenshots/vehicle_render.png --colorscheme Nature --imgsize 1200,800 lego_robot_vehicle.scad
-	openscad -o screenshots/vehicle_base_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="base"' lego_robot_vehicle.scad
-	openscad -o screenshots/vehicle_lid_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="lid"' lego_robot_vehicle.scad
-	openscad -o screenshots/vehicle_couplers_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="couplers"' lego_robot_vehicle.scad
-	openscad -o screenshots/vehicle_phone_clamp_render.png --colorscheme Nature --imgsize 800,600 -D 'part_to_render="phone_clamp"' lego_robot_vehicle.scad
+# Object targets
+OBJS = vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj
+STLS = $(OBJS:.obj=.stl)
+PNGS = screenshots/vehicle_render.png screenshots/vehicle_base_render.png screenshots/vehicle_lid_render.png screenshots/vehicle_couplers_render.png screenshots/vehicle_phone_clamp_render.png
+
+render-vehicle: vehicle_models.zip $(PNGS)
 	@echo "Done! All files ready for slicer."
+
+vehicle_models.zip: $(OBJS)
+	@echo "Creating ZIP archive of all parts..."
+	zip -j $@ $^
+
+# Pattern rule to convert STL to OBJ
+%.obj: %.stl
+	@echo "Converting $< to $@..."
+	ctmconv $< $@
+
+# Individual part rendering rules
+vehicle_base.stl: lego_robot_base.scad lego_robot_common.scad
+	@echo "Rendering Chassis Base to STL..."
+	openscad -o $@ $<
+
+vehicle_lid.stl: lego_robot_lid.scad lego_robot_common.scad
+	@echo "Rendering Sliding Lid to STL..."
+	openscad -o $@ $<
+
+vehicle_couplers.stl: lego_robot_couplers.scad lego_robot_common.scad
+	@echo "Rendering Captive Couplers to STL..."
+	openscad -o $@ $<
+
+vehicle_phone_clamp.stl: lego_robot_phone_clamp.scad lego_robot_common.scad
+	@echo "Rendering Portrait Phone Clamp to STL..."
+	openscad -o $@ $<
+
+# Screenshot rendering rules
+screenshots/vehicle_render.png: lego_robot_showcase.scad lego_robot_common.scad lego_robot_base.scad lego_robot_lid.scad lego_robot_couplers.scad lego_robot_phone_clamp.scad
+	@echo "Rendering Showcase Screenshot..."
+	openscad -o $@ --colorscheme Nature --imgsize 1200,800 $<
+
+screenshots/vehicle_base_render.png: lego_robot_base.scad lego_robot_common.scad
+	@echo "Rendering Base Screenshot..."
+	openscad -o $@ --colorscheme Nature --imgsize 800,600 $<
+
+screenshots/vehicle_lid_render.png: lego_robot_lid.scad lego_robot_common.scad
+	@echo "Rendering Lid Screenshot..."
+	openscad -o $@ --colorscheme Nature --imgsize 800,600 $<
+
+screenshots/vehicle_couplers_render.png: lego_robot_couplers.scad lego_robot_common.scad
+	@echo "Rendering Couplers Screenshot..."
+	openscad -o $@ --colorscheme Nature --imgsize 800,600 $<
+
+screenshots/vehicle_phone_clamp_render.png: lego_robot_phone_clamp.scad lego_robot_common.scad
+	@echo "Rendering Phone Clamp Screenshot..."
+	openscad -o $@ --colorscheme Nature --imgsize 800,600 $<

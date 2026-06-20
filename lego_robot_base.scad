@@ -1,60 +1,4 @@
-/* 
- * Parametric Lego-Compatible Robotic Vehicle Enclosure
- * Completely self-contained OpenSCAD script.
- */
-
-$fn = 60;
-
-// --- LEGO & ENCLOSURE PARAMETERS ---
-lego_pitch = 8.0;
-lego_height = 9.6;
-wall_t = 1.6;
-
-// Outer Dimensions
-box_w_lu = 12; // 96.0 mm (Outer Width)
-box_l_lu = 16; // 128.0 mm (Outer Length)
-box_h_lh = 5;  // 48.0 mm (Outer Height)
-
-width = box_w_lu * lego_pitch;
-length = box_l_lu * lego_pitch;
-height = box_h_lh * lego_height;
-
-lid_t = 3.2; // Sliding lid thickness
-floor_z = 4.8; // 3.2mm Lego tube cavity + 1.6mm floor
-
-// --- ALIGNED INTERNAL POSITIONS ---
-shaft_z = 33.6; // Precisely aligned with upper Technic hole grid
-motor_y = 44.0; // Precisely aligned with Y-axis Lego grid
-motor_z = shaft_z - 8.0;
-
-// --- RENDER TARGET ---
-// Pass via CLI: -D 'part_to_render="base"'
-part_to_render = "all"; 
-
-if (part_to_render == "all") {
-    color("#2c3e50") vehicle_base();
-    color("#e74c3c") translate([0, 0, height + 20]) sliding_lid(); // Hovering lid
-    
-    // Show couplers in their assembled positions
-    color("#f1c40f") translate([-41.2, motor_y, shaft_z]) rotate([0, 90, 0]) motor_coupler();
-    color("#f1c40f") translate([41.2, motor_y, shaft_z]) rotate([0, -90, 0]) motor_coupler();
-    
-    // Virtual Electronic Components (Only for "all" screenshot showcase)
-    %showcase_electronics();
-    
-} else if (part_to_render == "base") {
-    color("#2c3e50") vehicle_base();
-} else if (part_to_render == "lid") {
-    color("#e74c3c") sliding_lid();
-} else if (part_to_render == "couplers") {
-    color("#f1c40f") motor_coupler();
-    color("#f1c40f") translate([0, 20, 0]) motor_coupler();
-} else if (part_to_render == "phone_clamp") {
-    color("#8e44ad") phone_clamp_jaw();
-}
-
-
-// --- MODULES ---
+include <lego_robot_common.scad>
 
 module vehicle_base() {
     difference() {
@@ -143,6 +87,7 @@ module vehicle_base() {
     }
 }
 
+
 module base_shell() {
     difference() {
         union() {
@@ -188,6 +133,7 @@ module base_shell() {
     }
 }
 
+
 module esp32_snap_tray() {
     // Zero-screw friction-fit mount with massive bottom wire gap
     translate([0, -45, floor_z]) {
@@ -208,6 +154,7 @@ module esp32_snap_tray() {
         }
     }
 }
+
 
 module uln2003_flat_tray(x, y) {
     // Flat toolless snap-tray for perfect wire routing straight to motors and ESP32
@@ -231,6 +178,7 @@ module uln2003_flat_tray(x, y) {
     }
 }
 
+
 module motor_bays() {
     // Left Horizontal Cradle (Supports the motor body, leaves massive gap for cable)
     difference() {
@@ -247,111 +195,5 @@ module motor_bays() {
     }
 }
 
-module sliding_lid() {
-    // Centered relative to the actual internal span
-    translate([0, 0.8, height - 1.6]) {
-        difference() {
-            union() {
-                // Main lid
-                cube([79.6, 126.4, 3.2], center=true);
-                // Side guide tongues
-                translate([0, 0, -0.8]) cube([83.0, 126.4, 1.4], center=true);
-                
-                // Top Studs (Shifted to perfectly align with global Lego Grid)
-                // We limit width to 10 units since the lid fits inside the thick walls
-                start_x = - ((box_w_lu - 2) * lego_pitch) / 2 + 4;
-                start_y = - (box_l_lu * lego_pitch) / 2 + 4;
-                for (i = [0 : box_w_lu - 3]) {
-                    for (j = [0 : box_l_lu - 1]) {
-                        translate([start_x + i*8, start_y + j*8 - 0.8, 1.6])
-                            cylinder(d=4.8, h=1.8);
-                    }
-                }
-            }
-            // Security screw hole
-            translate([0, 126.4/2 - 3, 0]) cylinder(d=3.2, h=10, center=true);
-            translate([0, 126.4/2 - 3, 1.5]) cylinder(d=6, h=10);
-            
-            // Recessed detents for friction click-lock
-            translate([83.0/2 - 1, 126.4/2 - 5, -0.8]) sphere(d=1);
-            translate([-83.0/2 + 1, 126.4/2 - 5, -0.8]) sphere(d=1);
-        }
-    }
-}
 
-module motor_coupler() {
-    // Bridging custom module: Plugs into Stepper, accepts Technic Axle
-    difference() {
-        union() {
-            rotate([0, 90, 0]) cylinder(d=8, h=10.4, center=true);
-            rotate([0, 90, 0]) cylinder(d=12, h=2, center=true); // Captive Flange
-        }
-        
-        // 28BYJ-48 Stepper Flat-D Socket (Inside)
-        translate([2.0, 0, 0]) difference() {
-            rotate([0, 90, 0]) cylinder(d=5.2, h=6.5, center=true);
-            translate([0, 2.5, 0]) cube([8, 2, 6], center=true);
-            translate([0, -2.5, 0]) cube([8, 2, 6], center=true);
-        }
-        
-        // Lego Technic Cross Axle Socket (Outside)
-        translate([-2.0, 0, 0]) rotate([0, 90, 0]) {
-            cube([5.1, 1.8, 6.5], center=true);
-            cube([1.8, 5.1, 6.5], center=true);
-        }
-    }
-}
-
-module showcase_electronics() {
-    // Left Stepper Motor
-    translate([-34, motor_y, motor_z]) rotate([0, 90, 0]) {
-        color("silver") cylinder(d=28, h=19, center=true);
-        color("dodgerblue") translate([0, 8, 0]) cube([15, 15, 19], center=true); // cable box
-    }
-    // Right Stepper Motor
-    translate([34, motor_y, motor_z]) rotate([0, -90, 0]) {
-        color("silver") cylinder(d=28, h=19, center=true);
-        color("dodgerblue") translate([0, 8, 0]) cube([15, 15, 19], center=true);
-    }
-    
-    // ESP32-S2 Mini Board
-    translate([0, -45, floor_z + 4]) {
-        color("purple") cube([34.3, 25.4, 1.6], center=true);
-        color("silver") translate([0, -10, 2]) cube([10, 8, 3], center=true); // USB-C
-    }
-    
-    // ULN2003 Driver Boards (Flat)
-    color("green") translate([-20, 2, floor_z + 2.8]) cube([35, 32, 1.6], center=true);
-    color("green") translate([20, 2, floor_z + 2.8]) cube([35, 32, 1.6], center=true);
-    
-    // Highlight the Technic Axle insertion path
-    color("red") translate([-50, motor_y, shaft_z]) rotate([0, 90, 0]) cylinder(d=4.5, h=20, center=true);
-    color("red") translate([50, motor_y, shaft_z]) rotate([0, 90, 0]) cylinder(d=4.5, h=20, center=true);
-    
-    // Show the clamp hovering in showcase mode
-    color("#8e44ad") translate([0, length/2 + 2.5, 100]) phone_clamp_jaw();
-}
-
-module phone_clamp_jaw() {
-    // Separate part: Clamps over the top of the phone, pulled down by rubber bands
-    // to the side pegs on the chassis
-    difference() {
-        union() {
-            // Main body
-            cube([75, 12, 10], center=true);
-            // Pegs for rubber bands
-            translate([-37.5, 0, 0]) rotate([0, 90, 0]) {
-                cylinder(d=4, h=8, center=true);
-                translate([0, 0, -3]) cylinder(d=6, h=2, center=true); // Flange
-            }
-            translate([37.5, 0, 0]) rotate([0, 90, 0]) {
-                cylinder(d=4, h=8, center=true);
-                translate([0, 0, 3]) cylinder(d=6, h=2, center=true);
-            }
-        }
-        // Groove for the phone (10mm thick phone capacity)
-        translate([0, 0, -3]) cube([80, 10, 8], center=true);
-        // Camera cutout in the center so it doesn't block top edge lenses
-        cube([30, 20, 15], center=true);
-    }
-}
+vehicle_base();

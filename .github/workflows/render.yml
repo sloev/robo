@@ -3,7 +3,7 @@ name: Render OpenSCAD Chassis
 on:
   push:
     paths:
-      - 'lego_robot_vehicle.scad'
+      - '*.scad'
       - 'Makefile'
   workflow_dispatch:
 
