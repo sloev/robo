@@ -73,6 +73,14 @@ module vehicle_base() {
                     cube([10, 6, height - floor_z]);
                     translate([5, 3, height - floor_z - 10]) cylinder(d=2.5, h=15); // pilot hole
                 }
+                
+            // Internal Assembly Instructions & Wire Routing Paths
+            translate([0, motor_y - 22, floor_z]) linear_extrude(0.6) text("1. 28BYJ-48 MOTORS", size=3.5, halign="center", font="Liberation Sans:style=Bold");
+            translate([0, 2, floor_z]) linear_extrude(0.6) text("2. ULN2003 BOARDS", size=3.5, halign="center", font="Liberation Sans:style=Bold");
+            translate([0, -25, floor_z]) linear_extrude(0.6) text("3. ESP32-S2 MINI", size=3.5, halign="center", font="Liberation Sans:style=Bold");
+            
+            translate([0, -12, floor_z]) linear_extrude(0.6) text("--- WIRES ---", size=3, halign="center");
+            translate([0, 22, floor_z]) linear_extrude(0.6) text("--- WIRES ---", size=3, halign="center");
         }
         
         // --- CENTRALIZED CUTS ---
@@ -102,6 +110,12 @@ module vehicle_base() {
             rotate([0, 90, 0]) cylinder(d=12.5, h=2.5, center=true);
             translate([0, 0, 15]) cube([2.5, 12.5, 30], center=true);
         }
+        
+        // External Axle Hole Indicators (0.5mm indented into outer walls)
+        translate([-width/2 + 0.5, motor_y, shaft_z + 6]) rotate([90, 0, -90]) 
+            linear_extrude(1) text("v AXLE v", size=4, halign="center", font="Liberation Sans:style=Bold");
+        translate([width/2 - 0.5, motor_y, shaft_z + 6]) rotate([90, 0, 90]) 
+            linear_extrude(1) text("v AXLE v", size=4, halign="center", font="Liberation Sans:style=Bold");
     }
 }
 
