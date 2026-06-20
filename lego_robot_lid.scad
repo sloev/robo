@@ -15,19 +15,19 @@ module sliding_lid() {
                 start_x = - ((box_w_lu - 2) * lego_pitch) / 2 + 4;
                 start_y = - (box_l_lu * lego_pitch) / 2 + 4;
                 for (i = [0, box_w_lu - 3]) {
-                    for (j = [0 : box_l_lu - 1]) {
+                    for (j = [1 : box_l_lu - 2]) {
                         translate([start_x + i*8, start_y + j*8 - 0.8, 1.5])
                             cylinder(d=4.8, h=1.9);
                     }
                 }
             }
             // Security screw hole
-            translate([0, 126.4/2 - 3, 0]) cylinder(d=3.2, h=10, center=true);
-            translate([0, 126.4/2 - 3, 1.5]) cylinder(d=6, h=10);
+            translate([0, 126.4/2 - 3.1, 0]) cylinder(d=3.2, h=10, center=true);
+            translate([0, 126.4/2 - 3.1, 1.5]) cylinder(d=6, h=10);
             
             // Recessed detents for friction click-lock
-            translate([83.0/2 - 1, 126.4/2 - 5, -0.8]) sphere(d=1);
-            translate([-83.0/2 + 1, 126.4/2 - 5, -0.8]) sphere(d=1);
+            translate([83.0/2, 126.4/2 - 5, -0.8]) sphere(d=1);
+            translate([-83.0/2, 126.4/2 - 5, -0.8]) sphere(d=1);
         }
     }
 }

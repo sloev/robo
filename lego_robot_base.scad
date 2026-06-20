@@ -10,8 +10,8 @@ module vehicle_base() {
             motor_bays();
 
             // Friction detent bumps for the sliding lid
-            translate([83.0/2 - 1, length/2 - 5, 45.6]) sphere(d=1);
-            translate([-83.0/2 + 1, length/2 - 5, 45.6]) sphere(d=1);
+            translate([83.4/2, length/2 - 5, 45.6]) sphere(d=1);
+            translate([-83.4/2, length/2 - 5, 45.6]) sphere(d=1);
             
             // Security screw anchor block at the rear
             translate([-5, length/2 - 6, floor_z - 0.1])
