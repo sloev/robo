@@ -82,13 +82,13 @@ module vehicle_base() {
             translate([0, 0, 15]) cube([2.5, 12.5, 30], center=true);
         }
         
-        // Left Horizontal Motor Mount Screw Holes (Depth 6mm, avoids outer skin)
-        translate([-40, motor_y - 17.5, motor_z]) rotate([0, -90, 0]) cylinder(d=2.5, h=6);
-        translate([-40, motor_y + 17.5, motor_z]) rotate([0, -90, 0]) cylinder(d=2.5, h=6);
+        // Left Horizontal Motor Mount Screw Holes (Depth 7mm, starts at -39 to cleanly pierce the -40 face)
+        translate([-39, motor_y - 17.5, motor_z]) rotate([0, -90, 0]) cylinder(d=2.5, h=7);
+        translate([-39, motor_y + 17.5, motor_z]) rotate([0, -90, 0]) cylinder(d=2.5, h=7);
         
         // Right Horizontal Motor Mount Screw Holes
-        translate([40, motor_y - 17.5, motor_z]) rotate([0, 90, 0]) cylinder(d=2.5, h=6);
-        translate([40, motor_y + 17.5, motor_z]) rotate([0, 90, 0]) cylinder(d=2.5, h=6);
+        translate([39, motor_y - 17.5, motor_z]) rotate([0, 90, 0]) cylinder(d=2.5, h=7);
+        translate([39, motor_y + 17.5, motor_z]) rotate([0, 90, 0]) cylinder(d=2.5, h=7);
         
         // External Axle Hole Indicators (0.5mm indented into outer walls)
         translate([-width/2 + 0.5, motor_y, shaft_z + 6]) rotate([90, 0, -90]) 

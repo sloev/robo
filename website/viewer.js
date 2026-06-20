@@ -60,7 +60,7 @@ const loader = new THREE.OBJLoader();
 
 // Helper to load an OBJ. OpenSCAD coordinates: Z is up.
 // We rotate the entire group -90 on X so that ThreeJS Y is up.
-function loadPart(url, material, assembledPos, explodedPos, name) {
+function loadPart(url, material, assembledPos, explodedPos, name, assembledRot) {
     loader.load(url, (obj) => {
         obj.traverse((child) => {
             if (child.isMesh) {
@@ -74,16 +74,31 @@ function loadPart(url, material, assembledPos, explodedPos, name) {
         // Convert OpenSCAD's Z-up to Three.js Y-up
         wrapper.rotation.x = -Math.PI / 2;
         
-        // Add it to our main grouping
-        scene.add(wrapper);
-        
-        parts[name] = {
-            mesh: wrapper,
-            assembledPos: new THREE.Vector3(...assembledPos),
-            explodedPos: new THREE.Vector3(...explodedPos),
-            targetPos: new THREE.Vector3(...assembledPos)
-        };
-        wrapper.position.copy(parts[name].targetPos);
+        // Apply assembled rotation if specified
+        if (assembledRot) {
+            // Apply it after the -90 degree X rotation by nesting
+            const outerWrapper = new THREE.Group();
+            outerWrapper.add(wrapper);
+            outerWrapper.rotation.set(...assembledRot);
+            scene.add(outerWrapper);
+            
+            parts[name] = {
+                mesh: outerWrapper,
+                assembledPos: new THREE.Vector3(...assembledPos),
+                explodedPos: new THREE.Vector3(...explodedPos),
+                targetPos: new THREE.Vector3(...assembledPos)
+            };
+            outerWrapper.position.copy(parts[name].targetPos);
+        } else {
+            scene.add(wrapper);
+            parts[name] = {
+                mesh: wrapper,
+                assembledPos: new THREE.Vector3(...assembledPos),
+                explodedPos: new THREE.Vector3(...explodedPos),
+                targetPos: new THREE.Vector3(...assembledPos)
+            };
+            wrapper.position.copy(parts[name].targetPos);
+        }
     });
 }
 
@@ -114,12 +129,20 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clam
     'clamp'
 );
 
-// 4. Couplers. The file contains TWO couplers at Y=0 and Y=20.
-// We'll just position them somewhat nicely.
+// 4. Couplers. We load the same model twice (left and right).
+// Left coupler: D-socket faces +X (towards motor). The model's default orientation points D-socket to +X.
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.obj', matCoupler, 
-    [-40, 33.6, -44], // Assembled (roughly left motor)
-    [-80, 33.6, -44], // Exploded
-    'couplers'
+    [-41.2, 33.6, -44], // Assembled (left motor shaft)
+    [-80, 33.6, -44],   // Exploded
+    'couplerLeft'
+);
+
+// Right coupler: D-socket must face -X. So we rotate it 180 degrees around Y!
+loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.obj', matCoupler, 
+    [41.2, 33.6, -44],  // Assembled (right motor shaft)
+    [80, 33.6, -44],    // Exploded
+    'couplerRight',
+    [0, Math.PI, 0]     // Assembled Rotation (will be applied to wrapper)
 );
 
 // Button logic

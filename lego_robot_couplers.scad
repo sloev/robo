@@ -27,5 +27,4 @@ module motor_coupler() {
 // Color applied for individual render view
 color("#f1c40f") {
     motor_coupler();
-    translate([0, 20, 0]) motor_coupler();
 }
