@@ -75,6 +75,17 @@ module vehicle_base() {
                 }
         }
         
+        // --- CENTRALIZED CUTS ---
+        
+        // Lego Technic Grid Holes (Pierces Outer Walls and Thickeners cleanly once)
+        for (y = [-60 : 8 : 60]) {
+            translate([0, y, 4.8]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
+            translate([0, y, 33.6]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
+        }
+        
+        // USB-C Pass-through
+        translate([0, -length/2, 12.4]) cube([12, 6, 5], center=true);
+        
         // Left Internal U-Slot (Hidden inside the thickened wall)
         translate([-41.2, motor_y, shaft_z]) {
             rotate([0, 90, 0]) cylinder(d=8.5, h=11, center=true);
@@ -91,24 +102,29 @@ module vehicle_base() {
             rotate([0, 90, 0]) cylinder(d=12.5, h=2.5, center=true);
             translate([0, 0, 15]) cube([2.5, 12.5, 30], center=true);
         }
-        
-        // USB-C Pass-through
-        translate([0, -length/2, 12.4]) cube([12, 6, 5], center=true);
     }
 }
 
 module base_shell() {
     difference() {
-        // Outer Body
-        translate([0, 0, height/2]) cube([width, length, height], center=true);
+        union() {
+            // Outer Body
+            translate([0, 0, height/2]) cube([width, length, height], center=true);
+            
+            // Internal Wall Thickeners (Merged here to prevent zero-thickness face errors)
+            translate([-width/2 + wall_t - 0.1, -length/2 + wall_t, floor_z])
+                cube([6.4 + 0.1, length - 2*wall_t, height - floor_z]);
+            translate([width/2 - wall_t - 6.4, -length/2 + wall_t, floor_z])
+                cube([6.4 + 0.1, length - 2*wall_t, height - floor_z]);
+        }
         
-        // Inner Volume
-        translate([0, 0, height/2 + floor_z/2]) 
+        // Inner Volume (starts precisely at Z=4.8 to leave 1.6mm floor above the 3.2mm cavity)
+        translate([0, 0, floor_z + height/2]) 
             cube([width - 2*wall_t, length - 2*wall_t, height], center=true);
             
         // Bottom Lego Cavity
-        translate([0, 0, 1.6]) 
-            cube([width - 2.4, length - 2.4, 3.2 + 0.1], center=true);
+        translate([0, 0, 3.2/2 - 0.1]) 
+            cube([width - 2.4, length - 2.4, 3.2 + 0.2], center=true);
             
         // Rear Wall Cutaway for Sliding Lid
         translate([0, length/2, height - 1.6])
@@ -117,28 +133,6 @@ module base_shell() {
         // Inner Side Grooves for Lid Rails (Z=44.8 to 46.4)
         translate([0, 0, 45.6])
             cube([83.4, length + 2, 1.8], center=true);
-            
-        // Lego Technic Grid Holes (Outer Walls)
-        for (y = [-60 : 8 : 60]) {
-            translate([0, y, 4.8]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
-            translate([0, y, 33.6]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
-        }
-    }
-    
-    // Internal Wall Thickeners (Supports Technic holes & Sliding Tracks)
-    difference() {
-        union() {
-            translate([-width/2 + wall_t, -length/2 + wall_t, floor_z])
-                cube([6.4, length - 2*wall_t, height - floor_z]);
-            translate([width/2 - wall_t - 6.4, -length/2 + wall_t, floor_z])
-                cube([6.4, length - 2*wall_t, height - floor_z]);
-        }
-        // Pierce thickeners with the Technic holes
-        for (y = [-60 : 8 : 60]) {
-            translate([0, y, 4.8]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
-            translate([0, y, 33.6]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
-        }
-        translate([0, -length/2, 12.4]) cube([20, 10, 5], center=true); // USB pass
     }
     
     // Bottom Lego Receiving Tubes
@@ -148,8 +142,9 @@ module base_shell() {
         for (j = [1 : box_l_lu - 1]) {
             translate([start_x + i * lego_pitch, start_y + j * lego_pitch, 0])
             difference() {
-                cylinder(d=6.51, h=3.2);
-                translate([0,0,-0.1]) cylinder(d=4.8, h=3.4);
+                // Extended into the floor slightly to guarantee valid CGAL union
+                cylinder(d=6.51, h=3.3);
+                translate([0,0,-0.1]) cylinder(d=4.8, h=3.5);
             }
         }
     }
