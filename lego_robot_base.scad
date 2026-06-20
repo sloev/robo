@@ -4,6 +4,9 @@ module vehicle_base() {
     difference() {
         union() {
             base_shell();
+            esp32_snap_tray();
+            uln2003_flat_tray(-20, 2);
+            uln2003_flat_tray(20, 2);
             motor_bays();
             
             // Friction detent bumps for the sliding lid
@@ -150,6 +153,49 @@ module motor_bays() {
         translate([25, motor_y - 14, floor_z]) cube([15, 28, motor_z - floor_z]);
         translate([20, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=28.5, h=25);
         translate([20, motor_y - 8, floor_z - 1]) cube([25, 16, motor_z]);
+    }
+}
+
+
+module esp32_snap_tray() {
+    // Easy-print snap-tray: uses solid bars instead of tiny dots/pins for standoffs
+    translate([0, -45, floor_z]) {
+        // Solid horizontal support bars to lift board over solder joints
+        translate([-11, -15, 0]) cube([22, 4, 4]);
+        translate([-11, 11, 0]) cube([22, 4, 4]);
+        
+        // Flexible locking hooks (X-axis)
+        for (dx = [-12.7, 12.7]) {
+            translate([dx + (dx>0 ? 0.5 : -2.5), -5, 0]) {
+                cube([2, 10, 6.5]); // Upright flex arm
+                translate([dx>0 ? -1 : 1, 0, 5.5]) cube([2, 10, 1]); // Snap lip
+            }
+        }
+        
+        // End stops (Y-axis) to prevent sliding
+        translate([-12, 17, 0]) cube([24, 2, 6]);
+        translate([-12, -19, 0]) cube([24, 2, 6]);
+    }
+}
+
+
+module uln2003_flat_tray(x, y) {
+    // Easy-print snap-tray: uses solid bars instead of tiny dots/pins
+    translate([x, y, floor_z]) {
+        // Solid horizontal support bars
+        translate([-14, -16, 0]) cube([28, 4, 2]);
+        translate([-14, 12, 0]) cube([28, 4, 2]);
+        
+        // Flexible locking hooks along the X edges
+        for(dx=[-17.5, 17.5]) {
+            translate([dx + (dx>0 ? 0.5 : -2.5), -10, 0]) {
+                cube([2, 20, 5.5]); // Upright flex arm
+                translate([dx>0 ? -1 : 1, 0, 4.5]) cube([2, 20, 1]); // Snap lip
+            }
+        }
+        // End stops to prevent Y-axis sliding
+        translate([-10, 16, 0]) cube([20, 2, 4]);
+        translate([-10, -18, 0]) cube([20, 2, 4]);
     }
 }
 
