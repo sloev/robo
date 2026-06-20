@@ -306,8 +306,17 @@
     <h2 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--text);">🧱 Custom 3D Printed Chassis</h2>
     <p style="color: var(--muted); font-size: 1.1rem; max-width: 800px; margin: 0 auto 2rem;">Our CI automatically renders the latest parametric OpenSCAD design into Slicer-ready assets, separated part by part.</p>
     
-    <h3 style="margin-bottom: 1rem; color: var(--accent);">Fully Assembled</h3>
-    <img src="screenshots/vehicle_render.png" alt="Assembled Chassis" style="max-width: 100%; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.4); margin-bottom: 2rem;">
+    <h3 style="margin-bottom: 1rem; color: var(--accent);">Fully Assembled (Interactive 3D)</h3>
+    <div style="position: relative; max-width: 100%; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.4); margin-bottom: 2rem; overflow: hidden;">
+      <div id="assembly-viewer" style="width: 100%; height: 500px; background: #1a1a1a;"></div>
+      <button id="explode-btn" style="position: absolute; bottom: 20px; right: 20px; z-index: 10; padding: 12px 24px; background: var(--accent); border: none; border-radius: 8px; color: #000; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;">Toggle Exploded View</button>
+    </div>
+
+    <!-- Load Three.js and our interactive viewer script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="viewer.js"></script>
     
     <h3 style="margin-bottom: 1rem; color: var(--accent);">Individual Components</h3>
     <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem;">
