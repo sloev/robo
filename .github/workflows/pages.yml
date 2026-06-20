@@ -8,6 +8,8 @@ on:
       - 'website/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
+  discussion_comment:
+    types: [created, edited, deleted]
 
 permissions:
   contents: read
@@ -50,6 +52,11 @@ jobs:
           
           # Download MicroPython ESP32-S2 Firmware
           wget https://micropython.org/resources/firmware/ESP32_GENERIC_S2-20240602-v1.23.0.bin -O public/install/firmware.bin
+          
+          # Inject live testimonials from GitHub Discussions into the static HTML
+          python3 build_testimonials.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
