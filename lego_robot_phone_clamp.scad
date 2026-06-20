@@ -18,7 +18,7 @@ module phone_clamp_jaw() {
         cube([24, 25, 10], center=true);
         
         // Drop down lip in front of phone (strengthened to 5mm thick)
-        translate([0, 11, -10]) cube([24, 5, 10], center=true);
+        translate([0, 11, -9.9]) cube([24, 5, 10.2], center=true);
         
         // Pegs for elastic bands
         translate([-13, -5, 0]) rotate([0, 90, 0]) {
