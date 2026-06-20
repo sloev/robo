@@ -162,8 +162,16 @@ jobs:
           mkdir -p screenshots
           find downloaded-artifacts -type f -name "*.png" -exec cp {} screenshots/ \;
           
+          # Verify all expected OBJ files exist to prevent silent failures
+          for file in vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj; do
+            if [ ! -f "$file" ]; then
+              echo "Error: Expected artifact $file is missing!"
+              exit 1
+            fi
+          done
+          
           # Rebuild the master ZIP archive containing all current OBJs
-          zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj || true
+          zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj
           
           # Clean up downloaded-artifacts so they don't get committed by accident
           rm -rf downloaded-artifacts
