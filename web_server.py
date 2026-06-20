@@ -58,7 +58,20 @@ class WebServer:
             
             # 1. API Endpoints
             if clean_path.startswith('/api/'):
-                await self.handle_api(method, clean_path, content_length, reader, writer)
+                if method == 'OPTIONS':
+                    response = (
+                        "HTTP/1.1 204 No Content\r\n"
+                        "Access-Control-Allow-Origin: *\r\n"
+                        "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
+                        "Access-Control-Allow-Headers: Content-Type\r\n"
+                        "Connection: close\r\n\r\n"
+                    )
+                    writer.write(response.encode('utf-8'))
+                    await writer.drain()
+                    writer.close()
+                    await writer.wait_closed()
+                else:
+                    await self.handle_api(method, clean_path, content_length, reader, writer)
             
             # 2. Static Files
             elif clean_path in ('/', '/index.html'):
@@ -256,6 +269,7 @@ class WebServer:
         response_headers = (
             f"HTTP/1.1 {status_code} {status_text}\r\n"
             "Content-Type: application/json\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
             f"Content-Length: {len(resp_bytes)}\r\n"
             "Connection: close\r\n\r\n"
         )

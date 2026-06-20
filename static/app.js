@@ -1,3 +1,7 @@
+// Determine if we are hosted online (e.g. GitHub Pages PWA).
+// If so, all API calls must be directed to the captive portal domain.
+const API_BASE = window.location.protocol === 'https:' ? 'http://robot.com' : '';
+
 // State management
 const mainWorkspace = document.getElementById('workspace-canvas');
 
@@ -800,7 +804,7 @@ document.getElementById('btn-run-program').addEventListener('click', async () =>
     }
     
     try {
-      const resp = await fetch('/api/run', {
+      const resp = await fetch(API_BASE + '/api/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: rawCode })
@@ -826,7 +830,7 @@ document.getElementById('btn-run-program').addEventListener('click', async () =>
     }
     
     try {
-      const resp = await fetch('/api/run', {
+      const resp = await fetch(API_BASE + '/api/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipe: recipe })
@@ -850,7 +854,7 @@ document.getElementById('btn-run-program').addEventListener('click', async () =>
 // Stop program
 async function stopAll() {
   try {
-    await fetch('/api/stop', { method: 'POST' });
+    await fetch(API_BASE + '/api/stop', { method: 'POST' });
   } catch (err) {
     console.error("Error sending stop command:", err);
   }
@@ -990,7 +994,7 @@ class Joystick {
     }
     
     try {
-      await fetch('/api/manual', {
+      await fetch(API_BASE + '/api/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ motor: this.motorName, steps: steps, speed: speed })
@@ -1154,7 +1158,7 @@ async function onClapDetected() {
     }, 800);
 
     // Send sensor state to ESP32-S2
-    await fetch('/api/sensors', {
+    await fetch(API_BASE + '/api/sensors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sound: 'clap' })
@@ -1163,7 +1167,7 @@ async function onClapDetected() {
     // Reset sound state to none after 1.2 seconds
     setTimeout(async () => {
       try {
-        await fetch('/api/sensors', {
+        await fetch(API_BASE + '/api/sensors', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sound: 'none' })
@@ -1272,7 +1276,7 @@ async function stopVisionFeed() {
   
   // Push final state reset to ESP32
   try {
-    await fetch('/api/sensors', {
+    await fetch(API_BASE + '/api/sensors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ vision: 'none' })
@@ -1420,7 +1424,7 @@ async function sendVisionResult() {
   lastSentResult = visionResult;
   
   try {
-    await fetch('/api/sensors', {
+    await fetch(API_BASE + '/api/sensors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ vision: visionResult })
@@ -1455,7 +1459,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 // Trigger manual motor movement for calibration
 async function triggerCalibMove(motor, steps) {
   try {
-    await fetch('/api/manual', {
+    await fetch(API_BASE + '/api/manual', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ motor: motor, steps: steps, speed: 4 })
@@ -1677,12 +1681,12 @@ async function runAutopilotLoop() {
     const actB = mapSpeedValue(predB);
     
     try {
-      await fetch('/api/manual', {
+      await fetch(API_BASE + '/api/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ motor: 'A', steps: actA.steps, speed: actA.speed })
       });
-      await fetch('/api/manual', {
+      await fetch(API_BASE + '/api/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ motor: 'B', steps: actB.steps, speed: actB.speed })
@@ -1690,12 +1694,12 @@ async function runAutopilotLoop() {
     } catch (err) {}
   } else {
     try {
-      await fetch('/api/manual', {
+      await fetch(API_BASE + '/api/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ motor: 'A', steps: 0, speed: 2 })
       });
-      await fetch('/api/manual', {
+      await fetch(API_BASE + '/api/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ motor: 'B', steps: 0, speed: 2 })
@@ -1730,7 +1734,7 @@ btnLearnTest.addEventListener('click', () => {
 // Periodic status monitor polling (every 1 second)
 async function updateStatus() {
   try {
-    const resp = await fetch('/api/status');
+    const resp = await fetch(API_BASE + '/api/status');
     if (!resp.ok) throw new Error("HTTP error " + resp.status);
     
     const status = await resp.json();
@@ -2273,7 +2277,7 @@ setInterval(async () => {
       
       lastSentWebSensors = { ...current };
       try {
-        await fetch('/api/sensors', {
+        await fetch(API_BASE + '/api/sensors', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(current)
