@@ -122,10 +122,10 @@ Check out our fully integrated Lego-compatible chassis design. The CI automatica
 
 **Download the latest auto-generated 3D Models:**
 * [📦 Download All Models (.zip)](https://github.com/sloev/robo/raw/master/vehicle_models.zip)
-* [⬇️ Chassis Base (.obj)](https://github.com/sloev/robo/raw/master/vehicle_base.obj)
-* [⬇️ Sliding Lid (.obj)](https://github.com/sloev/robo/raw/master/vehicle_lid.obj)
-* [⬇️ Captive Couplers (.obj)](https://github.com/sloev/robo/raw/master/vehicle_couplers.obj)
-* [⬇️ Portrait Phone AI Clamp (.obj)](https://github.com/sloev/robo/raw/master/vehicle_phone_clamp.obj)
+* [⬇️ Chassis Base (.stl)](https://github.com/sloev/robo/raw/master/vehicle_base.stl)
+* [⬇️ Sliding Lid (.stl)](https://github.com/sloev/robo/raw/master/vehicle_lid.stl)
+* [⬇️ Captive Couplers (.stl)](https://github.com/sloev/robo/raw/master/vehicle_couplers.stl)
+* [⬇️ Portrait Phone AI Clamp (.stl)](https://github.com/sloev/robo/raw/master/vehicle_phone_clamp.stl)
 
 ---
 

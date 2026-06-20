@@ -53,18 +53,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
+        run: sudo apt-get update && sudo apt-get install -y openscad xvfb
       - name: Render Base
-        run: |
-          xvfb-run make -B screenshots/vehicle_base_render.png
-          xvfb-run make -B vehicle_base.obj
-          xvfb-run make -B vehicle_base.stl
+        shell: bash
+        run: ./ci_render_part.sh base lego_robot_base.scad
       - uses: actions/upload-artifact@v4
         with:
           name: asset-base
           path: |
             vehicle_base.stl
-            vehicle_base.obj
             screenshots/vehicle_base_render.png
 
   render-lid:
@@ -74,18 +71,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
+        run: sudo apt-get update && sudo apt-get install -y openscad xvfb
       - name: Render Lid
-        run: |
-          xvfb-run make -B screenshots/vehicle_lid_render.png
-          xvfb-run make -B vehicle_lid.obj
-          xvfb-run make -B vehicle_lid.stl
+        shell: bash
+        run: ./ci_render_part.sh lid lego_robot_lid.scad
       - uses: actions/upload-artifact@v4
         with:
           name: asset-lid
           path: |
             vehicle_lid.stl
-            vehicle_lid.obj
             screenshots/vehicle_lid_render.png
 
   render-couplers:
@@ -95,18 +89,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
+        run: sudo apt-get update && sudo apt-get install -y openscad xvfb
       - name: Render Couplers
-        run: |
-          xvfb-run make -B screenshots/vehicle_couplers_render.png
-          xvfb-run make -B vehicle_couplers.obj
-          xvfb-run make -B vehicle_couplers.stl
+        shell: bash
+        run: ./ci_render_part.sh couplers lego_robot_couplers.scad
       - uses: actions/upload-artifact@v4
         with:
           name: asset-couplers
           path: |
             vehicle_couplers.stl
-            vehicle_couplers.obj
             screenshots/vehicle_couplers_render.png
 
   render-phone-clamp:
@@ -116,18 +107,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
+        run: sudo apt-get update && sudo apt-get install -y openscad xvfb
       - name: Render Phone Clamp
-        run: |
-          xvfb-run make -B screenshots/vehicle_phone_clamp_render.png
-          xvfb-run make -B vehicle_phone_clamp.obj
-          xvfb-run make -B vehicle_phone_clamp.stl
+        shell: bash
+        run: ./ci_render_part.sh phone_clamp lego_robot_phone_clamp.scad
       - uses: actions/upload-artifact@v4
         with:
           name: asset-phone-clamp
           path: |
             vehicle_phone_clamp.stl
-            vehicle_phone_clamp.obj
             screenshots/vehicle_phone_clamp_render.png
 
   render-showcase:
@@ -137,9 +125,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y openscad openctm-tools xvfb
+        run: sudo apt-get update && sudo apt-get install -y openscad xvfb
       - name: Render Showcase
-        run: xvfb-run make -B screenshots/vehicle_render.png
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a make -B screenshots/vehicle_render.png
+          test -s screenshots/vehicle_render.png
       - uses: actions/upload-artifact@v4
         with:
           name: asset-showcase
@@ -147,6 +139,7 @@ jobs:
 
   commit-assets:
     needs: [detect-changes, render-base, render-lid, render-couplers, render-phone-clamp, render-showcase]
+    # Only run if no upstream render job failed (skipped jobs are fine).
     if: always() && !cancelled() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:
@@ -155,33 +148,38 @@ jobs:
         with:
           path: downloaded-artifacts
       - name: Sync artifacts to repo
+        shell: bash
         run: |
+          set -euo pipefail
+
           # Copy downloaded artifacts into their correct locations
           find downloaded-artifacts -type f -name "*.stl" -exec cp {} . \;
-          find downloaded-artifacts -type f -name "*.obj" -exec cp {} . \;
           mkdir -p screenshots
           find downloaded-artifacts -type f -name "*.png" -exec cp {} screenshots/ \;
-          
-          # Verify all expected OBJ files exist to prevent silent failures
-          for file in vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj; do
-            if [ ! -f "$file" ]; then
-              echo "Error: Expected artifact $file is missing!"
+
+          # Verify all expected STL files exist AND are non-empty, so a broken
+          # render can never silently ship stale geometry to the website.
+          for file in vehicle_base.stl vehicle_lid.stl vehicle_couplers.stl vehicle_phone_clamp.stl; do
+            if [ ! -s "$file" ]; then
+              echo "::error::Expected artifact $file is missing or empty!"
               exit 1
             fi
           done
-          
-          # Rebuild the master ZIP archive containing all current OBJs
-          zip -j vehicle_models.zip vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj
-          
+
+          # Rebuild the master ZIP archive containing all current parts.
+          zip -j vehicle_models.zip vehicle_base.stl vehicle_lid.stl vehicle_couplers.stl vehicle_phone_clamp.stl
+
           # Clean up downloaded-artifacts so they don't get committed by accident
           rm -rf downloaded-artifacts
       - name: Pull latest changes to avoid push conflicts
-        run: git config pull.rebase true && git pull origin master || true
+        run: |
+          git config pull.rebase true
+          git pull origin master
       - name: Commit Generated Assets
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: Auto-render changed SCAD assets and screenshots"
-          file_pattern: "screenshots/*.png *.stl *.obj *.zip"
+          file_pattern: "screenshots/*.png *.stl *.zip"
       - name: Trigger Pages Deployment
         run: gh workflow run pages.yml
         env:

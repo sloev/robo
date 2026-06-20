@@ -101,24 +101,19 @@ flash-firmware:
 # Installs necessary CLI 3D utilities via APT
 install-deps:
 	sudo apt-get update
-	sudo apt-get install -y openscad openctm-tools
+	sudo apt-get install -y openscad
 
-# Object targets
-OBJS = vehicle_base.obj vehicle_lid.obj vehicle_couplers.obj vehicle_phone_clamp.obj
-STLS = $(OBJS:.obj=.stl)
+# Part targets. STL is OpenSCAD's native output and the format used for both
+# 3D printing and the web viewer, so it is the single source of truth.
+STLS = vehicle_base.stl vehicle_lid.stl vehicle_couplers.stl vehicle_phone_clamp.stl
 PNGS = screenshots/vehicle_render.png screenshots/vehicle_base_render.png screenshots/vehicle_lid_render.png screenshots/vehicle_couplers_render.png screenshots/vehicle_phone_clamp_render.png
 
 render-vehicle: vehicle_models.zip $(PNGS)
 	@echo "Done! All files ready for slicer."
 
-vehicle_models.zip: $(OBJS)
+vehicle_models.zip: $(STLS)
 	@echo "Creating ZIP archive of all parts..."
 	zip -j $@ $^
-
-# Pattern rule to convert STL to OBJ
-%.obj: %.stl
-	@echo "Converting $< to $@..."
-	ctmconv $< $@
 
 # Individual part rendering rules
 vehicle_base.stl: lego_robot_base.scad lego_robot_common.scad

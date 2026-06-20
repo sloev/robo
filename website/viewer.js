@@ -66,18 +66,15 @@ window.addEventListener('resize', () => {
     renderer.setSize(container.clientWidth, container.clientHeight);
 });
 
-const loader = new THREE.OBJLoader();
+const loader = new THREE.STLLoader();
 
-// Helper to load an OBJ. OpenSCAD coordinates: Z is up.
+// Helper to load an STL. OpenSCAD coordinates: Z is up.
 // We rotate the entire group -90 on X so that ThreeJS Y is up.
 function loadPart(url, material, assembledPos, explodedPos, name, assembledRot) {
-    loader.load(url, (obj) => {
-        obj.traverse((child) => {
-            if (child.isMesh) {
-                child.material = material;
-            }
-        });
-        
+    loader.load(url, (geometry) => {
+        // STLLoader yields a BufferGeometry; wrap it in a Mesh with the part material.
+        const obj = new THREE.Mesh(geometry, material);
+
         const wrapper = new THREE.Group();
         wrapper.add(obj);
         
@@ -119,21 +116,21 @@ function loadPart(url, material, assembledPos, explodedPos, name, assembledRot) 
 // OpenSCAD space: [x, y, z]. ThreeJS space: [x, z, -y].
 
 // 1. Base is generated at origin in OpenSCAD.
-loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_base.obj', matBase, 
+loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_base.stl', matBase, 
     [0, 0, 0],    // Assembled
     [0, -50, 0], // Exploded
     'base'
 );
 
 // 2. Lid is generated at origin. In assembled it is at Z = 48.
-loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_lid.obj', matLid, 
+loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_lid.stl', matLid, 
     [0, 48, 0],   // Assembled (ThreeJS: Y=48)
     [0, 100, 0],  // Exploded
     'lid'
 );
 
 // 3. Phone clamp is naturally generated fully assembled! (Z=65 to 130).
-loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clamp.obj', matClamp, 
+loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clamp.stl', matClamp, 
     [0, 0, 0],   // Assembled (Already in place)
     [0, 50, 50], // Exploded (lifted and moved forward)
     'clamp'
@@ -141,14 +138,14 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clam
 
 // 4. Couplers. We load the same model twice (left and right).
 // Left coupler: D-socket faces +X (towards motor). The model's default orientation points D-socket to +X.
-loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.obj', matCoupler, 
+loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
     [-41.2, 33.6, -44], // Assembled (left motor shaft)
     [-80, 33.6, -44],   // Exploded
     'couplerLeft'
 );
 
 // Right coupler: D-socket must face -X. So we rotate it 180 degrees around Y!
-loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.obj', matCoupler, 
+loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
     [41.2, 33.6, -44],  // Assembled (right motor shaft)
     [80, 33.6, -44],    // Exploded
     'couplerRight',
