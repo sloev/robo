@@ -174,3 +174,7 @@ jobs:
         with:
           commit_message: "chore: Auto-render changed SCAD assets and screenshots"
           file_pattern: "screenshots/*.png *.stl *.obj *.zip"
+      - name: Trigger Pages Deployment
+        run: gh workflow run pages.yml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
