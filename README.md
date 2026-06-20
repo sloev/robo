@@ -174,3 +174,5 @@ Because the inputs are standard digital and analog pins, you can connect many ot
 2.  Upload all files to the ESP32: `make upload`
 3.  Reset the board to start: `make reset`
 4.  Connect your phone's Wi-Fi to the network **"BlockBot"**, open `http://robot.com` and start creating!
+
+💡 **Pro-Tip (Offline AI Autonomy):** To unleash the full power of the offline TensorFlow.js models, first open the **[Live Dashboard Demo](https://sloev.github.io/robo/)** on your phone using your normal internet connection, and "Install" it to your homescreen as an app. Then, switch your Wi-Fi to **"BlockBot"** and open the installed app. It will securely proxy through the robot's captive portal, allowing you to run heavy AI computations on your phone while controlling the ESP32!
