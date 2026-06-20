@@ -28,13 +28,12 @@ module vehicle_base() {
             translate([0, 22, floor_z]) linear_extrude(0.6) text("--- WIRES ---", size=3, halign="center");
             
             // Discreet AI Phone Mount (Bottom Lip at front of chassis)
-            // Holds the bottom of the phone vertically, extremely minimal
-            // Track box for the sliding jaw
-            translate([0, length/2 + 2.5, 24]) cube([26, 5, 48], center=true); 
+            // Track box for the sliding jaw (beefed up for extreme stability)
+            translate([0, length/2 + 4, 24]) cube([32, 8, 48], center=true); 
             // Phone resting lip
-            translate([0, length/2 + 5 + 6, 1.5]) cube([75, 12, 3], center=true); 
-            // Front retaining wall of the lip
-            translate([0, length/2 + 5 + 11.5, 4]) cube([75, 3, 8], center=true);
+            translate([0, length/2 + 14, 1.5]) cube([75, 12, 3], center=true); 
+            // Front retaining wall of the lip (strengthened)
+            translate([0, length/2 + 21.5, 4]) cube([75, 3, 8], center=true);
             
             // Rubber band anchor pegs on the sides for the top clamp
             translate([-width/2 - 2, 55, 10]) rotate([0, 90, 0]) {
@@ -55,12 +54,12 @@ module vehicle_base() {
             translate([0, y, 33.6]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
         }
         
-        // T-slot cut for the phone clamp slider
-        translate([0, length/2 + 2.5, 24]) {
+        // T-slot cut for the phone clamp slider (deepened and widened for strength)
+        translate([0, length/2 + 4, 24]) {
             // Narrow opening facing forward
-            translate([0, 1.5, 0]) cube([12, 4, 50], center=true);
+            translate([0, 2, 0]) cube([14, 5, 50], center=true);
             // Wide inner channel
-            translate([0, -0.5, 0]) cube([20, 3.2, 50], center=true);
+            translate([0, -1.5, 0]) cube([24, 6, 50], center=true);
         }
         
         // USB-C Pass-through
@@ -121,9 +120,9 @@ module base_shell() {
         translate([0, 0, 3.2/2 - 0.1]) 
             cube([width - 2.4, length - 2.4, 3.2 + 0.2], center=true);
             
-        // Rear Wall Cutaway for Sliding Lid
+        // Rear Wall Cutaway for Sliding Lid (Open at the top to prevent a fragile 1.6mm bridge)
         translate([0, length/2, height - 1.6])
-            cube([83.5, 5, 3.2 + 0.1], center=true); 
+            cube([83.5, 5, 10], center=true); 
             
         // Inner Side Grooves for Lid Rails (Z=44.8 to 46.4)
         translate([0, 0, 45.6])
