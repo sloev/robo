@@ -16,8 +16,9 @@ module sliding_lid() {
                 start_y = - (box_l_lu * lego_pitch) / 2 + 4;
                 for (i = [0, box_w_lu - 3]) {
                     for (j = [1 : box_l_lu - 2]) {
+                        // Canonical LEGO stud: Ø4.8 x 1.6 high (the 0.8mm rule)
                         translate([start_x + i*8, start_y + j*8 - 0.8, 1.5])
-                            cylinder(d=4.8, h=1.9);
+                            cylinder(d=4.8, h=1.6);
                     }
                 }
             }

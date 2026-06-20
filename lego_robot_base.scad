@@ -48,11 +48,12 @@ module vehicle_base() {
         
         // --- CENTRALIZED CUTS ---
         
-        // Lego Technic Grid Holes (Pierces Outer Walls and Thickeners cleanly once)
-        for (y = [-60 : 8 : 60]) {
-            translate([0, y, 4.8]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
+        // Lego Technic Grid Holes through the side walls.
+        // Only the UPPER row is full-width: a full-width hole at floor height
+        // (z=4.8) would slice the electronics-bay floor into strips, so it is
+        // omitted to keep the floor completely flat.
+        for (y = [-60 : 8 : 60])
             translate([0, y, 33.6]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
-        }
         
         // T-slot cut for the phone clamp slider (deepened and widened for strength)
         translate([0, length/2 + 4, 24]) {
@@ -65,18 +66,20 @@ module vehicle_base() {
         // USB-C Pass-through
         translate([0, -length/2, 12.4]) cube([12, 6, 5], center=true);
         
-        // Left Internal U-Slot (Hidden inside the thickened wall)
+        // Left Internal U-Slot (Hidden inside the thickened wall).
+        // The shaft clearance cylinder is lengthened (h=20) so it pierces the
+        // outer wall and the motor shaft/coupler can actually exit the side.
         translate([-41.2, motor_y, shaft_z]) {
-            rotate([0, 90, 0]) cylinder(d=8.5, h=11, center=true);
+            rotate([0, 90, 0]) cylinder(d=8.5, h=20, center=true);
             translate([0, 0, 15]) cube([11, 8.5, 30], center=true);
             // Captive Flange Groove
             rotate([0, 90, 0]) cylinder(d=12.5, h=2.5, center=true);
             translate([0, 0, 15]) cube([2.5, 12.5, 30], center=true);
         }
-        
+
         // Right Internal U-Slot
         translate([41.2, motor_y, shaft_z]) {
-            rotate([0, 90, 0]) cylinder(d=8.5, h=11, center=true);
+            rotate([0, 90, 0]) cylinder(d=8.5, h=20, center=true);
             translate([0, 0, 15]) cube([11, 8.5, 30], center=true);
             rotate([0, 90, 0]) cylinder(d=12.5, h=2.5, center=true);
             translate([0, 0, 15]) cube([2.5, 12.5, 30], center=true);

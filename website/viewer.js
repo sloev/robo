@@ -123,9 +123,9 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_base.stl',
 );
 
 // 2. Lid is generated at origin. In assembled it is at Z = 48.
-loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_lid.stl', matLid, 
-    [0, 48, 0],   // Assembled (ThreeJS: Y=48)
-    [0, 100, 0],  // Exploded
+loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_lid.stl', matLid,
+    [0, 0, 0],    // Assembled (lid SCAD is generated already at its in-place Z, so it seats flush)
+    [0, 60, 0],   // Exploded (lifted straight up off the chassis)
     'lid'
 );
 
@@ -139,15 +139,15 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clam
 // 4. Couplers. We load the same model twice (left and right).
 // Left coupler: D-socket faces +X (towards motor). The model's default orientation points D-socket to +X.
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
-    [-41.2, 33.6, -44], // Assembled (left motor shaft)
-    [-80, 33.6, -44],   // Exploded
+    [-50, 33.6, -44],   // Assembled (on the shaft, just outside the left wall)
+    [-85, 33.6, -44],   // Exploded
     'couplerLeft'
 );
 
 // Right coupler: D-socket must face -X. So we rotate it 180 degrees around Y!
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
-    [41.2, 33.6, -44],  // Assembled (right motor shaft)
-    [80, 33.6, -44],    // Exploded
+    [50, 33.6, -44],    // Assembled (on the shaft, just outside the right wall)
+    [85, 33.6, -44],    // Exploded
     'couplerRight',
     [0, Math.PI, 0]     // Assembled Rotation (will be applied to wrapper)
 );
