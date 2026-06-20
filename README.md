@@ -35,7 +35,7 @@ Drive your creation directly using virtual vertical joysticks! Slide them up or 
 ---
 
 ### 🧠 3. Autonomous AI (Car Mode)
-This is where the magic happens! Turn your stepper motor creation into an autonomous self-driving car using your phone's built-in sensors. By snapping your phone vertically into the custom Lego-compatible **Portrait Phone Mount** on the front of the chassis, your phone acts as the robot's eyes, ears, and inner ear!
+This is where the magic happens! Turn your stepper motor creation into an autonomous self-driving car using your phone's built-in sensors. By clamping your phone vertically to the front of the chassis using elastic bands and the ultra-discreet **Portrait Phone Clamp**, your phone acts as the robot's eyes, ears, and inner ear!
 
 1.  **Sensor Fusion (Dead Reckoning):** The dashboard creates a sensor fusion of the phone's internal gyroscope, accelerometer, and magnetometer to understand its odometry and heading entirely on its own!
 2.  **Learning Mode (Kinematic Discovery):** The robot wiggles its motors and uses the phone's sensors to reverse-engineer its own kinematics (whether it's built as a differential drive or an Ackermann steering setup).
@@ -117,7 +117,7 @@ Check out our fully integrated Lego-compatible chassis design. The CI automatica
   <img src="screenshots/vehicle_base_render.png" width="24%">
   <img src="screenshots/vehicle_lid_render.png" width="24%">
   <img src="screenshots/vehicle_couplers_render.png" width="24%">
-  <img src="screenshots/vehicle_phone_stand_render.png" width="24%">
+  <img src="screenshots/vehicle_phone_clamp_render.png" width="24%">
 </div>
 
 **Download the latest auto-generated 3D Models:**
@@ -125,7 +125,7 @@ Check out our fully integrated Lego-compatible chassis design. The CI automatica
 * [⬇️ Chassis Base (.obj)](https://github.com/sloev/robo/raw/master/vehicle_base.obj)
 * [⬇️ Sliding Lid (.obj)](https://github.com/sloev/robo/raw/master/vehicle_lid.obj)
 * [⬇️ Captive Couplers (.obj)](https://github.com/sloev/robo/raw/master/vehicle_couplers.obj)
-* [⬇️ Portrait Phone AI Stand (.obj)](https://github.com/sloev/robo/raw/master/vehicle_phone_stand.obj)
+* [⬇️ Portrait Phone AI Clamp (.obj)](https://github.com/sloev/robo/raw/master/vehicle_phone_clamp.obj)
 
 ---
 
