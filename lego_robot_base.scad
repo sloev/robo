@@ -27,30 +27,22 @@ module vehicle_base() {
             
             translate([0, 22, floor_z - 0.1]) linear_extrude(0.7) text("--- WIRES ---", size=3, halign="center");
             
-            // --- AI Phone Cradle (front of chassis) ---
-            // Full-width front bumper: a flat, full-width back-rest the phone
-            // leans against, with the clamp slider T-slot down its centre. (A
-            // phone needs a flat surface across its whole width, not just the
-            // 32mm track, or it rocks.)
-            translate([0, length/2 + 4, 24]) cube([88, 8, 48], center=true);
-            // Deep solid resting shelf, fused full-width to the bumper.
-            translate([0, length/2 + 13, 3]) cube([88, 26, 6], center=true);
-            // Front retaining lip set ~14mm forward of the back-rest so a real
-            // phone (8-11mm, plus a case) actually fits in the slot.
-            translate([0, length/2 + 24, 11]) cube([88, 4, 22], center=true);
-            // Gusset webs bracing the shelf + lip back to the bumper.
-            for (gx = [-42, -21, 0, 21, 42])
-                translate([gx + 1.5, length/2 + 8, 5]) rotate([0, -90, 0])
-                    linear_extrude(3) polygon([[0, 0], [18, 0], [0, 12]]);
-            
-            // Rubber band anchor pegs on the sides for the top clamp
-            translate([-width/2 - 2, 55, 10]) rotate([0, 90, 0]) {
-                cylinder(d=4, h=4, center=true);
-                translate([0, 0, -1.5]) cylinder(d=6, h=1, center=true);
+            // --- AI Phone Holder: bottom V-rest + horizontal V-clamp ---
+            // Pedestal across the front (the V-rest groove and the left-jaw rail
+            // are cut from it in the CUTS section below).
+            translate([0, length/2 + 12, 8]) cube([96, 24, 16], center=true);
+            // Fixed RIGHT V-jaw: vertical post up to the chassis top with a
+            // vertical V-notch cradling the phone's right edge. The notch runs
+            // straight up (constant section) so it prints standing, no overhang.
+            difference() {
+                translate([43, length/2 + 12, (16 + height) / 2]) cube([10, 22, height - 16], center=true);
+                translate([38, length/2 + 12, 15]) linear_extrude(height)
+                    polygon([[6, 0], [0, -7], [0, 7]]);
             }
-            translate([width/2 + 2, 55, 10]) rotate([0, 90, 0]) {
-                cylinder(d=4, h=4, center=true);
-                translate([0, 0, 1.5]) cylinder(d=6, h=1, center=true);
+            // Strong elastic anchor on the right jaw's back (hidden behind phone)
+            translate([40, length/2 + 3, height - 9]) rotate([90, 0, 0]) {
+                cylinder(d=4.5, h=4);
+                translate([0, 0, 3]) cylinder(d=8, h=1.5);
             }
         }
         
@@ -61,41 +53,44 @@ module vehicle_base() {
         // clear the flat floor (>4.8) and the lid rail (<45.6): 15.4, 25.0, 34.6.
         // Each is Ø4.8 with a Ø6.2 x 0.9 bevel on both outer faces like a real
         // Technic brick. These replace the (removed) underside attachment.
+        // Holes pierce the side WALLS ONLY (h=12), not the whole cavity, and are
+        // skipped over the front motor-mount zone so the wall stays solid for the
+        // coupler pocket + motor screws.
         for (z = [15.4, 25.0, 34.6])
-            for (y = [-60 : 8 : 60]) {
-                translate([0, y, z]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
-                translate([-width/2, y, z]) rotate([0,  90, 0]) cylinder(d=6.2, h=0.9);
-                translate([ width/2, y, z]) rotate([0, -90, 0]) cylinder(d=6.2, h=0.9);
-            }
+            for (y = [-60 : 8 : 60])
+                if (y < motor_y - 22) {
+                    translate([-44, y, z]) rotate([0, 90, 0]) cylinder(d=4.8, h=12, center=true);
+                    translate([ 44, y, z]) rotate([0, 90, 0]) cylinder(d=4.8, h=12, center=true);
+                    translate([-width/2, y, z]) rotate([0,  90, 0]) cylinder(d=6.2, h=0.9);
+                    translate([ width/2, y, z]) rotate([0, -90, 0]) cylinder(d=6.2, h=0.9);
+                }
         
-        // T-slot cut for the phone clamp slider (deepened and widened for strength)
-        translate([0, length/2 + 4, 24]) {
-            // Narrow opening facing forward
-            translate([0, 2, 0]) cube([14, 5, 50], center=true);
-            // Wide inner channel
-            translate([0, -1.5, 0]) cube([24, 6, 50], center=true);
-        }
+        // Bottom V-rest groove: spans only the phone width (x -38..38) so the
+        // phone's bottom edge drops into the V (self-centres any thickness),
+        // leaving the outboard pedestal solid for the jaw rails. Opens upward
+        // (prints with no support).
+        translate([-38, length/2 + 12, 16]) rotate([0, 90, 0])
+            linear_extrude(76) polygon([[9, 0], [0, -9], [0, 9]]);
+        // Left-jaw slide rail: an outboard open-top channel in the pedestal top
+        // (x -49..-37) that the adjustable jaw's foot slides along in X.
+        translate([-49, length/2 + 3, 8]) cube([12, 20, 9]);
         
         // USB-C Pass-through
         translate([0, -length/2, 12.4]) cube([12, 6, 5], center=true);
         
-        // Left motor U-slot (in the thick wall). The Ø8.5 hole passes the
-        // coupler's Ø8 axle nose out through the wall; the coupler's Ø12 ring
-        // can't pass the Ø8.5 hole, so it stays captive in the cavity against the
-        // inner wall face (no central flange groove needed for the new coupler).
-        // The open-top cube is the drop slot for assembling the motor + coupler.
-        translate([-41.2, motor_y, shaft_z]) {
-            rotate([0, 90, 0]) cylinder(d=8.5, h=20, center=true);
-            translate([0, 0, 15]) cube([11, 8.5, 30], center=true);
+        // Motor coupler sockets + screw pilots (both side walls). Each wall gets:
+        //  - a Ø12.5 circular pocket in the inner face the coupler's Ø12 ring
+        //    drops into,
+        //  - a Ø8.5 hole through the rest of the wall for the coupler's Ø8 nose
+        //    and the LEGO axle (the Ø12 ring can't pass it => captive),
+        //  - two Ø2.5 pilots (ears 35mm apart) the motor screws into.
+        // The motor mounts face-on to the wall; its shaft enters the coupler.
+        for (s = [-1, 1]) {
+            translate([s*40, motor_y, shaft_z]) rotate([0, s*90, 0]) cylinder(d=12.5, h=5.5);
+            translate([s*40, motor_y, shaft_z]) rotate([0, s*90, 0]) cylinder(d=8.5, h=12);
+            for (dy = [-17.5, 17.5])
+                translate([s*40, motor_y + dy, motor_z]) rotate([0, s*90, 0]) cylinder(d=2.5, h=7);
         }
-
-        // Right motor U-slot
-        translate([41.2, motor_y, shaft_z]) {
-            rotate([0, 90, 0]) cylinder(d=8.5, h=20, center=true);
-            translate([0, 0, 15]) cube([11, 8.5, 30], center=true);
-        }
-        
-        // (Motor is friction-held in the cradle -- no wall screw holes needed.)
 
         // External Axle Hole Indicators (0.5mm indented into outer walls)
         translate([-width/2 + 0.5, motor_y, shaft_z + 6]) rotate([90, 0, -90]) 
@@ -180,19 +175,18 @@ module uln2003_flat_tray(x, y) {
 
 
 module motor_bays() {
-    // Friction cradles that hold each 28BYJ-48 body in the cavity so its shaft
-    // plugs straight into the captive coupler at the wall (no screws). The body
-    // is centred at x = ±17.5 (shaft ends inside, at the coupler's inboard flat-D
-    // socket; only the coupler nose + LEGO axle use the Ø8.5 wall hole). The
-    // Ø28.5 trough is open at the top to drop the motor in.
+    // Wall-mounted cradles: each 28BYJ-48 mounts face-on to the inner wall (ears
+    // screwed into the wall pilots) with its body centred at x=±30.5, supported
+    // in a Ø28.5 trough. The cradle block is fused to the side wall and widened
+    // in Y for strength, and open at the top to drop the motor in.
     for (s = [-1, 1]) {
         difference() {
-            translate([s * 17.5, motor_y, (floor_z + motor_z) / 2 - 0.05])
-                cube([28, 28, motor_z - floor_z + 0.1], center=true);
-            translate([s * 17.5, motor_y, motor_z]) rotate([0, 90, 0])
-                cylinder(d=28.5, h=32, center=true);
-            translate([s * 17.5, motor_y, motor_z + 8])
-                cube([34, 17, 16], center=true);
+            translate([s * 31, motor_y, (floor_z + motor_z) / 2 - 0.05])
+                cube([34, 32, motor_z - floor_z + 0.1], center=true);
+            translate([s * 30.5, motor_y, motor_z]) rotate([0, 90, 0])
+                cylinder(d=28.5, h=24, center=true);
+            translate([s * 30.5, motor_y, motor_z + 9])
+                cube([30, 19, 18], center=true);
         }
     }
 }

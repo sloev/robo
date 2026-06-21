@@ -7,8 +7,8 @@ use <lego_robot_phone_clamp.scad>
 color("#5b9bd5") vehicle_base();
 color("#e74c3c") translate([0, 0, height + 20]) sliding_lid();
 // Couplers (already X-axis): Ø8 nose into the wall hole, Ø12 captive inboard.
-color("#f1c40f") translate([-38.7, motor_y, shaft_z]) motor_coupler();                 // left
-color("#f1c40f") translate([ 38.7, motor_y, shaft_z]) rotate([0, 0, 180]) motor_coupler(); // right (flipped)
+color("#f1c40f") translate([-46, motor_y, shaft_z]) motor_coupler();                 // left
+color("#f1c40f") translate([ 46, motor_y, shaft_z]) rotate([0, 0, 180]) motor_coupler(); // right (flipped)
 color("#27ae60") phone_clamp_jaw();
 
 // Accurate 28BYJ-48 stepper. Local frame: body axis along X, body centered at
@@ -40,8 +40,8 @@ module byj48() {
 module showcase_electronics() {
     // Stepper motors (accurate 28BYJ-48) friction-cradled, shafts plugging into
     // the captive couplers at the walls (body centred at x=±17.5).
-    color("silver") translate([17.5, motor_y, motor_z]) byj48();
-    color("silver") translate([-17.5, motor_y, motor_z]) rotate([0, 0, 180]) byj48();
+    color("silver") translate([30.5, motor_y, motor_z]) byj48();
+    color("silver") translate([-30.5, motor_y, motor_z]) rotate([0, 0, 180]) byj48();
 
     // ESP32-S2 Mini Board
     translate([0, -45, floor_z + 4]) {
