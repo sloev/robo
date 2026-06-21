@@ -15,7 +15,7 @@ color("#27ae60") phone_clamp_jaw();
 // Rubber band: two strands hooked on the two jaws' rear pegs, behind the phone,
 // pulling the moving (left) jaw toward the fixed (right) jaw = the squeeze.
 color("#222") for (dy = [-1.3, 1.3])
-    translate([0, length/2 + 4 + dy, 26]) rotate([0, 90, 0]) cylinder(d=2, h=84, center=true);
+    translate([0, length/2 + 4 + dy, 15]) rotate([0, 90, 0]) cylinder(d=2, h=84, center=true);
 // Phone (translucent) standing in the clamp: bottom edge in the V-rest, side
 // edges gripped by the two jaws.
 %translate([0, length/2 + 12, 14 + 70]) cube([75, 9, 140], center=true);

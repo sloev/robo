@@ -41,9 +41,11 @@ module vehicle_base() {
                 translate([0, length/2 + 12, 13]) linear_extrude(height)
                     polygon([[42, 0], [36, -6], [36, 6]]);
             }
-            // Elastic hook on the fixed jaw's back (band runs across the back,
-            // behind the phone, to the moving jaw's matching hook).
-            translate([42, length/2 + 4, 26]) rotate([90, 0, 0]) {
+            // Elastic hook on the fixed (chassis) jaw's back, placed LOW -- just
+            // above the slide groove (z~15) -- so the band pulls in-line with the
+            // rail and can't cock/jam the moving jaw. Band runs straight across
+            // the back, behind the phone, to the moving jaw's matching hook.
+            translate([42, length/2 + 4, 15]) rotate([90, 0, 0]) {
                 cylinder(d=4, h=5);
                 translate([0, 0, 4]) cylinder(d=7, h=1.5);
             }
