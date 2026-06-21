@@ -128,26 +128,31 @@ module base_shell() {
 }
 
 
+// Reusable snap-in PCB mount: corner standoffs (clearance for bottom solder) +
+// flexible cantilever snap hooks centred on each edge whose lip clicks over the
+// board top. The board just presses in -- no screws. Prints support-free (the
+// hook lip's small overhang bridges fine at this scale).
+module snap_pcb_mount(bw, bl, so = 3.5, th = 1.6) {
+    // corner standoffs
+    for (sx = [-1, 1]) for (sy = [-1, 1])
+        translate([sx*(bw/2 - 3), sy*(bl/2 - 3), 0]) cylinder(d=4.5, h=so);
+    // snap hooks on the two long (±Y) edges
+    for (sy = [-1, 1])
+        translate([0, sy*(bl/2 + 0.3), 0]) {
+            translate([-4, sy*0.2, 0]) cube([8, 1.6, so + th + 1.8]);            // flex arm
+            translate([-4, (sy>0 ? -1.0 : 0.2), so + th]) cube([8, 1.8, 1.4]);   // lip over the board
+        }
+    // snap hooks on the two short (±X) edges
+    for (sx = [-1, 1])
+        translate([sx*(bw/2 + 0.3), 0, 0]) {
+            translate([sx*0.2, -4, 0]) cube([1.6, 8, so + th + 1.8]);
+            translate([(sx>0 ? -1.0 : 0.2), -4, so + th]) cube([1.8, 8, 1.4]);
+        }
+}
+
 module esp32_snap_tray() {
-    // Zero-screw friction-fit mount, centred on the floor between the two
-    // wall-mounted ULN2003 boards.
-    translate([0, -10, floor_z - 0.1]) {
-        for (dx = [-10.7, 10.7]) {
-            for (dy = [-15.15, 15.15]) {
-                translate([dx, dy, 0]) {
-                    cylinder(d=4, h=4); // Standoff
-                    cylinder(d=1.8, h=5.6); // Locating pin
-                }
-            }
-        }
-        // Flexible locking hooks
-        for (dx = [-12.7, 12.7]) {
-            translate([dx + (dx>0 ? 0.5 : -2.5), -5, 0]) {
-                cube([2, 10, 6.5]); // Upright flex arm
-                translate([dx>0 ? -1 : 1, 0, 5.5]) cube([2, 10, 1]); // Snap lip
-            }
-        }
-    }
+    // ESP32-S2 Mini (25.4 x 34.3), snap-in on the floor between the wall ULN boards.
+    translate([0, -10, floor_z - 0.1]) snap_pcb_mount(25.4, 34.3);
 }
 
 
@@ -157,13 +162,13 @@ module uln_wall_mount_left() {
     // Components face the cavity. Mirror this for the right wall. Prints with no
     // support (vertical ribs + flat ledge).
     uy = -10;   // board centre Y
-    for (ey = [uy - 18, uy + 18]) {                // ribs just outside the 35mm board
+    for (ey = [uy - 18, uy + 18])                  // vertical guide ribs (Y retention)
         translate([-40, ey - 1.5, floor_z]) cube([11, 3, 34]);
-        // small top lip to keep the board from tipping inward
-        translate([-31, ey - 1.5, floor_z + 30]) cube([3, 3, 3]);
-    }
-    // bottom ledge the board rests on
+    // bottom ledge the board rests on (Z retention)
     translate([-40, uy - 18, floor_z]) cube([11, 36, 2]);
+    // top snap lip just inboard of the board's inner face: the board clicks past
+    // it and is held flat against the wall (X retention).
+    translate([-38, uy - 17, floor_z + 30]) cube([1.5, 34, 2]);
 }
 
 
