@@ -1,26 +1,30 @@
 // viewer.js
 // Interactive 3D Exploded View for BlockBot
+(function () {
 
 const container = document.getElementById('assembly-viewer');
-const scene = new THREE.Scene();
-scene.background = new THREE.Color('#1a1a1a');
+if (!container) return;
 
 const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
 camera.position.set(0, 150, 250);
 
 let renderer;
 try {
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, failIfMajorPerformanceCaveat: false });
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 } catch (e) {
-    container.innerHTML = `<div style="color: white; padding: 20px; text-align: center; font-family: sans-serif;">
-        <h3>3D Viewer Error</h3>
-        <p>Could not initialize WebGL: ${e.message}</p>
-        <p>Please ensure hardware acceleration is enabled in your browser.</p>
+    // No WebGL available (e.g. hardware acceleration disabled). Fall back to the
+    // static render and stop -- do NOT rethrow (that left an uncaught error).
+    container.innerHTML = `<div style="color:#ddd;padding:16px;text-align:center;font-family:sans-serif;">
+        <p>The 3D viewer needs WebGL (enable hardware acceleration in your browser). Static render:</p>
+        <img src="screenshots/vehicle_render.png" alt="BlockBot assembly" style="max-width:100%;border-radius:12px;">
     </div>`;
-    throw e; // Stop execution of the rest of the script
+    return;
 }
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#1a1a1a');
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 40, 0);
@@ -225,9 +229,12 @@ for (const sx of [-36, 36])
 addInternal(new THREE.BoxGeometry(25.4, 1.6, 34.3), matBoard, [0, -29, 7], null, [0, 45, 0]);
 
 // Button logic
-document.getElementById('explode-btn').addEventListener('click', () => {
+const explodeBtn = document.getElementById('explode-btn');
+if (explodeBtn) explodeBtn.addEventListener('click', () => {
     isExploded = !isExploded;
     for (const key in parts) {
         parts[key].targetPos = isExploded ? parts[key].explodedPos : parts[key].assembledPos;
     }
 });
+
+})();

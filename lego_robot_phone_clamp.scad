@@ -27,7 +27,7 @@ module phone_clamp_jaw() {
     // Rear elastic hook, LOW (just above the slide groove, z~15) and at the same
     // Y as the fixed jaw's hook, so the band pulls in-line with the rail -- this
     // keeps the pull through the slide axis so the jaw can't cock and jam.
-    translate([-42, cy - 8, 15]) rotate([90, 0, 0]) {
+    translate([-42, cy - 5, 15]) rotate([90, 0, 0]) {
         cylinder(d=4, h=5);
         translate([0, 0, 4]) cylinder(d=7, h=1.5);
     }
