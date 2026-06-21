@@ -228,14 +228,15 @@ for (const sx of [-36, 36])
 // ESP32-S2 Mini (34.3 x 25.4mm) flat on the floor at the back, USB-C to the wall.
 addInternal(new THREE.BoxGeometry(25.4, 1.6, 34.3), matBoard, [0, -29, 7], null, [0, 45, 0]);
 
-// Rubber band of the phone clamp: two strands between the two jaw hooks, behind
-// the phone, just above the slide groove (OpenSCAD y=52, z=15 -> Three.js
-// z=-52, y=15). Shows the squeeze that pulls the moving jaw toward the fixed one.
+// Rubber band of the phone clamp: hooked on the fixed band post and the moving
+// jaw's peg, BEHIND the front wall in the cavity gap, at rail height (OpenSCAD
+// y=44, z=26 -> Three.js z=-44, y=26). It pulls the moving jaw toward the fixed
+// one, in-line with the slide so the jaw can't cock and jam.
 const matBand = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.95 });
-for (const dz of [-1.3, 1.3]) {
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 84, 12), matBand);
+{
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 80, 12), matBand);
     band.rotation.z = Math.PI / 2;          // lay the cylinder along X
-    band.position.set(0, 15, -52 + dz);     // spans x -42..42 across the jaw backs
+    band.position.set(0, 26, -44);          // spans x -40..40 between the two pegs
     scene.add(band);
 }
 

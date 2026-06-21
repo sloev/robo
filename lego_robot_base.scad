@@ -27,27 +27,27 @@ module vehicle_base() {
             
             translate([0, 22, floor_z - 0.1]) linear_extrude(0.7) text("--- WIRES ---", size=3, halign="center");
             
-            // --- AI Phone Holder: bottom V-rest + horizontal V-clamp ---
-            // (cy = phone plane Y = length/2 + 12). Pedestal fused to the front
-            // wall; the V-rest groove + left-jaw rail are cut from it below.
-            translate([0, length/2 + 11, 7]) cube([96, 26, 14], center=true);
-            // Fixed RIGHT jaw: a SOLID buttress that spans the full wall thickness
-            // (x 36..48, flush with the outer wall) and is fused to the front wall
-            // over its full height -- it reads as the chassis wall rising into a
-            // jaw, no gap. Its V-notch is a constant-section vertical prism (no
-            // ledge) so the phone slides down past it onto the weight-bearing V-rest.
+            // --- AI Phone Holder: phone stands IN FRONT of the chassis front wall ---
+            // A thick CLAMP-WALL protrudes forward and carries a horizontal T-slot
+            // rail (cut below). The phone leans on the wall's front face, bottom
+            // edge in the V-lip; the two jaws ride the rail and grip the side
+            // edges; the rubber band is BEHIND, in the cavity, on accessible posts.
+            translate([0, length/2 + 4, 18]) cube([96, 8, 36], center=true);   // clamp-wall y48-56, z0-36
+            // V-lip shelf in front; the phone's bottom edge sits in its V-groove (cut below)
+            translate([0, length/2 + 13, 4]) cube([92, 16, 8], center=true);   // shelf y57-69, z0-8
+            // Fixed RIGHT jaw: a finger in front of the wall whose V-notch grips
+            // the phone's right edge (the phone leans on the wall at y56).
             difference() {
-                translate([42, length/2 + 8.5, (14 + height) / 2]) cube([12, 17, height - 14], center=true);
-                translate([0, length/2 + 12, 2]) linear_extrude(height)
+                translate([40, length/2 + 12, 22]) cube([10, 18, 28], center=true);  // y56-66, z8-36
+                translate([0, length/2 + 12, 7]) linear_extrude(34)
                     polygon([[42, 0], [36, -6], [36, 6]]);
             }
-            // Elastic hook on the fixed (chassis) jaw's back, placed LOW -- just
-            // above the slide groove (z~15) -- so the band pulls in-line with the
-            // rail and can't cock/jam the moving jaw. Band runs straight across
-            // the back, behind the phone, to the moving jaw's matching hook.
-            translate([42, length/2 + 4, 15]) rotate([90, 0, 0]) {
-                cylinder(d=4, h=5);
-                translate([0, 0, 4]) cylinder(d=7, h=1.5);
+            // Accessible band post (fixed end), BEHIND the wall in the cavity, at
+            // the rail height so the band pulls in-line (no jam). Band hooks here
+            // and on the moving jaw's matching peg.
+            translate([40, length/2 - 4, 26]) rotate([90, 0, 0]) {
+                cylinder(d=4, h=3);
+                translate([0, 0, 2.5]) cylinder(d=7, h=1.5);
             }
         }
         
@@ -69,17 +69,15 @@ module vehicle_base() {
             }
         }
         
-        // Bottom V-rest groove (x ±40, wider than the phone): the phone's bottom
-        // edge drops in and the V (narrowing in Y) self-centres any thickness and
-        // CARRIES THE PHONE WEIGHT. Opens upward (prints with no support).
-        translate([-40, length/2 + 12, 14]) rotate([0, 90, 0])
-            linear_extrude(80) polygon([[9, 0], [0, -9], [0, 9]]);
-        // Left-jaw T-SLOT rail, OUTBOARD of the V-rest (x -48..-39) at the phone
-        // plane. The moving jaw's T-foot is captured under the narrow opening, so
-        // the jaw is held to the chassis and can only slide in X (to clamp / fit
-        // different widths). Wide channel below + narrow slot to the top.
-        translate([-48, length/2 + 12 - 5, 8])   cube([9, 10, 4.2]);  // wide channel (z8..12.2)
-        translate([-48, length/2 + 12 - 2.6, 12]) cube([9, 5.2, 3]);  // narrow opening to the top
+        // V-lip groove in the shelf top: the phone's bottom edge drops into the V
+        // (narrowing in Y, self-centres any thickness). Opens upward (no support).
+        translate([-40, length/2 + 13, 8]) rotate([0, 90, 0])
+            linear_extrude(80) polygon([[7, 0], [0, -7], [0, 7]]);
+        // Horizontal rail: a slot straight THROUGH the clamp-wall at z23-29. The
+        // jaws' tongues ride in it (captured vertically by the slot, free to slide
+        // in X). It runs the full width plus past the left side so the moving jaw
+        // can telescope out. The fixed jaw side (x>10) is left solid.
+        translate([-100, length/2, 23]) cube([110, 12, 6]);
         
         // USB-C Pass-through (aligned with the ESP32's USB-C edge at the back)
         translate([0, -length/2, 9.5]) cube([13, 8, 7], center=true);
