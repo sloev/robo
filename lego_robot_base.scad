@@ -56,15 +56,17 @@ module vehicle_base() {
         
         // --- CENTRALIZED CUTS ---
         
-        // Lego Technic Grid Holes through the (now solid 8mm) side walls, on the
-        // true LEGO grid: hole centre at 5.8 + n*9.6 => 34.6mm, Ø4.8, with the
-        // Ø6.2 x 0.9 bevel on each outer face like a real Technic brick. Only
-        // this upper row is used; a row at floor height would cut the flat floor.
-        for (y = [-60 : 8 : 60]) {
-            translate([0, y, 34.6]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
-            translate([-width/2, y, 34.6]) rotate([0,  90, 0]) cylinder(d=6.2, h=0.9);
-            translate([ width/2, y, 34.6]) rotate([0, -90, 0]) cylinder(d=6.2, h=0.9);
-        }
+        // Lego Technic Grid Holes through the (solid 8mm) side walls, on the true
+        // LEGO grid: hole centres at 5.8 + n*9.6. We use the three rows that
+        // clear the flat floor (>4.8) and the lid rail (<45.6): 15.4, 25.0, 34.6.
+        // Each is Ø4.8 with a Ø6.2 x 0.9 bevel on both outer faces like a real
+        // Technic brick. These replace the (removed) underside attachment.
+        for (z = [15.4, 25.0, 34.6])
+            for (y = [-60 : 8 : 60]) {
+                translate([0, y, z]) rotate([0, 90, 0]) cylinder(d=4.8, h=width+10, center=true);
+                translate([-width/2, y, z]) rotate([0,  90, 0]) cylinder(d=6.2, h=0.9);
+                translate([ width/2, y, z]) rotate([0, -90, 0]) cylinder(d=6.2, h=0.9);
+            }
         
         // T-slot cut for the phone clamp slider (deepened and widened for strength)
         translate([0, length/2 + 4, 24]) {
@@ -125,9 +127,8 @@ module base_shell() {
         translate([0, 0, floor_z + height/2])
             cube([width - 2*side_wall, length - 2*wall_t, height], center=true);
 
-        // Bottom Lego Cavity
-        translate([0, 0, 3.2/2 - 0.1])
-            cube([width - 2.4, length - 2.4, 3.2 + 0.2], center=true);
+        // (No bottom Lego cavity: a flat solid underside prints flat on the bed
+        // with no support and a strong floor, instead of bridging a recess.)
 
         // Rear Wall Cutaway for Sliding Lid (open at the top to avoid a fragile bridge)
         translate([0, length/2, height - 1.6])
