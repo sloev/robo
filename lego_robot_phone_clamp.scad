@@ -16,10 +16,11 @@ module phone_clamp_jaw() {
         // V-notch (mirror of the fixed jaw) gripping the phone's left edge
         translate([0, cy, 13]) linear_extrude(height) polygon([[-42, 0], [-36, -6], [-36, 6]]);
     }
-    // rear elastic peg (matches the fixed jaw's; the band runs behind the phone)
-    translate([-41, cy - 7, height - 11]) rotate([90, 0, 0]) {
-        cylinder(d=4.5, h=4);
-        translate([0, 0, 3]) cylinder(d=8, h=1.5);
+    // rear elastic hook (matches the fixed jaw's, same height): the band runs
+    // straight across the back behind the phone and pulls this jaw inward.
+    translate([-42, cy - 4, 26]) rotate([90, 0, 0]) {
+        cylinder(d=4, h=5);
+        translate([0, 0, 4]) cylinder(d=7, h=1.5);
     }
 }
 

@@ -31,19 +31,21 @@ module vehicle_base() {
             // (cy = phone plane Y = length/2 + 12). Pedestal fused to the front
             // wall; the V-rest groove + left-jaw rail are cut from it below.
             translate([0, length/2 + 11, 7]) cube([96, 26, 14], center=true);
-            // Fixed RIGHT jaw: a SOLID buttress fused to the front wall over its
-            // full height (no gap to the chassis). Its V-notch is a constant-
-            // section vertical prism (no horizontal ledge) so the phone slides
-            // straight down past it onto the V-rest, which carries the weight.
+            // Fixed RIGHT jaw: a SOLID buttress that spans the full wall thickness
+            // (x 36..48, flush with the outer wall) and is fused to the front wall
+            // over its full height -- it reads as the chassis wall rising into a
+            // jaw, no gap. Its V-notch is a constant-section vertical prism (no
+            // ledge) so the phone slides down past it onto the weight-bearing V-rest.
             difference() {
-                translate([41, length/2 + 8.5, (14 + height) / 2]) cube([10, 17, height - 14], center=true);
+                translate([42, length/2 + 8.5, (14 + height) / 2]) cube([12, 17, height - 14], center=true);
                 translate([0, length/2 + 12, 13]) linear_extrude(height)
                     polygon([[42, 0], [36, -6], [36, 6]]);
             }
-            // Strong elastic anchor on the fixed jaw's back (hidden behind phone)
-            translate([41, length/2 + 5, height - 11]) rotate([90, 0, 0]) {
-                cylinder(d=4.5, h=4);
-                translate([0, 0, 3]) cylinder(d=8, h=1.5);
+            // Elastic hook on the fixed jaw's back (band runs across the back,
+            // behind the phone, to the moving jaw's matching hook).
+            translate([42, length/2 + 4, 26]) rotate([90, 0, 0]) {
+                cylinder(d=4, h=5);
+                translate([0, 0, 4]) cylinder(d=7, h=1.5);
             }
         }
         
@@ -74,8 +76,8 @@ module vehicle_base() {
         // channel the moving jaw's foot slides along in X to clamp.
         translate([-50, length/2 + 3, 8]) cube([16, 18, 8]);
         
-        // USB-C Pass-through
-        translate([0, -length/2, 12.4]) cube([12, 6, 5], center=true);
+        // USB-C Pass-through (aligned with the ESP32's USB-C edge at the back)
+        translate([0, -length/2, 9.5]) cube([13, 8, 7], center=true);
         
         // Motor coupler sockets + screw pilots (both side walls). Each wall gets:
         //  - a Ø12.5 circular pocket in the inner face the coupler's Ø12 ring
@@ -151,8 +153,9 @@ module snap_pcb_mount(bw, bl, so = 3.5, th = 1.6) {
 }
 
 module esp32_snap_tray() {
-    // ESP32-S2 Mini (25.4 x 34.3), snap-in on the floor between the wall ULN boards.
-    translate([0, -10, floor_z - 0.1]) snap_pcb_mount(25.4, 34.3);
+    // ESP32-S2 Mini (25.4 x 34.3), snap-in on the floor at the BACK so its USB-C
+    // edge lines up with the back-wall pass-through.
+    translate([0, -29, floor_z - 0.1]) snap_pcb_mount(25.4, 34.3);
 }
 
 

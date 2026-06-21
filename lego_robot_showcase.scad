@@ -44,9 +44,9 @@ module showcase_electronics() {
     color("silver") translate([-30.5, motor_y, motor_z]) rotate([0, 0, 180]) byj48();
 
     // ESP32-S2 Mini, flat on the floor, centred between the wall ULN boards
-    translate([0, -10, floor_z + 1]) {
+    translate([0, -29, floor_z + 4]) {
         color("purple") cube([25.4, 34.3, 1.6], center=true);
-        color("silver") translate([0, -18, 2]) cube([9, 4, 3.5], center=true); // USB-C
+        color("silver") translate([0, -18, 0]) cube([9, 6, 3.5], center=true); // USB-C through back wall
     }
 
     // ULN2003 driver boards, standing vertically on the inner side walls
