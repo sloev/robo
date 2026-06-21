@@ -121,21 +121,21 @@ function loadPart(url, material, assembledPos, explodedPos, name, assembledRot) 
 // 1. Base is generated at origin in OpenSCAD.
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_base.stl', matBase, 
     [0, 0, 0],    // Assembled
-    [0, -50, 0], // Exploded
+    [0, 0, 0],    // Exploded (base stays as the reference; everything else moves off it)
     'base'
 );
 
 // 2. Lid is generated at origin. In assembled it is at Z = 48.
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_lid.stl', matLid,
     [0, 0, 0],    // Assembled (lid SCAD is generated already at its in-place Z, so it seats flush)
-    [0, 60, 0],   // Exploded (lifted straight up off the chassis)
+    [0, 105, 0],  // Exploded (lifts straight up off the chassis, highest part)
     'lid'
 );
 
 // 3. Phone clamp is naturally generated fully assembled! (Z=65 to 130).
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clamp.stl', matClamp, 
-    [0, 0, 0],     // Assembled (Already in place)
-    [0, 60, -150], // Exploded (lifted and pushed well clear of the lid, out the front)
+    [0, 0, 0],      // Assembled (Already in place)
+    [-60, 30, 0],   // Exploded (the moving jaw slides out of its rail to the left + lifts)
     'clamp'
 );
 
@@ -143,14 +143,14 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clam
 // Left coupler: D-socket faces +X (towards motor). The model's default orientation points D-socket to +X.
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
     [-46, 33.6, -44],   // Assembled (captive in the left wall pocket: Ø12 ring trapped, axle socket out)
-    [-90, 33.6, -44],   // Exploded
+    [-105, 33.6, -44],  // Exploded (slides straight out the left wall)
     'couplerLeft'
 );
 
 // Right coupler: D-socket must face -X. So we rotate it 180 degrees around Y!
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
     [46, 33.6, -44],    // Assembled (captive in the right wall pocket: Ø12 ring trapped, axle socket out)
-    [90, 33.6, -44],    // Exploded
+    [105, 33.6, -44],   // Exploded (slides straight out the right wall)
     'couplerRight',
     [0, Math.PI, 0]     // Assembled Rotation (will be applied to wrapper)
 );
@@ -161,11 +161,11 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.s
 // [x, z, -y]. They explode straight down with the base so the "guts" stay
 // nested inside the chassis as the lid lifts off.
 let internalCount = 0;
-function addInternal(geometry, material, oscadPos, rot) {
+function addInternal(geometry, material, oscadPos, rot, explodeOffset = [0, 55, 0]) {
     const mesh = new THREE.Mesh(geometry, material);
     if (rot) mesh.rotation.set(...rot);
     const assembled = new THREE.Vector3(oscadPos[0], oscadPos[2], -oscadPos[1]);
-    const exploded = assembled.clone().add(new THREE.Vector3(0, -50, 0));
+    const exploded = assembled.clone().add(new THREE.Vector3(...explodeOffset));
     scene.add(mesh);
     parts['internal_' + (internalCount++)] = {
         mesh: mesh,
@@ -210,8 +210,8 @@ function makeMotor() {
 for (const m of [{ x: -30.5, flip: true }, { x: 30.5, flip: false }]) {
     const motor = makeMotor();
     if (m.flip) motor.rotation.y = Math.PI;   // shaft toward the opposite wall
-    const assembled = new THREE.Vector3(m.x, 25.6, -44);   // OpenSCAD (±17.5, 44, 25.6)
-    const exploded = assembled.clone().add(new THREE.Vector3(0, -50, 0));
+    const assembled = new THREE.Vector3(m.x, 25.6, -44);   // OpenSCAD (±30.5, 30, 25.6)
+    const exploded = assembled.clone().add(new THREE.Vector3(m.x > 0 ? 18 : -18, 65, 0)); // lift out + fan apart
     motor.position.copy(assembled);
     scene.add(motor);
     parts['motor_' + (internalCount++)] = { mesh: motor, assembledPos: assembled, explodedPos: exploded, targetPos: assembled.clone() };
@@ -219,9 +219,10 @@ for (const m of [{ x: -30.5, flip: true }, { x: 30.5, flip: false }]) {
 // Two ULN2003 driver boards (35 x 31.5mm) standing vertically on the inner side
 // walls. BoxGeometry here is in Three.js axes: x=thickness, y=height, z=length.
 for (const sx of [-36, 36])
-    addInternal(new THREE.BoxGeometry(1.6, 31.5, 35), matBoard, [sx, -10, 20]);
+    addInternal(new THREE.BoxGeometry(1.6, 31.5, 35), matBoard, [sx, -10, 20], null,
+        [sx > 0 ? -18 : 18, 70, 0]);   // lift up off the wall rails
 // ESP32-S2 Mini (34.3 x 25.4mm) flat on the floor between the ULN boards.
-addInternal(new THREE.BoxGeometry(25.4, 1.6, 34.3), matBoard, [0, -10, 7]);
+addInternal(new THREE.BoxGeometry(25.4, 1.6, 34.3), matBoard, [0, -10, 7], null, [0, 45, 0]);
 
 // Button logic
 document.getElementById('explode-btn').addEventListener('click', () => {
