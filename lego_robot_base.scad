@@ -38,7 +38,7 @@ module vehicle_base() {
             // ledge) so the phone slides down past it onto the weight-bearing V-rest.
             difference() {
                 translate([42, length/2 + 8.5, (14 + height) / 2]) cube([12, 17, height - 14], center=true);
-                translate([0, length/2 + 12, 13]) linear_extrude(height)
+                translate([0, length/2 + 12, 2]) linear_extrude(height)
                     polygon([[42, 0], [36, -6], [36, 6]]);
             }
             // Elastic hook on the fixed (chassis) jaw's back, placed LOW -- just
@@ -169,14 +169,20 @@ module uln_wall_mount_left() {
     // down between two vertical ribs (at the board's Y-ends) onto a bottom ledge.
     // Components face the cavity. Mirror this for the right wall. Prints with no
     // support (vertical ribs + flat ledge).
-    uy = -10;   // board centre Y
+    uy = -16;   // board centre Y -- moved back so the motor's rear ear (y~8.5) has room
     for (ey = [uy - 18, uy + 18])                  // vertical guide ribs (Y retention)
-        translate([-40, ey - 1.5, floor_z]) cube([11, 3, 34]);
+        translate([-41, ey - 1.5, floor_z]) cube([12, 3, 34]);   // overlap the wall (-41)
     // bottom ledge the board rests on (Z retention)
-    translate([-40, uy - 18, floor_z]) cube([11, 36, 2]);
-    // top snap lip just inboard of the board's inner face: the board clicks past
-    // it and is held flat against the wall (X retention).
-    translate([-38, uy - 17, floor_z + 30]) cube([1.5, 34, 2]);
+    translate([-41, uy - 18, floor_z]) cube([12, 36, 2]);
+    // Snap-in fingers (X retention): flexible cantilevers just inboard of the
+    // board's inner face; the board slides down, flexes them out, then the lip
+    // clicks over its top edge and holds it flat against the wall. They start at
+    // the floor so they fuse to the ledge (one solid part).
+    for (fy = [uy - 9, uy + 9])
+        translate([-37.5, fy - 2.5, floor_z]) {
+            cube([1.6, 5, 32]);                        // flexible finger (overlaps ledge)
+            translate([-1.2, 0, 30]) cube([1.4, 5, 2]); // lip clicking over the board top
+        }
 }
 
 
@@ -186,10 +192,12 @@ module motor_bays() {
     // carries the round Ø28 body. It is open at the top (the motor drops straight
     // in) and does not cap the ends, so the motor then slides toward the wall to
     // seat its shaft in the coupler and is screwed to the wall through its ears.
+    // The cradle top stops ~4mm BELOW the ear line (motor_z) so the motor can be
+    // slid sideways into its coupler without the ears fouling the cradle.
     for (s = [-1, 1])
         difference() {
-            translate([s * 30.5, motor_y, (floor_z + motor_z) / 2 - 0.05])
-                cube([20, 30, motor_z - floor_z + 0.1], center=true);
+            translate([s * 30.5, motor_y, (floor_z + motor_z - 4) / 2])
+                cube([20, 30, motor_z - floor_z - 4], center=true);
             translate([s * 30.5, motor_y, motor_z]) rotate([0, 90, 0])
                 cylinder(d=29, h=24, center=true);
         }
