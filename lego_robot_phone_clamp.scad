@@ -1,23 +1,30 @@
 include <lego_robot_common.scad>
 
-// Adjustable LEFT V-jaw of the horizontal phone clamp. Its foot slides in X along
-// the pedestal rail; an elastic band hooked between its rear peg and the fixed
-// right jaw's rear peg (behind the phone) pulls it inward to clamp. The V-notch
-// is a constant-section vertical prism (mirror of the fixed jaw) so it grips the
-// phone's left edge without resting the phone on a ledge -- the bottom V-rest
-// carries the weight. Prints standing on the foot, no support.
+// Adjustable LEFT V-jaw of the horizontal phone clamp.
+//
+// HOW IT WORKS (mirror of the fixed right jaw, which is part of the chassis):
+//  * The jaw's T-FOOT is captured in the pedestal's T-slot rail and can only
+//    slide left-right (X) -- that's how it is attached to the chassis and how it
+//    adjusts to different phone widths.
+//  * A rubber band hooks on this jaw's rear peg and on the fixed jaw's rear peg
+//    (both behind the phone) and pulls the two jaws together -> the squeeze.
+//  * The vertical V-notch grips the phone's side edge for any thickness; the
+//    bottom V-rest carries the weight, so this jaw only needs to squeeze.
+// Prints standing on the foot, no support.
 module phone_clamp_jaw() {
     cy = length / 2 + 12;
     difference() {
         union() {
-            translate([-41, cy, (14 + height) / 2]) cube([10, 14, height - 14], center=true);  // jaw post
-            translate([-41, cy, 12]) cube([9, 17, 8], center=true);                            // rail foot
+            // Grip post: reaches inboard over the V-rest to grip the phone edge.
+            translate([-41.5, cy, (14 + height) / 2]) cube([9, 14, height - 14], center=true);
+            // T-foot captured in the pedestal rail (wide base + neck), slides in X.
+            translate([-43.5, cy, 10])   cube([8, 9, 4], center=true);   // wide base (z8..12)
+            translate([-43.5, cy, 13.2]) cube([8, 4.4, 3.6], center=true); // neck up to the post
         }
-        // V-notch (mirror of the fixed jaw) gripping the phone's left edge
-        translate([0, cy, 13]) linear_extrude(height) polygon([[-42, 0], [-36, -6], [-36, 6]]);
+        // V-notch: mouth at x=-37 (the phone's left edge), apex inside the post.
+        translate([0, cy, 13]) linear_extrude(height) polygon([[-43, 0], [-37, -6], [-37, 6]]);
     }
-    // rear elastic hook (matches the fixed jaw's, same height): the band runs
-    // straight across the back behind the phone and pulls this jaw inward.
+    // Rear elastic hook (band runs straight across the back to the fixed jaw).
     translate([-42, cy - 4, 26]) rotate([90, 0, 0]) {
         cylinder(d=4, h=5);
         translate([0, 0, 4]) cylinder(d=7, h=1.5);

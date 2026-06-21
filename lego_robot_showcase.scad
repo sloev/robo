@@ -11,6 +11,15 @@ color("#f1c40f") translate([-46, motor_y, shaft_z]) motor_coupler();            
 color("#f1c40f") translate([ 46, motor_y, shaft_z]) rotate([0, 0, 180]) motor_coupler(); // right (flipped)
 color("#27ae60") phone_clamp_jaw();
 
+// --- Phone clamp in use (illustration) ---
+// Rubber band: two strands hooked on the two jaws' rear pegs, behind the phone,
+// pulling the moving (left) jaw toward the fixed (right) jaw = the squeeze.
+color("#222") for (dy = [-1.3, 1.3])
+    translate([0, length/2 + 4 + dy, 26]) rotate([0, 90, 0]) cylinder(d=2, h=84, center=true);
+// Phone (translucent) standing in the clamp: bottom edge in the V-rest, side
+// edges gripped by the two jaws.
+%translate([0, length/2 + 12, 14 + 70]) cube([75, 9, 140], center=true);
+
 // Accurate 28BYJ-48 stepper. Local frame: body axis along X, body centered at
 // origin; shaft exits +X offset +8mm in Z (so the body sits on motor_z and the
 // shaft lands on shaft_z). Mount-ear holes are 35mm apart, aligning with the

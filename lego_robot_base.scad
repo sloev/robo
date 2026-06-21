@@ -72,9 +72,12 @@ module vehicle_base() {
         // CARRIES THE PHONE WEIGHT. Opens upward (prints with no support).
         translate([-40, length/2 + 12, 14]) rotate([0, 90, 0])
             linear_extrude(80) polygon([[9, 0], [0, -9], [0, 9]]);
-        // Left-jaw slide rail at the phone plane (cy = length/2+12): an open-top
-        // channel the moving jaw's foot slides along in X to clamp.
-        translate([-50, length/2 + 3, 8]) cube([16, 18, 8]);
+        // Left-jaw T-SLOT rail, OUTBOARD of the V-rest (x -48..-39) at the phone
+        // plane. The moving jaw's T-foot is captured under the narrow opening, so
+        // the jaw is held to the chassis and can only slide in X (to clamp / fit
+        // different widths). Wide channel below + narrow slot to the top.
+        translate([-48, length/2 + 12 - 5, 8])   cube([9, 10, 4.2]);  // wide channel (z8..12.2)
+        translate([-48, length/2 + 12 - 2.6, 12]) cube([9, 5.2, 3]);  // narrow opening to the top
         
         // USB-C Pass-through (aligned with the ESP32's USB-C edge at the back)
         translate([0, -length/2, 9.5]) cube([13, 8, 7], center=true);
@@ -176,17 +179,18 @@ module uln_wall_mount_left() {
 
 
 module motor_bays() {
-    // Open saddle ribs that ONLY support the motor body from below -- they do not
-    // enclose it, so the motor can be dropped in and slid toward the wall to seat
-    // its shaft in the already-placed coupler, then fastened by screws through the
-    // mounting ears into the wall pilots. Two Ø29 saddles per motor (open top and
-    // open along X so insertion is never blocked).
+    // One SOLID half-tube cradle per motor. A block from the floor up to the body
+    // axis has a Ø29 bore removing its upper half, leaving a smooth arc that
+    // carries the round Ø28 body. It is open at the top (the motor drops straight
+    // in) and does not cap the ends, so the motor then slides toward the wall to
+    // seat its shaft in the coupler and is screwed to the wall through its ears.
     for (s = [-1, 1])
-        for (rx = [s * 24, s * 37])
-            difference() {
-                translate([rx - 2, motor_y - 15, floor_z]) cube([4, 30, motor_z - floor_z + 13]);
-                translate([rx, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=29, h=10, center=true);
-            }
+        difference() {
+            translate([s * 30.5, motor_y, (floor_z + motor_z) / 2 - 0.05])
+                cube([20, 30, motor_z - floor_z + 0.1], center=true);
+            translate([s * 30.5, motor_y, motor_z]) rotate([0, 90, 0])
+                cylinder(d=29, h=24, center=true);
+        }
 }
 
 

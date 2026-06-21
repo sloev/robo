@@ -29,7 +29,7 @@ lid_z = height - 2.4; // centre Z of the sliding-lid rail groove (just below top
 
 // --- ALIGNED INTERNAL POSITIONS ---
 shaft_z = 33.6; // motor shaft / coupler height
-motor_y = 30.0; // front, fits the shortened cavity
+motor_y = 26.0; // front; keeps the front mounting ear (motor_y+17.5) inside the cavity
 motor_z = shaft_z - 8.0;
 
 // --- RENDER TARGET ---
