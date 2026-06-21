@@ -216,11 +216,12 @@ for (const m of [{ x: -30.5, flip: true }, { x: 30.5, flip: false }]) {
     scene.add(motor);
     parts['motor_' + (internalCount++)] = { mesh: motor, assembledPos: assembled, explodedPos: exploded, targetPos: assembled.clone() };
 }
-// Two ULN2003 driver boards (35 x 31.5mm) sitting flat on their trays.
-for (const sx of [-20, 20])
-    addInternal(new THREE.BoxGeometry(35, 1.6, 31.5), matBoard, [sx, 2, 7]);
-// ESP32-S2 Mini (34.3 x 25.4mm) friction-fit at the rear, USB-C to the back wall.
-addInternal(new THREE.BoxGeometry(25.4, 1.6, 34.3), matBoard, [0, -45, 7]);
+// Two ULN2003 driver boards (35 x 31.5mm) standing vertically on the inner side
+// walls. BoxGeometry here is in Three.js axes: x=thickness, y=height, z=length.
+for (const sx of [-36, 36])
+    addInternal(new THREE.BoxGeometry(1.6, 31.5, 35), matBoard, [sx, -10, 20]);
+// ESP32-S2 Mini (34.3 x 25.4mm) flat on the floor between the ULN boards.
+addInternal(new THREE.BoxGeometry(25.4, 1.6, 34.3), matBoard, [0, -10, 7]);
 
 // Button logic
 document.getElementById('explode-btn').addEventListener('click', () => {

@@ -43,15 +43,15 @@ module showcase_electronics() {
     color("silver") translate([30.5, motor_y, motor_z]) byj48();
     color("silver") translate([-30.5, motor_y, motor_z]) rotate([0, 0, 180]) byj48();
 
-    // ESP32-S2 Mini Board
-    translate([0, -45, floor_z + 4]) {
-        color("purple") cube([34.3, 25.4, 1.6], center=true);
-        color("silver") translate([0, -10, 2]) cube([10, 8, 3], center=true); // USB-C
+    // ESP32-S2 Mini, flat on the floor, centred between the wall ULN boards
+    translate([0, -10, floor_z + 1]) {
+        color("purple") cube([25.4, 34.3, 1.6], center=true);
+        color("silver") translate([0, -18, 2]) cube([9, 4, 3.5], center=true); // USB-C
     }
-    
-    // ULN2003 Driver Boards (Flat)
-    color("green") translate([-20, 2, floor_z + 2.8]) cube([35, 32, 1.6], center=true);
-    color("green") translate([20, 2, floor_z + 2.8]) cube([35, 32, 1.6], center=true);
+
+    // ULN2003 driver boards, standing vertically on the inner side walls
+    for (s = [-1, 1])
+        color("green") translate([s*37, -10, floor_z + 16]) cube([1.6, 35, 31.5], center=true);
     
     // Highlight the Technic Axle insertion path
     color("red") translate([-50, motor_y, shaft_z]) rotate([0, 90, 0]) cylinder(d=4.5, h=20, center=true);
