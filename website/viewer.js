@@ -142,14 +142,14 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clam
 // 4. Couplers. We load the same model twice (left and right).
 // Left coupler: D-socket faces +X (towards motor). The model's default orientation points D-socket to +X.
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
-    [-41.2, 33.6, -44], // Assembled (captive in the left wall: flange trapped inside, axle socket out)
+    [-38.7, 33.6, -44], // Assembled (captive in the left wall: flange trapped inside, axle socket out)
     [-90, 33.6, -44],   // Exploded
     'couplerLeft'
 );
 
 // Right coupler: D-socket must face -X. So we rotate it 180 degrees around Y!
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
-    [41.2, 33.6, -44],  // Assembled (captive in the right wall: flange trapped inside, axle socket out)
+    [38.7, 33.6, -44],  // Assembled (captive in the right wall: flange trapped inside, axle socket out)
     [90, 33.6, -44],    // Exploded
     'couplerRight',
     [0, Math.PI, 0]     // Assembled Rotation (will be applied to wrapper)
@@ -207,10 +207,10 @@ function makeMotor() {
     }
     return g;
 }
-for (const m of [{ x: -30, flip: true }, { x: 30, flip: false }]) {
+for (const m of [{ x: -17.5, flip: true }, { x: 17.5, flip: false }]) {
     const motor = makeMotor();
     if (m.flip) motor.rotation.y = Math.PI;   // shaft toward the opposite wall
-    const assembled = new THREE.Vector3(m.x, 25.6, -44);   // OpenSCAD (±30, 44, 25.6)
+    const assembled = new THREE.Vector3(m.x, 25.6, -44);   // OpenSCAD (±17.5, 44, 25.6)
     const exploded = assembled.clone().add(new THREE.Vector3(0, -50, 0));
     motor.position.copy(assembled);
     scene.add(motor);

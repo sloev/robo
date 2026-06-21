@@ -79,33 +79,24 @@ module vehicle_base() {
         // USB-C Pass-through
         translate([0, -length/2, 12.4]) cube([12, 6, 5], center=true);
         
-        // Left Internal U-Slot (Hidden inside the thickened wall).
-        // The shaft clearance cylinder is lengthened (h=20) so it pierces the
-        // outer wall and the motor shaft/coupler can actually exit the side.
+        // Left motor U-slot (in the thick wall). The Ø8.5 hole passes the
+        // coupler's Ø8 axle nose out through the wall; the coupler's Ø12 ring
+        // can't pass the Ø8.5 hole, so it stays captive in the cavity against the
+        // inner wall face (no central flange groove needed for the new coupler).
+        // The open-top cube is the drop slot for assembling the motor + coupler.
         translate([-41.2, motor_y, shaft_z]) {
             rotate([0, 90, 0]) cylinder(d=8.5, h=20, center=true);
             translate([0, 0, 15]) cube([11, 8.5, 30], center=true);
-            // Captive Flange Groove
-            rotate([0, 90, 0]) cylinder(d=12.5, h=2.5, center=true);
-            translate([0, 0, 15]) cube([2.5, 12.5, 30], center=true);
         }
 
-        // Right Internal U-Slot
+        // Right motor U-slot
         translate([41.2, motor_y, shaft_z]) {
             rotate([0, 90, 0]) cylinder(d=8.5, h=20, center=true);
             translate([0, 0, 15]) cube([11, 8.5, 30], center=true);
-            rotate([0, 90, 0]) cylinder(d=12.5, h=2.5, center=true);
-            translate([0, 0, 15]) cube([2.5, 12.5, 30], center=true);
         }
         
-        // Left Horizontal Motor Mount Screw Holes (Depth 7mm, starts at -39 to cleanly pierce the -40 face)
-        translate([-39, motor_y - 17.5, motor_z]) rotate([0, -90, 0]) cylinder(d=2.5, h=7);
-        translate([-39, motor_y + 17.5, motor_z]) rotate([0, -90, 0]) cylinder(d=2.5, h=7);
-        
-        // Right Horizontal Motor Mount Screw Holes
-        translate([39, motor_y - 17.5, motor_z]) rotate([0, 90, 0]) cylinder(d=2.5, h=7);
-        translate([39, motor_y + 17.5, motor_z]) rotate([0, 90, 0]) cylinder(d=2.5, h=7);
-        
+        // (Motor is friction-held in the cradle -- no wall screw holes needed.)
+
         // External Axle Hole Indicators (0.5mm indented into outer walls)
         translate([-width/2 + 0.5, motor_y, shaft_z + 6]) rotate([90, 0, -90]) 
             linear_extrude(1) text("v AXLE v", size=4, halign="center", font="Liberation Sans:style=Bold");
@@ -189,18 +180,20 @@ module uln2003_flat_tray(x, y) {
 
 
 module motor_bays() {
-    // Left Horizontal Cradle (Supports the motor body, leaves massive gap for cable)
-    difference() {
-        translate([-40, motor_y - 14, floor_z - 0.1]) cube([15, 28, motor_z - floor_z + 0.1]);
-        translate([-45, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=28.5, h=25);
-        translate([-45, motor_y - 8, floor_z - 1.1]) cube([25, 16, motor_z]);
-    }
-    
-    // Right Horizontal Cradle
-    difference() {
-        translate([25, motor_y - 14, floor_z - 0.1]) cube([15, 28, motor_z - floor_z + 0.1]);
-        translate([20, motor_y, motor_z]) rotate([0, 90, 0]) cylinder(d=28.5, h=25);
-        translate([20, motor_y - 8, floor_z - 1.1]) cube([25, 16, motor_z]);
+    // Friction cradles that hold each 28BYJ-48 body in the cavity so its shaft
+    // plugs straight into the captive coupler at the wall (no screws). The body
+    // is centred at x = ±17.5 (shaft ends inside, at the coupler's inboard flat-D
+    // socket; only the coupler nose + LEGO axle use the Ø8.5 wall hole). The
+    // Ø28.5 trough is open at the top to drop the motor in.
+    for (s = [-1, 1]) {
+        difference() {
+            translate([s * 17.5, motor_y, (floor_z + motor_z) / 2 - 0.05])
+                cube([28, 28, motor_z - floor_z + 0.1], center=true);
+            translate([s * 17.5, motor_y, motor_z]) rotate([0, 90, 0])
+                cylinder(d=28.5, h=32, center=true);
+            translate([s * 17.5, motor_y, motor_z + 8])
+                cube([34, 17, 16], center=true);
+        }
     }
 }
 
