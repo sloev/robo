@@ -28,19 +28,20 @@ module vehicle_base() {
             translate([0, 22, floor_z - 0.1]) linear_extrude(0.7) text("--- WIRES ---", size=3, halign="center");
             
             // --- AI Phone Holder: bottom V-rest + horizontal V-clamp ---
-            // Pedestal across the front (the V-rest groove and the left-jaw rail
-            // are cut from it in the CUTS section below).
-            translate([0, length/2 + 12, 8]) cube([96, 24, 16], center=true);
-            // Fixed RIGHT V-jaw: vertical post up to the chassis top with a
-            // vertical V-notch cradling the phone's right edge. The notch runs
-            // straight up (constant section) so it prints standing, no overhang.
+            // (cy = phone plane Y = length/2 + 12). Pedestal fused to the front
+            // wall; the V-rest groove + left-jaw rail are cut from it below.
+            translate([0, length/2 + 11, 7]) cube([96, 26, 14], center=true);
+            // Fixed RIGHT jaw: a SOLID buttress fused to the front wall over its
+            // full height (no gap to the chassis). Its V-notch is a constant-
+            // section vertical prism (no horizontal ledge) so the phone slides
+            // straight down past it onto the V-rest, which carries the weight.
             difference() {
-                translate([43, length/2 + 12, (16 + height) / 2]) cube([10, 22, height - 16], center=true);
-                translate([38, length/2 + 12, 15]) linear_extrude(height)
-                    polygon([[6, 0], [0, -7], [0, 7]]);
+                translate([41, length/2 + 8.5, (14 + height) / 2]) cube([10, 17, height - 14], center=true);
+                translate([0, length/2 + 12, 13]) linear_extrude(height)
+                    polygon([[42, 0], [36, -6], [36, 6]]);
             }
-            // Strong elastic anchor on the right jaw's back (hidden behind phone)
-            translate([40, length/2 + 3, height - 9]) rotate([90, 0, 0]) {
+            // Strong elastic anchor on the fixed jaw's back (hidden behind phone)
+            translate([41, length/2 + 5, height - 11]) rotate([90, 0, 0]) {
                 cylinder(d=4.5, h=4);
                 translate([0, 0, 3]) cylinder(d=8, h=1.5);
             }
@@ -64,15 +65,14 @@ module vehicle_base() {
             }
         }
         
-        // Bottom V-rest groove: spans only the phone width (x -38..38) so the
-        // phone's bottom edge drops into the V (self-centres any thickness),
-        // leaving the outboard pedestal solid for the jaw rails. Opens upward
-        // (prints with no support).
-        translate([-38, length/2 + 12, 16]) rotate([0, 90, 0])
-            linear_extrude(76) polygon([[9, 0], [0, -9], [0, 9]]);
-        // Left-jaw slide rail: an outboard open-top channel in the pedestal top
-        // (x -49..-37) that the adjustable jaw's foot slides along in X.
-        translate([-49, length/2 + 3, 8]) cube([12, 20, 9]);
+        // Bottom V-rest groove (x ±40, wider than the phone): the phone's bottom
+        // edge drops in and the V (narrowing in Y) self-centres any thickness and
+        // CARRIES THE PHONE WEIGHT. Opens upward (prints with no support).
+        translate([-40, length/2 + 12, 14]) rotate([0, 90, 0])
+            linear_extrude(80) polygon([[9, 0], [0, -9], [0, 9]]);
+        // Left-jaw slide rail at the phone plane (cy = length/2+12): an open-top
+        // channel the moving jaw's foot slides along in X to clamp.
+        translate([-50, length/2 + 3, 8]) cube([16, 18, 8]);
         
         // USB-C Pass-through
         translate([0, -length/2, 12.4]) cube([12, 6, 5], center=true);

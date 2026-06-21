@@ -1,24 +1,23 @@
 include <lego_robot_common.scad>
 
-// Adjustable LEFT V-jaw of the horizontal phone clamp. It slides in X along the
-// pedestal rail and is pulled inward by an elastic band hooked between its rear
-// peg and the fixed right jaw's rear peg (behind the phone, hidden). The V-notch
-// grips the phone's left edge for any thickness; it mirrors the fixed right jaw.
-// Prints standing on its foot with no support (vertical notch, flat foot).
+// Adjustable LEFT V-jaw of the horizontal phone clamp. Its foot slides in X along
+// the pedestal rail; an elastic band hooked between its rear peg and the fixed
+// right jaw's rear peg (behind the phone) pulls it inward to clamp. The V-notch
+// is a constant-section vertical prism (mirror of the fixed jaw) so it grips the
+// phone's left edge without resting the phone on a ledge -- the bottom V-rest
+// carries the weight. Prints standing on the foot, no support.
 module phone_clamp_jaw() {
+    cy = length / 2 + 12;
     difference() {
         union() {
-            // Jaw post up to the chassis top
-            translate([-43, length/2 + 12, (16 + height) / 2]) cube([10, 22, height - 16], center=true);
-            // Foot that rides the pedestal rail (slides in X)
-            translate([-43, length/2 + 12, 12.5]) cube([11, 18, 8], center=true);
+            translate([-41, cy, (14 + height) / 2]) cube([10, 14, height - 14], center=true);  // jaw post
+            translate([-41, cy, 12]) cube([9, 17, 8], center=true);                            // rail foot
         }
-        // V-notch facing +X (toward the phone), mirror of the right jaw
-        translate([-38, length/2 + 12, 15]) linear_extrude(height)
-            polygon([[-6, 0], [0, -7], [0, 7]]);
+        // V-notch (mirror of the fixed jaw) gripping the phone's left edge
+        translate([0, cy, 13]) linear_extrude(height) polygon([[-42, 0], [-36, -6], [-36, 6]]);
     }
-    // Strong elastic anchor peg on the back (hidden behind the phone)
-    translate([-40, length/2 + 3, height - 9]) rotate([90, 0, 0]) {
+    // rear elastic peg (matches the fixed jaw's; the band runs behind the phone)
+    translate([-41, cy - 7, height - 11]) rotate([90, 0, 0]) {
         cylinder(d=4.5, h=4);
         translate([0, 0, 3]) cylinder(d=8, h=1.5);
     }
