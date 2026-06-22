@@ -137,9 +137,9 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_lid.stl', 
 );
 
 // 3. Phone clamp is naturally generated fully assembled! (Z=65 to 130).
-loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clamp.stl', matClamp, 
+loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clamp.stl', matClamp,
     [0, 0, 0],      // Assembled (Already in place)
-    [-60, 30, 0],   // Exploded (the moving jaw slides out of its rail to the left + lifts)
+    [60, 30, 0],    // Exploded (the moving jaw slides out of its rail to the right + lifts)
     'clamp'
 );
 
