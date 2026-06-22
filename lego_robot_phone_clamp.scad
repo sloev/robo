@@ -15,8 +15,8 @@ module phone_clamp_jaw() {
 
     difference() {
         union() {
-            // Grip finger in front of wall (y=53-71), mirrors fixed right jaw
-            translate([-40, fy + 14, 22]) cube([10, 18, 28], center=true);
+            // Grip finger in front of wall (y=51-69), mirrors fixed right jaw
+            translate([-40, fy + 12, 21.5]) cube([10, 18, 29], center=true);
 
             // ── T-tongue: 65 mm long, extends left from jaw body ─────────────
             // Neck (fits in slot neck  y=54-58, z=23-29):
@@ -33,7 +33,7 @@ module phone_clamp_jaw() {
 
             // Band peg: front face of jaw, visible from outside.
             // Hook rubber band on this + fixed jaw's matching peg.
-            translate([-40, fy + 22, 10]) rotate([-90, 0, 0]) {
+            translate([-40, fy + 20, 10]) rotate([-90, 0, 0]) {
                 cylinder(d=4, h=5);
                 translate([0, 0, 3.5]) cylinder(d=7, h=1.5);
             }
@@ -41,7 +41,7 @@ module phone_clamp_jaw() {
 
         // V-notch grips phone's left edge (mirror of fixed jaw).
         // Base flush with jaw inner face x=-35 — no 1mm flat wall.
-        translate([0, fy + 14, 7]) linear_extrude(34)
+        translate([0, fy + 12, 6]) linear_extrude(35)
             polygon([[-44, 0], [-35, -9], [-35, 9]]);
     }
 }
