@@ -28,26 +28,26 @@ module vehicle_base() {
             translate([0, 22, floor_z - 0.1]) linear_extrude(0.7) text("--- WIRES ---", size=3, halign="center");
             
             // --- AI Phone Holder: phone stands IN FRONT of the chassis front wall ---
-            // A thick CLAMP-WALL protrudes forward and carries a horizontal T-slot
-            // rail (cut below). The phone leans on the wall's front face, bottom
-            // edge in the V-lip; the two jaws ride the rail and grip the side
-            // edges; the rubber band is BEHIND, in the cavity, on accessible posts.
-            translate([0, length/2 + 4, 18]) cube([96, 8, 36], center=true);   // clamp-wall y48-56, z0-36
-            // V-lip shelf in front; the phone's bottom edge sits in its V-groove (cut below)
-            translate([0, length/2 + 13, 4]) cube([92, 16, 8], center=true);   // shelf y57-69, z0-8
-            // Fixed RIGHT jaw: a finger in front of the wall whose V-notch grips
-            // the phone's right edge (the phone leans on the wall at y56).
+            // Clamp-wall (10mm, y=48-58) carries a T-slot on its front face.
+            // Rail extension (x=-96..-48) lets the moving jaw telescope left for loading.
+            // V-notch jaws grip the phone's side edges; rubber band hooks on the
+            // forward-facing pegs and stretches across the phone front — fully visible.
+            translate([0, length/2 + 5, 18]) cube([96, 10, 36], center=true);    // clamp-wall y48-58, z0-36
+            translate([-72, length/2 + 5, 18]) cube([48, 10, 36], center=true);  // rail ext x=-96..-48, z0-36
+            // V-lip shelf: phone bottom rests in V-groove (cut below)
+            translate([0, length/2 + 17, 4]) cube([92, 14, 8], center=true);     // shelf y58-72, z0-8
+            // Fixed RIGHT jaw: V-notch grips phone right edge; fused to wall.
             difference() {
-                translate([40, length/2 + 12, 22]) cube([10, 18, 28], center=true);  // y56-66, z8-36
-                translate([0, length/2 + 12, 7]) linear_extrude(34)
-                    polygon([[42, 0], [36, -6], [36, 6]]);
+                translate([40, length/2 + 14, 22]) cube([10, 18, 28], center=true); // y53-71, z8-36
+                // V-notch: tip at x=44, base flush with inner jaw face x=35 (no flat wall)
+                translate([0, length/2 + 14, 7]) linear_extrude(34)
+                    polygon([[44, 0], [35, -9], [35, 9]]);
             }
-            // Accessible band post (fixed end), BEHIND the wall in the cavity, at
-            // the rail height so the band pulls in-line (no jam). Band hooks here
-            // and on the moving jaw's matching peg.
-            translate([40, length/2 - 4, 26]) rotate([90, 0, 0]) {
-                cylinder(d=4, h=3);
-                translate([0, 0, 2.5]) cylinder(d=7, h=1.5);
+            // Band peg on jaw front face — fully visible, hooked before phone is inserted.
+            // Rubber band stretches from here to matching peg on moving jaw, across phone front.
+            translate([40, length/2 + 23, 10]) rotate([-90, 0, 0]) {
+                cylinder(d=4, h=5);
+                translate([0, 0, 3.5]) cylinder(d=7, h=1.5);
             }
         }
         
@@ -69,15 +69,14 @@ module vehicle_base() {
             }
         }
         
-        // V-lip groove in the shelf top: the phone's bottom edge drops into the V
-        // (narrowing in Y, self-centres any thickness). Opens upward (no support).
-        translate([-40, length/2 + 13, 8]) rotate([0, 90, 0])
+        // V-lip groove centred in shelf (y=65): phone bottom self-centres. Opens up.
+        translate([-40, length/2 + 17, 8]) rotate([0, 90, 0])
             linear_extrude(80) polygon([[7, 0], [0, -7], [0, 7]]);
-        // Horizontal rail: a slot straight THROUGH the clamp-wall at z23-29. The
-        // jaws' tongues ride in it (captured vertically by the slot, free to slide
-        // in X). It runs the full width plus past the left side so the moving jaw
-        // can telescope out. The fixed jaw side (x>10) is left solid.
-        translate([-100, length/2, 23]) cube([110, 12, 6]);
+        // T-slot milled into front face of clamp-wall + rail extension.
+        // Neck (4mm deep from front face, 6mm tall): jaws slide freely in X.
+        translate([-96, length/2 + 6, 23]) cube([106, 4, 6]);    // y=54-58, z=23-29
+        // Undercut (3mm deeper, 12mm tall): T-flanges lock tongue — can't pull out in Y.
+        translate([-96, length/2 + 3, 20]) cube([106, 3, 12]);   // y=51-54, z=20-32
         
         // USB-C Pass-through (aligned with the ESP32's USB-C edge at the back)
         translate([0, -length/2, 9.5]) cube([13, 8, 7], center=true);

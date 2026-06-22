@@ -12,14 +12,13 @@ color("#f1c40f") translate([ 46, motor_y, shaft_z]) rotate([0, 0, 180]) motor_co
 color("#27ae60") phone_clamp_jaw();
 
 // --- Phone clamp in use (illustration) ---
-// Rubber band: hooked on the fixed band post and the moving jaw's peg, BEHIND
-// the front wall in the cavity gap (y44, z26 = rail height), pulling the moving
-// (left) jaw toward the fixed (right) jaw = the squeeze, in-line with the rail.
+// Rubber band: hooks on the forward-facing pegs (right jaw x=40, left jaw x=-40,
+// both at y=76, z=10) and stretches across the phone's front face — fully visible.
 color("#222")
-    translate([0, length/2 - 4, 26]) rotate([0, 90, 0]) cylinder(d=2, h=80, center=true);
-// Phone (translucent) standing IN FRONT of the front wall: bottom edge in the
-// V-lip shelf, side edges gripped by the two jaws.
-%translate([0, length/2 + 12, 8 + 70]) cube([75, 9, 140], center=true);
+    translate([0, length/2 + 28, 10]) rotate([0, 90, 0]) cylinder(d=2, h=80, center=true);
+// Phone (translucent) standing IN FRONT of the front wall (y=58): bottom edge
+// in the V-lip shelf, side edges gripped by the two V-notch jaws.
+%translate([0, length/2 + 14.5, 8 + 70]) cube([75, 9, 140], center=true);
 
 // Accurate 28BYJ-48 stepper. Local frame: body axis along X, body centered at
 // origin; shaft exits +X offset +8mm in Z (so the body sits on motor_z and the

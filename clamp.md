@@ -1,75 +1,81 @@
 # Phone Clamp — Source of Truth
 
-The horizontal phone clamp for the BlockBot chassis. This is the agreed,
-working architecture. **Read this before touching any clamp geometry.** It went
-through ~6 wrong iterations; the constraints below are the lessons from each.
+The horizontal phone clamp for the BlockBot chassis. **Read this before touching any
+clamp geometry.** It went through ~8 wrong iterations; the constraints below are the
+lessons from each.
 
 ## The core idea
 
 The phone stands **in front of the chassis front wall** (NOT on top, NOT inside).
-It leans back against the wall's front face. Two V-jaws grip its left/right side
-edges; a rubber band squeezes them together. Like a car phone mount.
+It leans back against the wall's front face (y=58). Two V-jaws grip its left/right
+side edges. A rubber band stretches between the forward-facing pegs on each jaw,
+across the phone's front face — fully visible and accessible.
 
 ```
-            phone (leans on wall front face, y56+)
-            │
-   ┌────────┴────────┐  ← grip fingers, V-notch grips side edges
-   │ fixed   moving  │
-   │ jaw      jaw    │
-═══╪═════════╪═══════╪═══  ← clamp-wall (y48-56) with a horizontal T-slot
-   │ rail z23-29 cut straight THROUGH the wall
+                  rubber band (y≈76, z=10)
+         ●────────────────────────────────●
+         │      phone front face (y=67)   │
+   ┌─────┴──────────────────────────────┴─────┐
+   │  R jaw           phone body        L jaw │  ← jaws V-grip side edges
+   │  (fixed)                         (slide) │
+═══╪══════════════════════════════════════════╪═══  ← clamp-wall y=48-58 (10mm)
+   │ T-slot on front face (y=54-58 neck, y=51-54 undercut)
+   │ Rail extension x=-96..-48 for jaw telescoping
    │
-   gap y40-48 (BEHIND wall, in front of motors)
-   ● ─────band───── ●     ← band posts at z26 = rail height, in-line pull
-   │
-   motors (y12-40, at the side walls)
+   gap y40-48 (cavity: motors clear of all clamp geometry)
 ```
 
-## Geometry (in `lego_robot_common.scad` units, mm)
+## Geometry (mm, OpenSCAD coordinates)
 
-Front wall plane: `fy = length/2 = 48`.
+`fy = length/2 = 48` (chassis front wall inner face).
 
 | Feature | Where | Notes |
 |---|---|---|
-| Clamp-wall | `[0, 52, 18]` cube `[96,8,36]` | y48-56, z0-36. Carries the rail. |
-| V-lip shelf | `[0, 61, 4]` cube `[92,16,8]` | y57-69, z0-8. Phone bottom sits here. |
-| V-lip groove | `[-40,61,8]` rot[0,90,0] extrude 80, poly `[[7,0],[0,-7],[0,7]]` | narrows in Y, self-centers any thickness, opens up → no support |
-| Rail slot | `[-100,48,23]` cube `[110,12,6]` | z23-29, full width + past left side for telescope. **x>10 left solid** for the fixed jaw. |
-| Fixed jaw (right) | finger `[40,60,22]` cube `[10,18,28]`, V-notch poly `[[42,0],[36,-6],[36,6]]` | fused to chassis, flush to wall |
-| Fixed band post | `[40,44,26]` rot[90,0,0] cyl d4 h3 + d7 head | y41-44, z26. **Clear of motor (y≤40).** |
-| Moving jaw (left) | separate part, `lego_robot_phone_clamp.scad` | mirror geometry at x=-40 |
-| Moving jaw band peg | `[-40,44,26]` rot[90,0,0] cyl d4 h3 + d7 head | matches fixed post |
+| Clamp-wall | `[0,53,18]` cube `[96,10,36]` | y=48-58, z=0-36. Carries T-slot on front face. |
+| Rail extension | `[-72,53,26]` cube `[48,10,12]` | x=-96..-48, y=48-58, z=20-32. Jaw telescopes here. |
+| V-lip shelf | `[0,65,4]` cube `[92,14,8]` | y=58-72, z=0-8. Phone bottom rests here. |
+| V-lip groove | `[-40,65,8]` rot[0,90,0] extrude 80, poly `[[7,0],[0,-7],[0,7]]` | Narrows in Y, self-centres thickness. Opens up → no support. |
+| T-slot neck | `[-96,54,23]` cube `[106,4,6]` | y=54-58, z=23-29. Jaw neck slides here. |
+| T-slot undercut | `[-96,51,20]` cube `[106,3,12]` | y=51-54, z=20-32. Flanges lock here — jaw can't pull out in Y. |
+| Fixed jaw (right) | finger `[40,62,22]` cube `[10,18,28]` | y=53-71, z=8-36. Fused to chassis. |
+| Fixed jaw V-notch | poly `[[44,0],[35,-9],[35,9]]` extrude from z=7 | Tip at x=44, base at x=35 (inner face). No flat wall. |
+| Fixed band peg | `[40,71,10]` rot[-90,0,0] cyl d4 h5 + d7 head | Forward-facing (+Y). Visible/accessible from front. |
+| Moving jaw (left) | separate part, `lego_robot_phone_clamp.scad` | Mirror geometry at x=-40 |
+| Moving jaw tongue | neck y=54.2-57.8, z=23.2-28.8; flanges y=51.2-53.8, z=20.2-23.0 and z=29.0-31.8 | 65mm long, x=-100..-35. 0.2mm clearance per side. |
+| Moving jaw band peg | `[-40,71,10]` rot[-90,0,0] | Matches fixed peg. |
 
 ## Hard constraints (each is a past bug — do not regress)
 
-1. **Rail is in the WALL, not in the V-bed.** Slot ≥ half width; moving jaw's
-   tongue extends half-width into the slot so it can **telescope out the side**.
-2. **Fixed jaw is fused & flush to the wall.** No separate buttress/pedestal.
-3. **Band attaches at rail height (z26), in-line with the slide.** Off-axis pull
-   cocks the jaw and it jams. This is non-negotiable.
-4. **Band lives in the cavity gap y40-48** — BEHIND the wall but IN FRONT of the
-   motors. The motors occupy y12-40 at the side walls (x±40). Band posts at y44,
-   z26 clear them by ~1mm. Anything at y<40 / x±40 / z11-39 collides with a motor.
-5. **Band posts must be accessible**, never buried in solid wall.
-6. **V-rest/V-lip carries the phone's weight; the side V-notches are pure
-   vertical prisms** — jaw bottoms must NOT catch the phone.
-7. **Fixed-jaw V-notch must reach the bottom V-groove** — no flat lip stopping it
-   short of the floor groove.
-8. **Everything prints support-free.** V-grooves open upward; the rail is a
-   straight horizontal slot.
-9. Both parts must render `Volumes: 2` (one solid + exterior). Higher = floating
-   piece or unintended cavity. Validate with `./ci_render_part.sh`.
+1. **T-slot is on the WALL FRONT FACE, not through the wall.** Neck y=54-58 (4mm),
+   undercut y=51-54 (3mm), leaving 3mm solid wall at back (y=48-51). Never cut
+   past y=48 = cavity boundary.
+2. **T-profile is mandatory.** A rectangular slot lets the jaw pull straight out in Y.
+   The flanges behind the undercut ledges are what locks it.
+3. **Rail extension x=-96..-48 lets the moving jaw telescope outside the chassis
+   width for phone loading.** Tongue stays captured as long as ≥ 20mm is in rail.
+4. **V-notch base is flush with the jaw inner face (x=±35).** No flat wall between
+   the notch base and the jaw edge. Both jaws use this: `[[44,0],[35,-9],[35,9]]`
+   and `[[-44,0],[-35,-9],[-35,9]]`.
+5. **Band pegs are on the jaw FRONT FACES, visible and accessible.** Not buried in
+   the cavity. Forward-facing (rotate([-90,0,0])) so the rubber band hooks on and
+   stretches across the phone front. No off-axis pull.
+6. **V-lip shelf carries phone weight; V-notches are pure vertical prisms.**
+   Jaw bottoms must not catch the phone. Shelf: y=58-72, z=0-8.
+7. **Everything prints support-free.** V-grooves open upward; T-slot cuts are
+   straight horizontal channels; tongue profile is symmetrical.
+8. Both parts render `Volumes: 2`. Validate with `./ci_render_part.sh`.
+
+## Loading sequence
+
+1. Telescope moving jaw far left (to x≈-80, tongue still ≥20mm in rail).
+2. Hook rubber band on fixed jaw peg (now fully accessible, moving jaw is out).
+3. Place phone against wall (y=58), bottom edge in V-groove.
+4. Slide moving jaw right until V-notch grips phone's left edge.
+5. Hook rubber band on moving jaw peg — tension holds both jaws closed.
 
 ## Files that must stay in sync
 
-- `lego_robot_base.scad` — clamp-wall, V-lip + groove, rail slot, fixed jaw, fixed band post.
-- `lego_robot_phone_clamp.scad` — moving left jaw (grip finger + tongue + band peg).
-- `lego_robot_showcase.scad` — illustration: phone `%` in front (`[0,60,78]`), band behind (`[0,44,26]`).
-- `website/viewer.js` — band mesh at three.js `(0, 26, -44)`; clamp explode telescopes sideways `[-60,30,0]`.
+- `lego_robot_base.scad` — clamp-wall, rail ext, shelf, V-groove, T-slot cuts, fixed jaw, fixed band peg.
+- `lego_robot_phone_clamp.scad` — moving jaw (finger + T-tongue + band peg).
+- `lego_robot_showcase.scad` — band at `[0, length/2+28, 10]`; phone at `[0, length/2+14.5, 78]`.
 - Coord map OpenSCAD→Three.js: `[x, y, z] → [x, z, -y]`.
-
-## Known follow-up
-
-Jaws grip the lower ~36mm of the phone's side edges (z8-36). Fine for a 6" phone
-(V-lip carries weight, jaws hold it back). Bump the grip-finger height on both
-jaws if a taller hold is wanted.
