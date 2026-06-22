@@ -33,19 +33,19 @@ module vehicle_base() {
             // V-notch jaws grip the phone's side edges; rubber band hooks on the
             // forward-facing pegs and stretches across the phone front — fully visible.
             translate([0, length/2 + 5, 18]) cube([96, 10, 36], center=true);    // clamp-wall y48-58, z0-36
-            translate([-72, length/2 + 5, 18]) cube([48, 10, 36], center=true);  // rail ext x=-96..-48, z0-36
+            translate([-71, length/2 + 5, 18]) cube([50, 10, 36], center=true);  // rail ext x=-96..-46 (2mm overlap into wall), z0-36
             // V-lip shelf: phone bottom rests in V-groove (cut below)
-            translate([0, length/2 + 17, 4]) cube([92, 14, 8], center=true);     // shelf y58-72, z0-8
+            translate([0, length/2 + 16, 4]) cube([92, 14, 8], center=true);     // shelf y57-71, z0-8 (1mm into wall avoids coplanar face)
             // Fixed RIGHT jaw: V-notch grips phone right edge; fused to wall.
             difference() {
-                translate([40, length/2 + 14, 22]) cube([10, 18, 28], center=true); // y53-71, z8-36
+                translate([40, length/2 + 14, 21.5]) cube([10, 18, 29], center=true); // y53-71, z7-36 (1mm into shelf avoids coplanar face)
                 // V-notch: tip at x=44, base flush with inner jaw face x=35 (no flat wall)
-                translate([0, length/2 + 14, 7]) linear_extrude(34)
+                translate([0, length/2 + 14, 6]) linear_extrude(35)
                     polygon([[44, 0], [35, -9], [35, 9]]);
             }
             // Band peg on jaw front face — fully visible, hooked before phone is inserted.
             // Rubber band stretches from here to matching peg on moving jaw, across phone front.
-            translate([40, length/2 + 23, 10]) rotate([-90, 0, 0]) {
+            translate([40, length/2 + 22, 10]) rotate([-90, 0, 0]) {
                 cylinder(d=4, h=5);
                 translate([0, 0, 3.5]) cylinder(d=7, h=1.5);
             }
@@ -69,8 +69,8 @@ module vehicle_base() {
             }
         }
         
-        // V-lip groove centred in shelf (y=65): phone bottom self-centres. Opens up.
-        translate([-40, length/2 + 17, 8]) rotate([0, 90, 0])
+        // V-lip groove centred in shelf (y=64): phone bottom self-centres. Opens up.
+        translate([-40, length/2 + 16, 8]) rotate([0, 90, 0])
             linear_extrude(80) polygon([[7, 0], [0, -7], [0, 7]]);
         // T-slot milled into front face of clamp-wall + rail extension.
         // Neck (4mm deep from front face, 6mm tall): jaws slide freely in X.
