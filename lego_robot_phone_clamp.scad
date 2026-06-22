@@ -33,7 +33,7 @@ module phone_clamp_jaw() {
 
             // Band peg: front face of jaw, visible from outside.
             // Hook rubber band on this + fixed jaw's matching peg.
-            translate([-40, fy + 23, 10]) rotate([-90, 0, 0]) {
+            translate([-40, fy + 22, 10]) rotate([-90, 0, 0]) {
                 cylinder(d=4, h=5);
                 translate([0, 0, 3.5]) cylinder(d=7, h=1.5);
             }

@@ -15,7 +15,7 @@ color("#27ae60") phone_clamp_jaw();
 // Rubber band: hooks on the forward-facing pegs (right jaw x=40, left jaw x=-40,
 // both at y=76, z=10) and stretches across the phone's front face — fully visible.
 color("#222")
-    translate([0, length/2 + 28, 10]) rotate([0, 90, 0]) cylinder(d=2, h=80, center=true);
+    translate([0, length/2 + 27, 10]) rotate([0, 90, 0]) cylinder(d=2, h=80, center=true);
 // Phone (translucent) standing IN FRONT of the front wall (y=58): bottom edge
 // in the V-lip shelf, side edges gripped by the two V-notch jaws.
 %translate([0, length/2 + 14.5, 8 + 70]) cube([75, 9, 140], center=true);
