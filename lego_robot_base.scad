@@ -28,24 +28,24 @@ module vehicle_base() {
             translate([0, 22, floor_z - 0.1]) linear_extrude(0.7) text("--- WIRES ---", size=3, halign="center");
             
             // --- AI Phone Holder: phone stands IN FRONT of the chassis front wall ---
-            // Single wide cube: clamp-wall (x=-48..+48) + rail ext (x=-96..-48) fused
+            // Single wide cube: clamp-wall (x=-48..+48) + rail ext (x=+48..+96) fused
             // into one piece — no coplanar face junction that would make CGAL non-manifold.
-            // T-slot is milled into the front face (y=58). Moving jaw telescopes left.
-            translate([-24, length/2 + 5, 18]) cube([144, 10, 36], center=true); // x=-96..+48, y=48-58, z=0-36
+            // T-slot is milled into the front face (y=58). Moving jaw telescopes right.
+            translate([24, length/2 + 5, 18]) cube([144, 10, 36], center=true); // x=-48..+96, y=48-58, z=0-36
             // V-lip shelf: phone bottom rests in V-groove (cut below). 6mm overlap into
             // wall (y=52..58) so there is no T-junction at the wall front face (y=58).
             translate([0, length/2 + 12, 4]) cube([92, 16, 8], center=true);     // shelf y52-68, z0-8
-            // Fixed RIGHT jaw: V-notch grips phone right edge; fused to wall.
+            // Fixed LEFT jaw: V-notch grips phone left edge; fused to wall.
             // Jaw front (y=69) is 1mm past shelf front (y=68) — no coplanar face.
             difference() {
-                translate([40, length/2 + 12, 21.5]) cube([10, 18, 29], center=true); // y51-69, z7-36
-                // V-notch: tip at x=44, base flush with inner jaw face x=35 (no flat wall)
-                translate([0, length/2 + 12, 6]) linear_extrude(35)
-                    polygon([[44, 0], [35, -9], [35, 9]]);
+                translate([-40, length/2 + 13.5, 21.5]) cube([10, 15, 29], center=true); // y54-69, z7-36
+                // V-notch: tip at x=-44, base flush with inner jaw face x=-35 (no flat wall)
+                translate([0, length/2 + 14.5, 6]) linear_extrude(35)
+                    polygon([[-44, 0], [-35, -4.5], [-35, 4.5]]);
             }
             // Band peg on jaw front face — fully visible, hooked before phone is inserted.
             // Peg base is 1mm inside jaw body (y=68 < jaw front y=69) — no T-junction.
-            translate([40, length/2 + 20, 10]) rotate([-90, 0, 0]) {
+            translate([-40, length/2 + 20, 10]) rotate([-90, 0, 0]) {
                 cylinder(d=4, h=5);
                 translate([0, 0, 3.5]) cylinder(d=7, h=1.5);
             }
@@ -70,13 +70,13 @@ module vehicle_base() {
         }
         
         // V-lip groove centred in shelf (y=60): phone bottom self-centres. Opens up.
-        translate([-40, length/2 + 12, 8]) rotate([0, 90, 0])
-            linear_extrude(80) polygon([[7, 0], [0, -7], [0, 7]]);
+        translate([-46, length/2 + 12, 8]) rotate([0, 90, 0])
+            linear_extrude(92) polygon([[7, 0], [0, -7], [0, 7]]);
         // T-slot milled into front face of clamp-wall + rail extension.
         // Neck (4mm deep from front face, 6mm tall): jaws slide freely in X.
-        translate([-96, length/2 + 6, 23]) cube([106, 4, 6]);    // y=54-58, z=23-29
+        translate([-10, length/2 + 6, 23]) cube([106, 4, 6]);    // x=-10..+96, y=54-58, z=23-29
         // Undercut (3mm deeper, 12mm tall): T-flanges lock tongue — can't pull out in Y.
-        translate([-96, length/2 + 3, 20]) cube([106, 3, 12]);   // y=51-54, z=20-32
+        translate([-10, length/2 + 3, 20]) cube([106, 3, 12]);   // x=-10..+96, y=51-54, z=20-32
         
         // USB-C Pass-through (aligned with the ESP32's USB-C edge at the back)
         translate([0, -length/2, 9.5]) cube([13, 8, 7], center=true);
