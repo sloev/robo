@@ -85,9 +85,18 @@ module vehicle_base() {
         //    and the LEGO axle (the Ø12 ring can't pass it => captive),
         //  - two Ø2.5 pilots (ears 35mm apart) the motor screws into.
         // The motor mounts face-on to the wall; its shaft enters the coupler.
+        // The two big holes print teardrop-shaped (see teardrop_hole() in
+        // lego_robot_common.scad): they're wide enough (>8mm) that a plain
+        // round horizontal hole droops/needs support, and both are
+        // functionally sensitive (coupler + axle fit). The bottom stays a
+        // true circle -- only the unsupported top is reshaped -- so the fit
+        // is unaffected. The small Ø2.5 pilots and the Ø4.8 Technic holes
+        // elsewhere stay plain round: they're well under the size where it
+        // matters, and the Technic holes need to stay true circles for LEGO
+        // pin/axle compatibility.
         for (s = [-1, 1]) {
-            translate([s*40, motor_y, shaft_z]) rotate([0, s*90, 0]) cylinder(d=12.5, h=5.5);
-            translate([s*40, motor_y, shaft_z]) rotate([0, s*90, 0]) cylinder(d=8.5, h=12);
+            translate([s*40, motor_y, shaft_z]) teardrop_hole(d=12.5, h=5.5, s=s);
+            translate([s*40, motor_y, shaft_z]) teardrop_hole(d=8.5, h=12, s=s);
             for (dy = [-17.5, 17.5])
                 translate([s*40, motor_y + dy, motor_z]) rotate([0, s*90, 0]) cylinder(d=2.5, h=7);
         }

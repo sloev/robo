@@ -1,12 +1,17 @@
 # Phone Clamp — Source of Truth
 
 The horizontal phone clamp for the BlockBot chassis. **Read this before touching any
-clamp geometry.** It went through ~9 wrong iterations; the constraints below are the
+clamp geometry.** It went through ~10 wrong iterations; the constraints below are the
 lessons from each. **When in doubt, don't trust this file's numbers over the code —
-verify with the boolean-intersection check in "Verifying a change" below.** Iteration
-#9 was this doc and the code silently drifting apart: a later edit shrank the T-slot
-cavity and dropped the rail extension but never updated the tongue to match, so the
-shipped tongue reached 20mm past the cavity into solid wall.
+verify with the checks in "Verifying a change" below.** Iteration #9 was this doc and
+the code silently drifting apart: a later edit shrank the T-slot cavity and dropped
+the rail extension but never updated the tongue to match, so the shipped tongue
+reached 20mm past the cavity into solid wall. Iteration #10 was fixing that collision
+by raising the grip finger to clear the V-lip shelf, without checking whether the
+finger was still *connected* to the rest of the tongue below its new floor -- it
+wasn't, for a 2mm Z-band, so the finger printed as an unsupported floating island.
+"Zero collision" and "prints without support" are two different checks; both are in
+"Verifying a change" now.
 
 ## The core idea
 
@@ -16,7 +21,7 @@ side edges. A rubber band stretches between the forward-facing pegs on each jaw,
 across the phone's front face — fully visible and accessible.
 
 ```
-                  rubber band (y≈78, z=10)
+                  rubber band (y≈78, z=14)
          ●────────────────────────────────●
          │      phone front face (y=67)   │
    ┌─────┴──────────────────────────────┴─────┐
@@ -42,7 +47,7 @@ by both `lego_robot_base.scad` (cavity cuts) and `lego_robot_phone_clamp.scad`
 | `slot_neck_z0/z1` | 10 / 29 | Neck cavity Z span (jaw slides here) |
 | `slot_uc_z0/z1` | 7 / 32 | Undercut cavity Z span (T-flange lock) |
 | `shelf_top_z` | 8 | V-lip shelf top surface — jaw geometry must clear this |
-| `band_peg_z` | 10 | Shared Z height for both band pegs (keeps rubber band level) |
+| `band_peg_z` | 14 | Shared Z height for both band pegs. Must clear the moving jaw's finger floor (`slot_neck_z0 + clamp_tol` = 10.3) by enough for the d=4 peg shaft (radius 2) to stay embedded in it -- not just "above the shelf" (8.3), which left the peg floating. |
 
 ## Geometry (mm, OpenSCAD coordinates)
 
@@ -60,8 +65,8 @@ by both `lego_robot_base.scad` (cavity cuts) and `lego_robot_phone_clamp.scad`
 | Fixed band peg | `[-40,68,band_peg_z]` rot[-90,0,0] cyl d4 h5 + d7 head | Forward-facing (+Y). Visible/accessible from front. |
 | Moving jaw (right) | separate part, `lego_robot_phone_clamp.scad` | Mirror geometry at x=+40 |
 | Moving jaw tongue | x = `slot_x0+clamp_tol` .. `slot_x1-clamp_tol` (≈-9.7..47.7) | Neck z=10.3-28.7, y=53.6-58.5; full undercut z=7.3-31.7, y=51.3-53.7. Always inside the T-slot cavity — never size or position this independently of `slot_x0`/`slot_x1`. |
-| Moving jaw grip finger | `[35,58.3,8.3]` cube `[10,11,27.7]` | Held `clamp_tol` off the wall face (y=58) and `clamp_tol` above the shelf top (z=8) so it can't bind or collide with either. |
-| Moving jaw band peg | `[40,68.3,band_peg_z]` rot[-90,0,0] | Matches fixed peg (offset by the finger's `clamp_tol` standoff). |
+| Moving jaw grip finger | `[35,58.3,10.3]` cube `[10,11,25.7]` | Held `clamp_tol` off the wall face (y=58). Floored at `slot_neck_z0 + clamp_tol` (not `shelf_top_z + clamp_tol`) so it's flush with the neck's own floor -- no gap, no floating island, and it clears the shelf with even more margin than the minimum. |
+| Moving jaw band peg | `[40,68.3,band_peg_z]` rot[-90,0,0] | Matches fixed peg (offset by the finger's `clamp_tol` standoff). `band_peg_z` sized so the peg shaft stays inside the (now taller-floored) finger. |
 
 ## Hard constraints (each is a past bug — do not regress)
 
@@ -86,15 +91,21 @@ by both `lego_robot_base.scad` (cavity cuts) and `lego_robot_phone_clamp.scad`
    Jaw bottoms must not catch the phone, and any moving-jaw solid crossing the
    shelf's footprint (x<=46, y<=68) must stay at or above `shelf_top_z + clamp_tol`.
 7. **Everything prints support-free.** V-grooves open upward; T-slot cuts are
-   straight horizontal channels; tongue profile is symmetrical.
+   straight horizontal channels; tongue profile is symmetrical. Any feature you
+   raise/move to fix a collision must still be *connected* to the rest of the part
+   below its new floor -- fixing a collision by raising something can silently
+   turn it into a floating island (iteration #10).
 8. Both parts render `Volumes: 2` (a single connected solid each). Validate with
    `./ci_render_part.sh`.
 
 ## Verifying a change
 
-`Volumes: 2` only proves each part is manifold on its own — it does NOT prove the
-two parts don't collide with each other. Before trusting a geometry change, boolean
-the two rendered parts together and confirm the intersection is empty:
+`Volumes: 2` only proves each part is manifold on its own. It does NOT prove the two
+parts don't collide with each other, and it does NOT prove a part prints without
+support. Both need separate checks:
+
+**1. Collision between parts** — boolean them together and confirm the intersection
+is empty:
 
 ```
 openscad -o /tmp/collision.stl - <<'EOF'
@@ -106,6 +117,26 @@ EOF
 
 `Current top level object is empty` = no collision. Any exported geometry means the
 two parts physically overlap and cannot be assembled as printed.
+
+**2. Floating/unsupported regions within one part** — slice it into thin horizontal
+slabs across its full Z range and watch `Volumes:` in the OpenSCAD output. A jump
+from `Volumes: 2` (or empty) at one Z to `Volumes: 3+` where the *new* piece has no
+material in the slab just below it is an unsupported region (a piece that was
+already connected lower down and simply continues upward alone is fine -- check
+where a piece *first* appears, not every slice it appears in):
+
+```
+for z in 7 9 11 13 ...; do
+  openscad -o /tmp/slice.stl - <<EOF
+use <lego_robot_phone_clamp.scad>
+intersection() { phone_clamp_jaw(); translate([-50,0,$z]) cube([150,100,0.05]); }
+EOF
+done
+```
+
+This is how iteration #10 (the floating grip finger) was actually found -- the
+finger looked fine in isolation and passed the collision check, but a slice at
+z=9 showed it as a disconnected island with nothing underneath.
 
 ## Loading sequence
 

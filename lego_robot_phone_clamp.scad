@@ -22,10 +22,13 @@ module phone_clamp_jaw() {
     tw  = tx1 - tx0;
 
     // Grip finger held clamp_tol proud of the wall face (y=58) so it can't
-    // bind against it, and clamp_tol above the V-lip shelf top so it can't
-    // collide with that fixed feature of the base.
+    // bind against it. Floored at the neck cavity's own floor (not just
+    // shelf_top_z + tol) -- flooring it lower left a gap between the finger
+    // and the neck (nothing connects them below z=10.3), which prints as an
+    // unsupported floating island. Flooring it here also clears the V-lip
+    // shelf with more margin than the minimum, not less.
     finger_y0 = 58 + tol;
-    finger_z0 = shelf_top_z + tol;
+    finger_z0 = slot_neck_z0 + tol;
 
     // Neck tongue's front edge is extended past the wall face (open air) far
     // enough to overlap the (now offset) grip finger, keeping the jaw as one

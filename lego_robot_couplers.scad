@@ -30,5 +30,10 @@ module motor_coupler() {
     }
 }
 
-// Color applied for individual render view
-color("#f1c40f") motor_coupler();
+// Color applied for individual render view. Standalone export only: rotated
+// so the module's own natural axis-along-X orientation (needed by
+// lego_robot_showcase.scad, which places it against the chassis wall) prints
+// standing on its wide end instead of lying on its side -- see the comment
+// above. Lying on its side turns the shaft/axle sockets into horizontal
+// holes needing support; standing, the whole part is support-free.
+color("#f1c40f") rotate([0, 90, 0]) motor_coupler();
