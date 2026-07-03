@@ -32,4 +32,16 @@ shaft_z = 33.6; // motor shaft / coupler height
 motor_y = 26.0; // front; keeps the front mounting ear (motor_y+17.5) inside the cavity
 motor_z = shaft_z - 8.0;
 
+// --- PHONE CLAMP T-SLOT (shared by the base cavity + the moving jaw tongue) ---
+// Keeping these numbers in one place stops the two parts drifting out of
+// sync -- a past edit shrank the cavity without updating the tongue to
+// match, letting the tongue reach 20mm past the cavity into solid wall.
+clamp_tol    = 0.3;        // per-side print clearance for the sliding tongue fit
+slot_x0      = -10;        // T-slot cavity start (chassis X)
+slot_x1      = width / 2;  // T-slot cavity end == chassis half-width
+slot_neck_z0 = 10;  slot_neck_z1 = 29;  // neck cavity Z range (jaw slides here)
+slot_uc_z0   = 7;   slot_uc_z1   = 32;  // undercut cavity Z range (T-flange lock)
+shelf_top_z  = 8;          // V-lip shelf top surface -- jaw geometry must clear this
+band_peg_z   = 10;         // shared Z height for both band pegs (keeps rubber band level)
+
 // --- RENDER TARGET ---
