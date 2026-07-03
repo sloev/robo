@@ -42,6 +42,29 @@ slot_x1      = width / 2;  // T-slot cavity end == chassis half-width
 slot_neck_z0 = 10;  slot_neck_z1 = 29;  // neck cavity Z range (jaw slides here)
 slot_uc_z0   = 7;   slot_uc_z1   = 32;  // undercut cavity Z range (T-flange lock)
 shelf_top_z  = 8;          // V-lip shelf top surface -- jaw geometry must clear this
-band_peg_z   = 10;         // shared Z height for both band pegs (keeps rubber band level)
+// Shared Z height for both band pegs (keeps rubber band level). Must clear
+// the moving jaw's grip finger floor (slot_neck_z0 + clamp_tol = 10.3) by
+// enough for the d=4 peg shaft (radius 2) to stay embedded in it.
+band_peg_z   = 14;
+
+// --- PRINTABILITY HELPERS ---
+// Self-supporting "teardrop" profile for a horizontal round hole: circular
+// for the bottom ~180-270 degrees (so a mating round part still fits/seats
+// normally), pointed above that so no internal roof ever needs to bridge
+// across the hole -- avoids drooping/support for holes above ~5-8mm, which
+// plain horizontal cylinder() holes need past that size.
+// Bores along X, apex always toward +Z regardless of s (+1 or -1), matching
+// the translate/rotate([0, s*90, 0]) convention already used for the plain
+// cylinder() holes elsewhere in this project.
+module teardrop_hole(d, h, s = 1) {
+    r = d / 2;
+    a = r / sqrt(2); // circle's 45-degree point -- where the roof takes over
+    rotate([0, 0, s * 90]) rotate([90, 0, 0])
+        linear_extrude(h)
+            union() {
+                circle(d = d);
+                polygon([[-a, a], [a, a], [0, r * sqrt(2)]]);
+            }
+}
 
 // --- RENDER TARGET ---
