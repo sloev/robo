@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robo-dashboard-v2';
+const CACHE_NAME = 'robo-dashboard-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,15 @@ const ASSETS = [
   './app.js',
   './blockly_compressed.js',
   './en.js',
-  './manifest.json'
+  './manifest.json',
+  './lib/tf.min.js',
+  './lib/coco-ssd.min.js',
+  './models/model.json',
+  './models/group1-shard1of5',
+  './models/group1-shard2of5',
+  './models/group1-shard3of5',
+  './models/group1-shard4of5',
+  './models/group1-shard5of5'
 ];
 
 self.addEventListener('install', (event) => {

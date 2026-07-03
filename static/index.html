@@ -219,7 +219,7 @@
           </div>
           <div class="panel-body-padding" style="max-height: 520px; overflow-y: auto;">
             <p style="margin-top: 0; font-size: 0.85rem; line-height: 1.4;">
-              Clamp your phone in portrait mode to the front of the robot using elastic bands. The browser uses the phone's built-in web sensors and TFJS for offline AI processing!
+              Clamp your phone in portrait mode to the front of the robot using elastic bands. The browser uses the phone's built-in web sensors and computer vision for offline AI processing!
             </p>
             
             <div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 1rem;">
@@ -237,13 +237,13 @@
               </p>
             </div>
 
-            <h4 style="margin: 1rem 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">TensorFlow.js Autopilot</h4>
+            <h4 style="margin: 1rem 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">First-Person TFJS Autopilot</h4>
             <p style="margin: 0 0 1rem 0; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
-              Click <b>START AUTOPILOT</b> below to begin. The robot will move around, using the camera and audio to detect objects, avoid obstacles, and utter small sounds on sudden movement!
+              Click <b>START AUTOPILOT</b> below to begin. The robot uses a lightweight TFJS COCO-SSD object detection model running on your phone to drive, track objects in front of it, and avoid driving into them!
             </p>
 
             <div class="learning-controls" style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-run" id="btn-car-map-start" style="flex: 1;">🎓 LEARN KINEMATICS</button>
+              <button class="btn btn-run" id="btn-car-map-start" style="flex: 1; display: none;">🎓 LEARN KINEMATICS</button>
               <button class="btn btn-clear" id="btn-car-auto" style="flex: 1;" disabled>🤖 AUTOPILOT: OFF</button>
             </div>
             <div class="learning-console" id="car-console" style="margin-top: 0.5rem; height: 100px; font-size: 0.75rem;">
@@ -268,8 +268,8 @@
             </div>
             <div class="vision-controls">
               <button class="btn btn-run" id="btn-car-start-vision" style="flex: 1;">📷 START FEED</button>
-              <button class="btn btn-clear" id="btn-car-calibrate-bg" style="flex: 1;" disabled>📸 RESET BG</button>
-              <button class="btn btn-clear" id="btn-car-clear-map" style="flex: 1;">🧹 CLEAR MAP</button>
+              <button class="btn btn-clear" id="btn-car-calibrate-bg" style="flex: 1; display: none;" disabled>📸 RESET BG</button>
+              <button class="btn btn-clear" id="btn-car-clear-map" style="flex: 1; display: none;">🧹 CLEAR MAP</button>
               <button class="btn btn-stop" id="btn-car-stop-vision">⏹ STOP</button>
             </div>
           </div>
@@ -277,6 +277,10 @@
       </div>
     </div>
   </main>
+
+  <!-- Load TensorFlow.js and COCO-SSD -->
+  <script src="lib/tf.min.js"></script>
+  <script src="lib/coco-ssd.min.js"></script>
 
   <script src="blockly_compressed.js"></script>
   <script src="en.js"></script>

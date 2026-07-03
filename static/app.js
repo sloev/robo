@@ -1851,6 +1851,10 @@ let carFrameDiff = 0;
 let carMotionThreshold = 40;
 let carDriveState = 'STILL';
 
+// TensorFlow.js COCO-SSD Model
+let objectDetector = null;
+let detectedObjects = [];
+
 const carCtx = carCanvas.getContext('2d');
 carCanvas.width = 320;
 carCanvas.height = 240;
@@ -1860,21 +1864,20 @@ function logCarConsole(msg) {
   carConsole.scrollTop = carConsole.scrollHeight;
 }
 
-// Copy current camera frame into background reference
-function captureCarBackground() {
-  if (!carVisionActive) return;
+// Load Object Detection Model
+async function loadObjectDetector() {
+  if (objectDetector) return;
+  logCarConsole("Loading TensorFlow.js COCO-SSD model...");
   try {
-    carCtx.drawImage(carVideo, 0, 0, carCanvas.width, carCanvas.height);
-    const imgData = carCtx.getImageData(0, 0, carCanvas.width, carCanvas.height);
-    if (!carBgFrameData || carBgFrameData.length !== imgData.data.length) {
-      carBgFrameData = new Uint8ClampedArray(imgData.data.length);
-    }
-    carBgFrameData.set(imgData.data);
-    console.log("Car background captured successfully!");
+    objectDetector = await cocoSsd.load({ modelUrl: 'models/model.json' });
+    logCarConsole("Model loaded! Ready for autonomy.");
+    btnCarAuto.disabled = false;
   } catch (err) {
-    console.error("Failed to capture car background:", err);
+    logCarConsole("Error loading model: " + err.message);
   }
 }
+
+// Background functions removed (using TFJS now)
 
 btnCarStartVision.addEventListener('click', async () => {
   if (carVisionActive) return;
@@ -1894,10 +1897,8 @@ btnCarStartVision.addEventListener('click', async () => {
     carVisionActive = true;
     requestAnimationFrame(processCarFrame);
     
-    setTimeout(() => {
-      captureCarBackground();
-      logCarConsole("Initial background captured.");
-    }, 1200);
+    // Load TFJS model in the background
+    loadObjectDetector();
   } catch (err) {
     alert("Could not access camera: " + err.message);
   }
@@ -1906,11 +1907,11 @@ btnCarStartVision.addEventListener('click', async () => {
 btnCarStopVision.addEventListener('click', () => {
   if (!carVisionActive) return;
   carVisionActive = false;
+  window.detectionLoopStarted = false;
   isMappingActive = false;
   isCarAutopilotActive = false;
-  carCentroid.detected = false;
+  detectedObjects = [];
   carLastFrameData = null;
-  carBgFrameData = null;
   btnCarCalibrateBg.disabled = true;
   btnCarMapStart.innerText = "🗺️ START MAPPING";
   btnCarMapStart.classList.add('btn-run');
@@ -1940,10 +1941,7 @@ btnCarStopVision.addEventListener('click', () => {
   carDriveState = 'STILL';
 });
 
-btnCarCalibrateBg.addEventListener('click', () => {
-  captureCarBackground();
-  logCarConsole("Background recalibrated.");
-});
+// btnCarCalibrateBg removed / disabled as TFJS doesn't need background calibration
 
 btnCarClearMap.addEventListener('click', () => {
   carGrid = Array(15).fill(null).map(() => Array(20).fill(0));
@@ -1951,121 +1949,61 @@ btnCarClearMap.addEventListener('click', () => {
   logCarConsole("Obstacle map cleared.");
 });
 
+// Detect objects continuously if autopilot is active
+async function detectObjects() {
+  if (carVisionActive && objectDetector) {
+    try {
+      detectedObjects = await objectDetector.detect(carVideo);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  if (carVisionActive) {
+    // Keep detecting as fast as possible
+    requestAnimationFrame(detectObjects);
+  }
+}
+
 function processCarFrame() {
   if (!carVisionActive) return;
   
   try {
     // 1. Draw live feed
     carCtx.drawImage(carVideo, 0, 0, carCanvas.width, carCanvas.height);
-    const imgData = carCtx.getImageData(0, 0, carCanvas.width, carCanvas.height);
-    const data = imgData.data;
     
-    // Calculate motion difference
-    if (carLastFrameData) {
-      let diffSum = 0;
-      let pixelStep = 8;
-      let sampleCount = 0;
-      for (let i = 0; i < data.length; i += 4 * pixelStep) {
-        diffSum += Math.abs(data[i] - carLastFrameData[i]) +
-                   Math.abs(data[i+1] - carLastFrameData[i+1]) +
-                   Math.abs(data[i+2] - carLastFrameData[i+2]);
-        sampleCount++;
-      }
-      carFrameDiff = diffSum / sampleCount;
-    }
-    
-    if (!carLastFrameData || carLastFrameData.length !== data.length) {
-      carLastFrameData = new Uint8ClampedArray(data.length);
-    }
-    carLastFrameData.set(data);
-    
-    // 2. Track car centroid using background differencing
-    let sumX = 0, sumY = 0, matchCount = 0;
-    if (carBgFrameData) {
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i], g = data[i+1], b = data[i+2];
-        const bg_r = carBgFrameData[i], bg_g = carBgFrameData[i+1], bg_b = carBgFrameData[i+2];
-        
-        const dist = Math.sqrt((r-bg_r)**2 + (g-bg_g)**2 + (b-bg_b)**2);
-        if (dist > carMotionThreshold) {
-          const idx = i / 4;
-          const x = idx % carCanvas.width;
-          const y = Math.floor(idx / carCanvas.width);
-          sumX += x;
-          sumY += y;
-          matchCount++;
-        }
-      }
-    }
-    
-    // Draw 2D grid overlay
-    const cellW = 320 / 20; // 16 pixels
-    const cellH = 240 / 15; // 16 pixels
-    
-    // We draw grid lines faintly
-    carCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    // Draw crosshairs
+    carCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     carCtx.lineWidth = 1;
-    for (let c = 0; c <= 20; c++) {
-      carCtx.beginPath();
-      carCtx.moveTo(c * cellW, 0); carCtx.lineTo(c * cellW, 240);
-      carCtx.stroke();
-    }
-    for (let r = 0; r <= 15; r++) {
-      carCtx.beginPath();
-      carCtx.moveTo(0, r * cellH); carCtx.lineTo(320, r * cellH);
-      carCtx.stroke();
+    carCtx.beginPath();
+    carCtx.moveTo(carCanvas.width/2, 0); carCtx.lineTo(carCanvas.width/2, carCanvas.height);
+    carCtx.moveTo(0, carCanvas.height/2); carCtx.lineTo(carCanvas.width, carCanvas.height/2);
+    carCtx.stroke();
+
+    // 2. Draw detected objects
+    if (detectedObjects && detectedObjects.length > 0) {
+      detectedObjects.forEach(obj => {
+        // Only draw objects with confidence > 60%
+        if (obj.score > 0.6) {
+          const [x, y, width, height] = obj.bbox;
+
+          carCtx.strokeStyle = 'var(--cyan-accent)';
+          carCtx.lineWidth = 2;
+          carCtx.strokeRect(x, y, width, height);
+
+          carCtx.fillStyle = 'var(--cyan-accent)';
+          carCtx.fillRect(x, y - 16, width, 16);
+          carCtx.fillStyle = '#000000';
+          carCtx.font = '10px monospace';
+          carCtx.fillText(`${obj.class} ${Math.round(obj.score * 100)}%`, x + 2, y - 4);
+        }
+      });
     }
     
-    // Resolve car centroid position
-    if (matchCount > 150) {
-      carCentroid.x = sumX / matchCount;
-      carCentroid.y = sumY / matchCount;
-      carCentroid.detected = true;
-      
-      // Highlight car centroid
-      carCtx.strokeStyle = 'var(--purple-accent)';
-      carCtx.lineWidth = 2;
-      carCtx.beginPath();
-      carCtx.arc(carCentroid.x, carCentroid.y, 12, 0, 2*Math.PI);
-      carCtx.stroke();
-      carCtx.fillStyle = 'var(--purple-accent)';
-      carCtx.font = 'bold 9px monospace';
-      carCtx.fillText(`CAR (${Math.floor(carCentroid.x)}, ${Math.floor(carCentroid.y)})`, carCentroid.x + 15, carCentroid.y - 5);
-      
-      // Update cell mapping if mapping is active and car is driving
-      if (isMappingActive && carDriveState !== 'STILL') {
-        const gridCol = Math.floor(carCentroid.x / cellW);
-        const gridRow = Math.floor(carCentroid.y / cellH);
-        
-        if (gridCol >= 0 && gridCol < 20 && gridRow >= 0 && gridRow < 15) {
-          const oldVal = carGrid[gridRow][gridCol];
-          // If motors are wiggling but pixel frame diff is very low, it means we are stuck!
-          if (carFrameDiff < 0.8) {
-            carGrid[gridRow][gridCol] = 2; // Stuck / Red
-          } else {
-            carGrid[gridRow][gridCol] = 1; // Safe / Green
-          }
-          if (oldVal !== carGrid[gridRow][gridCol]) {
-            localStorage.setItem('car_map_grid', JSON.stringify(carGrid));
-          }
-        }
-      }
-    } else {
-      carCentroid.detected = false;
-    }
-    
-    // Draw cells
-    for (let r = 0; r < 15; r++) {
-      for (let c = 0; c < 20; c++) {
-        const state = carGrid[r][c];
-        if (state === 1) { // Safe
-          carCtx.fillStyle = 'rgba(15, 189, 140, 0.25)'; // Light Green
-          carCtx.fillRect(c * cellW + 1, r * cellH + 1, cellW - 2, cellH - 2);
-        } else if (state === 2) { // Blocked
-          carCtx.fillStyle = 'rgba(255, 0, 85, 0.4)'; // Transparent Red
-          carCtx.fillRect(c * cellW + 1, r * cellH + 1, cellW - 2, cellH - 2);
-        }
-      }
+    // Start async detection loop if not started
+    if (!window.detectionLoopStarted && objectDetector) {
+      window.detectionLoopStarted = true;
+      detectObjects();
     }
     
   } catch (err) {
@@ -2174,58 +2112,53 @@ btnCarAuto.addEventListener('click', () => {
 async function runAutopilotStep() {
   if (!isCarAutopilotActive) return;
   
-  const cellW = 320 / 20;
-  const cellH = 240 / 15;
-  const gridCol = Math.floor(carCentroid.x / cellW);
-  const gridRow = Math.floor(carCentroid.y / cellH);
-  
-  // Obstacle checks in front
-  // Look 2 cells ahead of the current coordinate
   let obstacleAhead = false;
+  let targetToTrack = null;
   
-  if (gridCol >= 0 && gridCol < 20 && gridRow >= 0 && gridRow < 15) {
-    // Check local neighborhood (within 2 cells)
-    for (let r = Math.max(0, gridRow - 2); r <= Math.min(14, gridRow + 2); r++) {
-      for (let c = Math.max(0, gridCol - 2); c <= Math.min(19, gridCol + 2); c++) {
-        if (carGrid[r][c] === 2) { // Obstacle
+  // Analyze current view
+  if (detectedObjects && detectedObjects.length > 0) {
+    detectedObjects.forEach(obj => {
+      if (obj.score > 0.6) {
+        const [x, y, width, height] = obj.bbox;
+        // Bounding box takes up more than 40% of the screen width or height -> Close obstacle
+        if (width > 320 * 0.4 || height > 240 * 0.4) {
           obstacleAhead = true;
-          break;
+          logCarConsole(`Obstacle detected: ${obj.class} (Close)`);
+        }
+
+        // Wait at cross-sections / stop signs (toy cars, bottles, people acting as obstacles)
+        if (obj.class === 'person' || obj.class === 'stop sign') {
+           obstacleAhead = true;
+           logCarConsole(`Waiting for ${obj.class}...`);
         }
       }
-    }
+    });
   }
-  
-  // Waving hand/moving obstacles: if sudden high motion diff is detected near the car
-  // but it's not due to its own motion command, it means an external obstacle is present!
-  if (carFrameDiff > 5.0 && carDriveState === 'STILL') {
-    obstacleAhead = true;
-    logCarConsole("Moving obstacle detected!");
-  }
-  
+
+  // Very simple First-Person Autopilot Logic
   if (obstacleAhead) {
-    logCarConsole("Obstacle nearby! Steering away...");
+    logCarConsole("Obstacle! Backing up and turning...");
     carDriveState = 'STILL';
+
     // Back up
-    await triggerCalibMove('A', -350);
-    await triggerCalibMove('B', -350);
-    await delay(1400);
-    // Spin turn
-    await triggerCalibMove('A', 350);
-    await triggerCalibMove('B', -350);
+    await triggerCalibMove('A', -400);
+    await triggerCalibMove('B', -400);
     await delay(1200);
     
-    carDriveState = 'FORWARD';
+    // Turn (Differential turn)
     await triggerCalibMove('A', 400);
-    await triggerCalibMove('B', 400);
+    await triggerCalibMove('B', -400);
+    await delay(1000);
+
   } else {
     carDriveState = 'FORWARD';
-    logCarConsole("Safe path. Driving forward...");
-    await triggerCalibMove('A', 400);
-    await triggerCalibMove('B', 400);
+    logCarConsole("Path clear. Driving forward...");
+    await triggerCalibMove('A', 300);
+    await triggerCalibMove('B', 300);
   }
   
   if (isCarAutopilotActive) {
-    carAutoTimer = setTimeout(runAutopilotStep, 1500);
+    carAutoTimer = setTimeout(runAutopilotStep, 1200); // Fast responsive loop
   }
 }
 

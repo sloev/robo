@@ -84,6 +84,20 @@ class WebServer:
                 await self.serve_file('/static/blockly_compressed.js', 'application/javascript', writer)
             elif clean_path == '/en.js':
                 await self.serve_file('/static/en.js', 'application/javascript', writer)
+            elif clean_path == '/sw.js':
+                await self.serve_file('/static/sw.js', 'application/javascript', writer)
+            elif clean_path == '/manifest.json':
+                await self.serve_file('/static/manifest.json', 'application/json', writer)
+            elif clean_path.startswith('/icons/'):
+                ext = clean_path.split('.')[-1].lower()
+                content_type = 'image/png'
+                await self.serve_file('/static' + clean_path, content_type, writer)
+            elif clean_path.startswith('/lib/'):
+                await self.serve_file('/static' + clean_path, 'application/javascript', writer)
+            elif clean_path.startswith('/models/'):
+                ext = clean_path.split('.')[-1].lower()
+                content_type = 'application/json' if ext == 'json' else 'application/octet-stream'
+                await self.serve_file('/static' + clean_path, content_type, writer)
             elif clean_path.startswith('/media/'):
                 ext = clean_path.split('.')[-1].lower()
                 content_type = 'application/octet-stream'
