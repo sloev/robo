@@ -15,17 +15,17 @@ module phone_clamp_jaw() {
 
     difference() {
         union() {
-            // Grip finger in front of wall (y=54-69), mirrors fixed left jaw
-            translate([40, fy + 13.5, 21.5]) cube([10, 15, 29], center=true);
+            // Grip finger in front of wall (y=58-69), avoiding overlap with wall (y=48-58)
+            translate([40, fy + 15.5, 21.5]) cube([10, 11, 29], center=true);
 
-            // ── T-tongue: 65 mm long, extends right from jaw body ─────────────
+            // ── T-tongue: 66 mm long, extends left from jaw body ─────────────
             // Neck (fits in slot neck  y=54-58, z=23-29):
-            translate([35, fy + 6 + cl, 23 + cl])
-                cube([65, 4 - 2*cl, 6 - 2*cl]);
+            translate([-30, fy + 5.6, 23 + cl])
+                cube([66, 4.6, 6 - 2*cl]);
 
             // Full-height undercut body (fills entire undercut y=51-54, z=20-32):
-            translate([35, fy + 3 + cl, 20 + cl])
-                cube([65, 3 - 2*cl, 12 - 2*cl]);
+            translate([-30, fy + 3 + cl, 20 + cl])
+                cube([66, 3 - 2*cl, 12 - 2*cl]);
 
             // Band peg: front face of jaw, visible from outside.
             // Hook rubber band on this + fixed jaw's matching peg.
