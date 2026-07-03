@@ -18,14 +18,17 @@ module phone_clamp_jaw() {
             // Grip finger in front of wall (y=58-69), avoiding overlap with wall (y=48-58)
             translate([40, fy + 15.5, 21.5]) cube([10, 11, 29], center=true);
 
-            // ── T-tongue: 66 mm long, extends left from jaw body ─────────────
-            // Neck (fits in slot neck  y=54-58, z=23-29):
-            translate([-30, fy + 5.6, 23 + cl])
-                cube([66, 4.6, 6 - 2*cl]);
+            // Filler block: extends the tongue forward inside the jaw block to form a solid corner
+            translate([40, fy + 8, 19.5]) cube([10, 5, 25], center=true);
 
-            // Full-height undercut body (fills entire undercut y=51-54, z=20-32):
-            translate([-30, fy + 3 + cl, 20 + cl])
-                cube([66, 3 - 2*cl, 12 - 2*cl]);
+            // ── T-tongue: 75 mm long, extends left from jaw body ─────────────
+            // Neck (fits in slot neck  y=54-58, z=10-29):
+            translate([-30, fy + 5.6, 10 + cl])
+                cube([75, 4.6, 19 - 2*cl]);
+
+            // Full-height undercut body (fills entire undercut y=51-54, z=7-32):
+            translate([-30, fy + 3 + cl, 7 + cl])
+                cube([75, 3 - 2*cl, 25 - 2*cl]);
 
             // Band peg: front face of jaw, visible from outside.
             // Hook rubber band on this + fixed jaw's matching peg.
@@ -37,7 +40,7 @@ module phone_clamp_jaw() {
 
         // V-notch grips phone's right edge (mirror of fixed jaw).
         // Base flush with jaw inner face x=+35 — no 1mm flat wall.
-        translate([0, fy + 14.5, 6]) linear_extrude(35)
+        translate([0, fy + 14.5, 0]) linear_extrude(45)
             polygon([[44, 0], [35, -4.5], [35, 4.5]]);
     }
 }

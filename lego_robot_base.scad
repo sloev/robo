@@ -13,13 +13,6 @@ module vehicle_base() {
             translate([83.4/2, length/2 - 5, lid_z]) sphere(d=1);
             translate([-83.4/2, length/2 - 5, lid_z]) sphere(d=1);
             
-            // Security screw anchor block at the rear
-            translate([-5, length/2 - 6, floor_z - 0.1])
-                difference() {
-                    cube([10, 6, height - floor_z + 0.1]);
-                    translate([5, 3, height - floor_z - 10]) cylinder(d=2.5, h=15); // pilot hole
-                }
-                
             // Internal Assembly Instructions & Wire Routing Paths
             translate([0, motor_y - 22, floor_z - 0.1]) linear_extrude(0.7) text("1. 28BYJ-48 MOTORS", size=3.5, halign="center", font="Liberation Sans:style=Bold");
             translate([0, 2, floor_z - 0.1]) linear_extrude(0.7) text("2. ULN2003 BOARDS", size=3.5, halign="center", font="Liberation Sans:style=Bold");
@@ -28,10 +21,10 @@ module vehicle_base() {
             translate([0, 22, floor_z - 0.1]) linear_extrude(0.7) text("--- WIRES ---", size=3, halign="center");
             
             // --- AI Phone Holder: phone stands IN FRONT of the chassis front wall ---
-            // Single wide cube: clamp-wall (x=-48..+48) + rail ext (x=+48..+96) fused
-            // into one piece — no coplanar face junction that would make CGAL non-manifold.
+            // Single wide cube: clamp-wall (x=-48..+48) fused
+            // into one piece.
             // T-slot is milled into the front face (y=58). Moving jaw telescopes right.
-            translate([24, length/2 + 5, 18]) cube([144, 10, 36], center=true); // x=-48..+96, y=48-58, z=0-36
+            translate([0, length/2 + 5, 18]) cube([96, 10, 36], center=true); // x=-48..+48, y=48-58, z=0-36
             // V-lip shelf: phone bottom rests in V-groove (cut below). 6mm overlap into
             // wall (y=52..58) so there is no T-junction at the wall front face (y=58).
             translate([0, length/2 + 12, 4]) cube([92, 16, 8], center=true);     // shelf y52-68, z0-8
@@ -71,12 +64,12 @@ module vehicle_base() {
         
         // V-lip groove centred in shelf (y=60): phone bottom self-centres. Opens up.
         translate([-46, length/2 + 12, 8]) rotate([0, 90, 0])
-            linear_extrude(92) polygon([[7, 0], [0, -7], [0, 7]]);
-        // T-slot milled into front face of clamp-wall + rail extension.
-        // Neck (4mm deep from front face, 6mm tall): jaws slide freely in X.
-        translate([-10, length/2 + 6, 23]) cube([106, 4, 6]);    // x=-10..+96, y=54-58, z=23-29
-        // Undercut (3mm deeper, 12mm tall): T-flanges lock tongue — can't pull out in Y.
-        translate([-10, length/2 + 3, 20]) cube([106, 3, 12]);   // x=-10..+96, y=51-54, z=20-32
+            linear_extrude(92) polygon([[5, 0], [0, -5], [0, 5]]);
+        // T-slot milled into front face of clamp-wall.
+        // Neck (4mm deep from front face, 19mm tall): jaws slide freely in X.
+        translate([-10, length/2 + 6, 10]) cube([58, 4, 19]);   // x=-10..+48, y=54-58, z=10-29
+        // Undercut (3mm deeper, 25mm tall): T-flanges lock tongue — can't pull out in Y.
+        translate([-10, length/2 + 3, 7]) cube([58, 3, 25]);    // x=-10..+48, y=51-54, z=7-32
         
         // USB-C Pass-through (aligned with the ESP32's USB-C edge at the back)
         translate([0, -length/2, 9.5]) cube([13, 8, 7], center=true);

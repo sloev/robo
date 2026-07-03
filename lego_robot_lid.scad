@@ -23,9 +23,6 @@ module sliding_lid() {
                     }
                 }
             }
-            // Security screw hole
-            translate([0, lid_len/2 - 3.1, 0]) cylinder(d=3.2, h=10, center=true);
-            translate([0, lid_len/2 - 3.1, 1.5]) cylinder(d=6, h=10);
 
             // Recessed detents for friction click-lock
             translate([83.0/2, lid_len/2 - 5, -0.8]) sphere(d=1);
