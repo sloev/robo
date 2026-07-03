@@ -38,7 +38,7 @@ module vehicle_base() {
             }
             // Band peg on jaw front face — fully visible, hooked before phone is inserted.
             // Peg base is 1mm inside jaw body (y=68 < jaw front y=69) — no T-junction.
-            translate([-40, length/2 + 20, 10]) rotate([-90, 0, 0]) {
+            translate([-40, length/2 + 20, band_peg_z]) rotate([-90, 0, 0]) {
                 cylinder(d=4, h=5);
                 translate([0, 0, 3.5]) cylinder(d=7, h=1.5);
             }
@@ -65,11 +65,15 @@ module vehicle_base() {
         // V-lip groove centred in shelf (y=60): phone bottom self-centres. Opens up.
         translate([-46, length/2 + 12, 8]) rotate([0, 90, 0])
             linear_extrude(92) polygon([[5, 0], [0, -5], [0, 5]]);
-        // T-slot milled into front face of clamp-wall.
+        // T-slot milled into front face of clamp-wall. Bounds come from
+        // lego_robot_common.scad so the moving jaw's tongue (sized from the
+        // same constants) can never drift out of sync with this cavity.
         // Neck (4mm deep from front face, 19mm tall): jaws slide freely in X.
-        translate([-10, length/2 + 6, 10]) cube([58, 4, 19]);   // x=-10..+48, y=54-58, z=10-29
+        translate([slot_x0, length/2 + 6, slot_neck_z0])
+            cube([slot_x1 - slot_x0, 4, slot_neck_z1 - slot_neck_z0]); // x=-10..+48, y=54-58, z=10-29
         // Undercut (3mm deeper, 25mm tall): T-flanges lock tongue — can't pull out in Y.
-        translate([-10, length/2 + 3, 7]) cube([58, 3, 25]);    // x=-10..+48, y=51-54, z=7-32
+        translate([slot_x0, length/2 + 3, slot_uc_z0])
+            cube([slot_x1 - slot_x0, 3, slot_uc_z1 - slot_uc_z0]);    // x=-10..+48, y=51-54, z=7-32
         
         // USB-C Pass-through (aligned with the ESP32's USB-C edge at the back)
         translate([0, -length/2, 9.5]) cube([13, 8, 7], center=true);
