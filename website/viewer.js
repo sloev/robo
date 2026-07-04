@@ -77,10 +77,16 @@ const loader = new THREE.STLLoader();
 
 // Helper to load an STL. OpenSCAD coordinates: Z is up.
 // We rotate the entire group -90 on X so that ThreeJS Y is up.
-function loadPart(url, material, assembledPos, explodedPos, name, assembledRot) {
+// stlRot: optional raw-mesh rotation applied BEFORE that conversion, in the
+// STL's own (OpenSCAD) axes -- for undoing an orientation baked into the STL
+// itself (e.g. a part exported pre-rotated for 3D printing) so the rest of
+// this function's positioning/rotation logic can keep assuming the model's
+// original, un-rotated orientation.
+function loadPart(url, material, assembledPos, explodedPos, name, assembledRot, stlRot) {
     loader.load(url, (geometry) => {
         // STLLoader yields a BufferGeometry; wrap it in a Mesh with the part material.
         const obj = new THREE.Mesh(geometry, material);
+        if (stlRot) obj.rotation.set(...stlRot);
 
         const wrapper = new THREE.Group();
         wrapper.add(obj);
@@ -144,19 +150,28 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clam
 );
 
 // 4. Couplers. We load the same model twice (left and right).
+// The shipped STL is pre-rotated 90° about Y from the model's logical
+// orientation (it now prints standing on its wide end instead of lying on
+// its side -- see lego_robot_couplers.scad). Undo that on the raw mesh so
+// the D-socket-faces-+X assumption below still holds.
+const couplerStlFix = [0, -Math.PI / 2, 0];
+
 // Left coupler: D-socket faces +X (towards motor). The model's default orientation points D-socket to +X.
-loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
+loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler,
     [-46, 33.6, -26],   // Assembled (captive in the left wall pocket: Ø12 ring trapped, axle socket out)
     [-105, 33.6, -26],  // Exploded (slides straight out the left wall)
-    'couplerLeft'
+    'couplerLeft',
+    null,
+    couplerStlFix
 );
 
 // Right coupler: D-socket must face -X. So we rotate it 180 degrees around Y!
-loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler, 
+loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler,
     [46, 33.6, -26],    // Assembled (captive in the right wall pocket: Ø12 ring trapped, axle socket out)
     [105, 33.6, -26],   // Exploded (slides straight out the right wall)
     'couplerRight',
-    [0, Math.PI, 0]     // Assembled Rotation (will be applied to wrapper)
+    [0, Math.PI, 0],    // Assembled Rotation (will be applied to wrapper)
+    couplerStlFix
 );
 
 // --- Non-printed internals for realism (grey motors, purple boards) ---
