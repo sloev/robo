@@ -1873,7 +1873,14 @@ async function loadObjectDetector() {
     logCarConsole("Model loaded! Ready for autonomy.");
     btnCarAuto.disabled = false;
   } catch (err) {
+    // The AI model isn't hosted on the robot's own Wi-Fi -- it's cached by
+    // the browser from the online PWA install (see README "Offline AI
+    // Autonomy"). Running straight off the robot's captive portal without
+    // that install will always land here; point the user at the fix.
     logCarConsole("Error loading model: " + err.message);
+    logCarConsole("AI Explorer needs the app installed from the online demo first: " +
+      "visit https://sloev.github.io/robo/ on your phone's normal internet connection, " +
+      "\"Install\" it to your homescreen, then switch Wi-Fi to the robot and reopen the installed app.");
   }
 }
 

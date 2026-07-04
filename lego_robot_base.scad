@@ -32,9 +32,14 @@ module vehicle_base() {
             // Jaw front (y=69) is 1mm past shelf front (y=68) — no coplanar face.
             difference() {
                 translate([-40, length/2 + 13.5, 21.5]) cube([10, 15, 29], center=true); // y54-69, z7-36
-                // V-notch: tip at x=-44, base flush with inner jaw face x=-35 (no flat wall)
+                // V-notch: tip at x=-42, base flush with inner jaw face x=-35 (no flat wall).
+                // Tip pulled in from the finger's outer face (x=-45) to leave 3mm of backing
+                // material instead of 1mm, and rounded (not a knife edge) so there's no sharp
+                // stress-concentrating point right behind that thin material -- a sharp V here
+                // both had barely any material behind it and was prone to snapping under a
+                // side load from the phone.
                 translate([0, length/2 + 14.5, 6]) linear_extrude(35)
-                    polygon([[-44, 0], [-35, -4.5], [-35, 4.5]]);
+                    rounded_notch_2d(tip_x = -42, base_x = -35, half_width = 4.5, r = 1.2);
             }
             // Band peg on jaw front face — fully visible, hooked before phone is inserted.
             // Peg base is 1mm inside jaw body (y=68 < jaw front y=69) — no T-junction.
@@ -63,8 +68,12 @@ module vehicle_base() {
         }
         
         // V-lip groove centred in shelf (y=60): phone bottom self-centres. Opens up.
+        // Tip pulled up from 5mm deep to 4mm (leaves 4mm of shelf below the groove
+        // instead of 3mm) and rounded instead of a knife edge, for the same reason
+        // as the jaw V-notches: less material and a sharp stress point right where
+        // the phone's weight presses down.
         translate([-46, length/2 + 12, 8]) rotate([0, 90, 0])
-            linear_extrude(92) polygon([[5, 0], [0, -5], [0, 5]]);
+            linear_extrude(92) rounded_notch_2d(tip_x = 4, base_x = 0, half_width = 5, r = 1);
         // T-slot milled into front face of clamp-wall. Bounds come from
         // lego_robot_common.scad so the moving jaw's tongue (sized from the
         // same constants) can never drift out of sync with this cavity.

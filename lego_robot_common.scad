@@ -47,4 +47,23 @@ shelf_top_z  = 8;          // V-lip shelf top surface -- jaw geometry must clear
 // enough for the d=4 peg shaft (radius 2) to stay embedded in it.
 band_peg_z   = 14;
 
+// --- STRUCTURAL HELPERS ---
+// V-notch/groove with a rounded (filleted) tip instead of a sharp point.
+// A sharp interior point is a stress concentrator, and printing it thin
+// leaves almost no backing material behind it -- both make the V prone to
+// snapping under a side load. hull() of a real circle at the tip with two
+// near-zero-radius circles at the base corners gives sharp base corners
+// (needed where the notch must sit flush against a flat face) and a smooth
+// fillet at the tip, entirely automatically (no manual tangent-angle math).
+// The tip still reaches exactly to tip_x, same as an unrounded V would --
+// call this with a shallower tip_x than a knife-edge design to actually gain
+// backing material, not just a rounded version of the same knife edge.
+module rounded_notch_2d(tip_x, base_x, half_width, r) {
+    hull() {
+        translate([tip_x + r * sign(base_x - tip_x), 0]) circle(r = r);
+        translate([base_x, half_width]) circle(r = 0.01);
+        translate([base_x, -half_width]) circle(r = 0.01);
+    }
+}
+
 // --- RENDER TARGET ---
