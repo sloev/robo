@@ -57,11 +57,11 @@ by both `lego_robot_base.scad` (cavity cuts) and `lego_robot_phone_clamp.scad`
 |---|---|---|
 | Clamp-wall | `[0,53,18]` cube `[96,10,36]`, centered | x=-48..+48, y=48-58, z=0-36. Carries T-slot on front face. No rail extension. |
 | V-lip shelf | center `[0,60,4]` cube `[92,16,8]` | x=-46..+46, y=52-68, z=0-8. Phone bottom rests here. |
-| V-lip groove | `[-46,60,8]` rot[0,90,0] extrude 92, poly `[[5,0],[0,-5],[0,5]]` | x=-46..+46. Narrows in Y, self-centres thickness. Opens up → no support. |
+| V-lip groove | `[-46,60,8]` rot[0,90,0] extrude 92, `rounded_notch_2d(tip_x=4, base_x=0, half_width=5, r=1)` | x=-46..+46. Narrows in Y, self-centres thickness. Opens up → no support. Tip rounded, 4mm deep (was a 5mm-deep sharp point) so 4mm of shelf remains below it instead of 3mm. |
 | T-slot neck | `[slot_x0,54,slot_neck_z0]` cube `[58,4,19]` | x=-10..+48, y=54-58, z=10-29. Jaw neck slides here. |
 | T-slot undercut | `[slot_x0,51,slot_uc_z0]` cube `[58,3,25]` | x=-10..+48, y=51-54, z=7-32. Tongue fills here — jaw can't pull out in Y. |
 | Fixed jaw (left) | finger `[-40,61.5,21.5]` cube `[10,15,29]` | x=-45..-35, y=54-69, z=7-36. Fused to chassis. |
-| Fixed jaw V-notch | poly `[[-44,0],[-35,-4.5],[-35,4.5]]` translate `[0,62.5,6]` extrude 35 | Tip at x=-44, base at x=-35 (inner face). Spans y=58-67 (phone thickness). |
+| Fixed jaw V-notch | `rounded_notch_2d(tip_x=-42, base_x=-35, half_width=4.5, r=1.2)` translate `[0,62.5,6]` extrude 35 | Tip at x=-42 (was -44), base at x=-35 (inner face). Spans y=58-67 (phone thickness). Tip rounded and pulled in from the finger's outer face (x=-45) to leave 3mm of backing material instead of 1mm. |
 | Fixed band peg | `[-40,68,band_peg_z]` rot[-90,0,0] cyl d4 h5 + d7 head | Forward-facing (+Y). Visible/accessible from front. |
 | Moving jaw (right) | separate part, `lego_robot_phone_clamp.scad` | Mirror geometry at x=+40 |
 | Moving jaw tongue | x = `slot_x0+clamp_tol` .. `slot_x1-clamp_tol` (≈-9.7..47.7) | Neck z=10.3-28.7, y=53.6-58.5; full undercut z=7.3-31.7, y=51.3-53.7. Always inside the T-slot cavity — never size or position this independently of `slot_x0`/`slot_x1`. |
@@ -82,8 +82,11 @@ by both `lego_robot_base.scad` (cavity cuts) and `lego_robot_phone_clamp.scad`
    positioned outside that range collides with solid, un-milled wall (this
    shipped once: 20mm of tongue inside solid material, ~2.8cm³ of interference).
 4. **V-notch base is flush with the jaw inner face (x=±35).** No flat wall between
-   the notch base and the jaw edge. Fixed jaw: `[[-44,0],[-35,-4.5],[-35,4.5]]`.
-   Moving jaw: `[[44,0],[35,-4.5],[35,4.5]]`.
+   the notch base and the jaw edge. Fixed jaw tip at x=-42, moving jaw tip at x=+42
+   (both via the shared `rounded_notch_2d()` in lego_robot_common.scad, r=1.2).
+   Keep the tip at least ~3mm off the finger's outer face (x=∓45) -- a past version
+   put it only 1mm off with a sharp point, both a thin wall and a stress
+   concentrator right behind it, prone to snapping under a side load.
 5. **Band pegs are on the jaw FRONT FACES, visible and accessible.** Not buried in
    the cavity. Forward-facing (rotate([-90,0,0])) so the rubber band hooks on and
    stretches across the phone front. No off-axis pull. Both pegs share `band_peg_z`.

@@ -25,8 +25,20 @@ add_file('web_server.py', 'web_server.py')
 add_file('dns_server.py', 'dns_server.py')
 add_file('boot.py', 'boot.py')
 
+# static/models (TFJS COCO-SSD, ~18MB) and static/lib (tf.min.js, ~1.3MB) are
+# the "heavy PWA" AI assets -- they don't fit in this device's flash and were
+# never meant to: per the README's offline-AI instructions, the phone installs
+# the full PWA from the online GitHub Pages demo over its own internet
+# connection first (caching those assets in the browser), then switches to the
+# robot's "BlockBot" Wi-Fi and opens the already-installed app, which talks to
+# this on-device server for control/video only. The device just needs the
+# lightweight dashboard shell + a captive-portal notice for anyone who lands
+# here without having installed the PWA yet.
+SKIP_DIRS = {'models', 'lib'}
+
 def add_dir(dir_path, dest_dir):
-    for root, _, files in os.walk(dir_path):
+    for root, dirs, files in os.walk(dir_path):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for file in files:
             src = os.path.join(root, file)
             dest = os.path.join(dest_dir, os.path.relpath(src, dir_path)).replace('\\', '/')

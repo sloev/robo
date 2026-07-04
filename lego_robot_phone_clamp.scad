@@ -65,10 +65,13 @@ module phone_clamp_jaw() {
             }
         }
 
-        // V-notch grips phone's right edge (mirror of fixed jaw).
-        // Base flush with jaw inner face x=+35 — no 1mm flat wall.
+        // V-notch grips phone's right edge (mirror of fixed jaw). Base flush with
+        // jaw inner face x=+35 — no 1mm flat wall. Tip pulled in to x=42 (3mm of
+        // backing material behind it instead of 1mm, against the finger's outer
+        // face at x=45) and rounded instead of a knife edge -- see the matching
+        // fixed-jaw notch in lego_robot_base.scad for why.
         translate([0, fy + 14.5, 0]) linear_extrude(45)
-            polygon([[44, 0], [35, -4.5], [35, 4.5]]);
+            rounded_notch_2d(tip_x = 42, base_x = 35, half_width = 4.5, r = 1.2);
     }
 }
 

@@ -136,16 +136,29 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_base.stl',
 );
 
 // 2. Lid is generated at origin. In assembled it is at Z = 48.
+// Real motion: the lid's rails ride in horizontal grooves that are open at
+// the FRONT (+Y in OpenSCAD) and dead-end at the solid back wall, which is
+// the seating stop (see lego_robot_base.scad's "Inner Side Grooves for Lid
+// Rails" comment) -- it's a front-loading drawer, not a lift-off lid. A
+// vertical lift used to look like it was rising straight up through the
+// side walls it's actually captured by. OpenSCAD +Y maps to Three.js -Z
+// (see the mapping note above), so sliding it back out the front is a pure
+// -Z move, no lift at all.
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_lid.stl', matLid,
     [0, 0, 0],    // Assembled (lid SCAD is generated already at its in-place Z, so it seats flush)
-    [0, 105, 0],  // Exploded (lifts straight up off the chassis, highest part)
+    [0, 0, -140], // Exploded: pure slide out the front along its own rail groove
     'lid'
 );
 
 // 3. Phone clamp is naturally generated fully assembled! (Z=65 to 130).
+// Real motion: the moving jaw's only degree of freedom is sliding along X in
+// the chassis's T-slot rail (see clamp.md) -- it cannot lift, the T-flange
+// physically locks it to the slot in Y/Z. A combined slide+lift used to cut
+// diagonally through the chassis wall on its way out instead of following
+// the rail. Pure X so the whole path stays on the part's actual track.
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_phone_clamp.stl', matClamp,
     [0, 0, 0],      // Assembled (Already in place)
-    [60, 30, 0],    // Exploded (the moving jaw slides out of its rail to the right + lifts)
+    [140, 0, 0],    // Exploded: pure slide out along the T-slot rail (clear of the right coupler's own exploded spot)
     'clamp'
 );
 
@@ -230,7 +243,11 @@ for (const m of [{ x: -30.5, flip: true }, { x: 30.5, flip: false }]) {
     const motor = makeMotor();
     if (m.flip) motor.rotation.y = Math.PI;   // shaft toward the opposite wall
     const assembled = new THREE.Vector3(m.x, 25.6, -26);   // OpenSCAD (±30.5, 30, 25.6)
-    const exploded = assembled.clone().add(new THREE.Vector3(m.x > 0 ? 18 : -18, 65, 0)); // lift out + fan apart
+    // Real motion: the cradle is open at the top specifically so the motor
+    // drops straight in/out (see motor_bays()'s comment) -- sideways fan-out
+    // risked clipping the motor's ear/shaft through the coupler or wall on
+    // the way out. Pure vertical lift follows the cradle's actual opening.
+    const exploded = assembled.clone().add(new THREE.Vector3(0, 65, 0));
     motor.position.copy(assembled);
     scene.add(motor);
     parts['motor_' + (internalCount++)] = { mesh: motor, assembledPos: assembled, explodedPos: exploded, targetPos: assembled.clone() };

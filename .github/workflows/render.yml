@@ -173,9 +173,15 @@ jobs:
           rm -rf downloaded-artifacts
       - name: Pull latest changes to avoid push conflicts
         # --autostash stashes the freshly-synced assets, rebases onto any newer
-        # origin/master, then reapplies them -- so a moved remote can't cause a
-        # non-fast-forward push, and the dirty work tree doesn't block the rebase.
-        run: git pull --rebase --autostash origin master
+        # copy of THIS SAME branch, then reapplies them -- so a moved remote
+        # can't cause a non-fast-forward push, and the dirty work tree doesn't
+        # block the rebase. Must target the branch actually checked out
+        # (github.ref_name), not a hardcoded "master": actions/checkout uses
+        # fetch-depth 1, so on a PR branch this used to rebase that branch's
+        # single shallow commit onto origin/master's unrelated shallow commit
+        # -- no common ancestor, so every file came back as an "add/add"
+        # conflict and the job failed on every PR run.
+        run: git pull --rebase --autostash origin "${{ github.ref_name }}"
       - name: Commit Generated Assets
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
