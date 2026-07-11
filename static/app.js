@@ -376,6 +376,7 @@ const toolboxJson = {
 function initBlockly() {
   workspace = Blockly.inject('workspace-canvas', {
     toolbox: toolboxJson,
+    media: 'media/',   // ship Blockly's sounds/sprites locally -- the default is a remote URL that's unreachable on the robot's offline captive portal
     scrollbars: true,
     trashcan: true,
     zoom: {
@@ -887,7 +888,7 @@ class Joystick {
   initEvents() {
     const startDrag = (e) => {
       // Don't override joysticks if autopilot or learning mode is active
-      if (autopilotActive || learningModeActive) return;
+      if (isCarAutopilotActive) return;
       
       this.isDragging = true;
       this.handle.style.transition = 'none';
@@ -1181,554 +1182,6 @@ async function onClapDetected() {
 }
 
 
-// --- 📷 CLIENT-SIDE COMPUTER VISION MOTION/CHANGE TRACKING ---
-
-const visionVideo = document.getElementById('vision-video');
-const visionCanvas = document.getElementById('vision-canvas');
-const visionPlaceholder = document.getElementById('vision-placeholder');
-const btnStartVision = document.getElementById('btn-start-vision');
-const btnStopVision = document.getElementById('btn-stop-vision');
-const btnCalibrateBg = document.getElementById('btn-calibrate-bg');
-
-let visionActive = false;
-let visionStream = null;
-let backgroundFrameData = null; // Stored background reference
-let motionThreshold = 40; // Pixel change sensitivity threshold
-let visionResult = 'none'; // 'left', 'center', 'right', or 'none'
-
-// Centroid tracking coordinate states shared with neural network
-let currentCentroid = { x: 0, y: 0, detected: false };
-
-// Frame differencing variables to detect if the creation is moving or stuck
-let lastFrameData = null;
-let currentFrameDiff = 0;
-
-// Set internal analysis resolution
-visionCanvas.width = 320;
-visionCanvas.height = 240;
-
-const ctx = visionCanvas.getContext('2d');
-
-// Copy current camera frame into background reference
-function captureBackground() {
-  if (!visionActive) return;
-  try {
-    ctx.drawImage(visionVideo, 0, 0, visionCanvas.width, visionCanvas.height);
-    const imgData = ctx.getImageData(0, 0, visionCanvas.width, visionCanvas.height);
-    if (!backgroundFrameData || backgroundFrameData.length !== imgData.data.length) {
-      backgroundFrameData = new Uint8ClampedArray(imgData.data.length);
-    }
-    backgroundFrameData.set(imgData.data);
-    console.log("Background frame captured successfully!");
-  } catch (err) {
-    console.error("Failed to capture background:", err);
-  }
-}
-
-btnStartVision.addEventListener('click', async () => {
-  if (visionActive) return;
-  
-  try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new Error("Camera API not supported. If accessing via local HTTP, mobile browsers block the camera. Use localhost, HTTPS, or a desktop browser.");
-    }
-    visionStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: 320, height: 240 }
-    });
-    
-    visionVideo.srcObject = visionStream;
-    visionVideo.style.display = 'block';
-    visionCanvas.style.display = 'block';
-    visionPlaceholder.style.display = 'none';
-    btnCalibrateBg.disabled = false;
-    
-    visionActive = true;
-    requestAnimationFrame(processFrame);
-    
-    // Auto-capture background after 1.2s to allow camera exposure to stabilize
-    setTimeout(() => {
-      captureBackground();
-    }, 1200);
-  } catch (err) {
-    alert("Could not access camera: " + err.message);
-  }
-});
-
-async function stopVisionFeed() {
-  if (!visionActive) return;
-  visionActive = false;
-  visionResult = 'none';
-  currentCentroid.detected = false;
-  lastFrameData = null;
-  backgroundFrameData = null;
-  currentFrameDiff = 0;
-  btnCalibrateBg.disabled = true;
-  
-  if (visionStream) {
-    visionStream.getTracks().forEach(track => track.stop());
-    visionStream = null;
-  }
-  
-  visionVideo.srcObject = null;
-  visionVideo.style.display = 'none';
-  visionCanvas.style.display = 'none';
-  visionPlaceholder.style.display = 'flex';
-  
-  // Push final state reset to ESP32
-  try {
-    await fetch(API_BASE + '/api/sensors', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vision: 'none' })
-    });
-  } catch (err) {}
-}
-
-btnStopVision.addEventListener('click', stopVisionFeed);
-
-btnCalibrateBg.addEventListener('click', () => {
-  captureBackground();
-  logConsole("Background calibrated successfully!");
-});
-
-// Image Processing loop (Background Differencing + Visual Motion Diff + UI overlays)
-function processFrame() {
-  if (!visionActive) return;
-  
-  try {
-    // Draw current camera frame
-    ctx.drawImage(visionVideo, 0, 0, visionCanvas.width, visionCanvas.height);
-    
-    // Read frame pixels
-    const imgData = ctx.getImageData(0, 0, visionCanvas.width, visionCanvas.height);
-    const data = imgData.data;
-    
-    // 1. Calculate frame-to-frame change (difference) to detect if creation is blocked/moving
-    if (lastFrameData) {
-      let diffSum = 0;
-      let pixelStep = 8;
-      let sampleCount = 0;
-      for (let i = 0; i < data.length; i += 4 * pixelStep) {
-        diffSum += Math.abs(data[i] - lastFrameData[i]) +
-                   Math.abs(data[i+1] - lastFrameData[i+1]) +
-                   Math.abs(data[i+2] - lastFrameData[i+2]);
-        sampleCount++;
-      }
-      currentFrameDiff = diffSum / sampleCount;
-    }
-    
-    // Save current frame for the next differencing check
-    if (!lastFrameData || lastFrameData.length !== data.length) {
-      lastFrameData = new Uint8ClampedArray(data.length);
-    }
-    lastFrameData.set(data);
-    
-    // 2. Background differencing to find moving/changed parts (magic tracking)
-    let sumX = 0;
-    let sumY = 0;
-    let matchCount = 0;
-    
-    if (backgroundFrameData) {
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i+1];
-        const b = data[i+2];
-        
-        const bg_r = backgroundFrameData[i];
-        const bg_g = backgroundFrameData[i+1];
-        const bg_b = backgroundFrameData[i+2];
-        
-        // Euclidean distance in RGB color space
-        const dist = Math.sqrt(
-          (r - bg_r) ** 2 +
-          (g - bg_g) ** 2 +
-          (b - bg_b) ** 2
-        );
-        
-        if (dist > motionThreshold) {
-          const idx = i / 4;
-          const x = idx % visionCanvas.width;
-          const y = Math.floor(idx / visionCanvas.width);
-          
-          sumX += x;
-          sumY += y;
-          matchCount++;
-          
-          // Draw a light red tint overlay on changed pixels
-          data[i] = Math.min(255, data[i] + 40);
-        }
-      }
-      
-      // Update canvas with highlighted pixels
-      ctx.putImageData(imgData, 0, 0);
-    }
-    
-    // Draw visual sector grid division lines (35% and 65%)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 1;
-    
-    const div1 = visionCanvas.width * 0.35;
-    const div2 = visionCanvas.width * 0.65;
-    
-    ctx.beginPath();
-    ctx.moveTo(div1, 0); ctx.lineTo(div1, visionCanvas.height);
-    ctx.moveTo(div2, 0); ctx.lineTo(div2, visionCanvas.height);
-    ctx.stroke();
-    
-    // Require at least 150 matching pixels to filter out noise
-    if (matchCount > 150) {
-      const avgX = sumX / matchCount;
-      const avgY = sumY / matchCount;
-      
-      currentCentroid = { x: avgX, y: avgY, detected: true };
-      
-      if (avgX < div1) {
-        visionResult = 'left';
-      } else if (avgX > div2) {
-        visionResult = 'right';
-      } else {
-        visionResult = 'center';
-      }
-      
-      // Draw crosshair target on the tracked movement centroid
-      ctx.strokeStyle = 'var(--cyan-accent)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(avgX, avgY, 15, 0, 2 * Math.PI);
-      ctx.moveTo(avgX - 22, avgY); ctx.lineTo(avgX + 22, avgY);
-      ctx.moveTo(avgX, avgY - 22); ctx.lineTo(avgX, avgY + 22);
-      ctx.stroke();
-      
-      ctx.fillStyle = 'var(--cyan-accent)';
-      ctx.font = 'bold 10px monospace';
-      ctx.fillText(`CREATION (${Math.floor(avgX)}, ${Math.floor(avgY)})`, avgX + 20, avgY - 5);
-    } else {
-      visionResult = 'none';
-      currentCentroid.detected = false;
-    }
-    
-    // Send tracking results to the backend sensors model periodically
-    sendVisionResult();
-    
-  } catch (err) {
-    console.error("Frame process error:", err);
-  }
-  
-  requestAnimationFrame(processFrame);
-}
-
-// Throttle sensor posts
-let lastSentResult = 'none';
-async function sendVisionResult() {
-  if (visionResult === lastSentResult) return;
-  lastSentResult = visionResult;
-  
-  try {
-    await fetch(API_BASE + '/api/sensors', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vision: visionResult })
-    });
-  } catch (err) {}
-}
-
-
-// --- 🧠 NEURAL NETWORK REINFORCEMENT LEARNING MODE ---
-
-let learningModeActive = false;
-let autopilotActive = false;
-let trainingState = 'IDLE'; // 'IDLE', 'BG_CAPTURE', 'BABBLING'
-let learningSamples = [];
-
-// Single-Layer Perceptron weights and biases mapping (dx, dy) -> Motor speeds (A, B)
-let nnWeights = [[0.0, 0.0], [0.0, 0.0]];
-let nnBiases = [0.0, 0.0];
-
-const btnLearnStart = document.getElementById('btn-learn-start');
-const btnLearnTest = document.getElementById('btn-learn-test');
-const learnConsole = document.getElementById('learning-console');
-const networkDisplay = document.getElementById('network-display');
-
-function logConsole(msg) {
-  learnConsole.innerText += `\n> ${msg}`;
-  learnConsole.scrollTop = learnConsole.scrollHeight;
-}
-
-const delay = ms => new Promise(res => setTimeout(res, ms));
-
-// Trigger manual motor movement for calibration
-async function triggerCalibMove(motor, steps) {
-  try {
-    await fetch(API_BASE + '/api/manual', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ motor: motor, steps: steps, speed: 4 })
-    });
-  } catch (err) {
-    logConsole(`Motor ${motor} command error: ` + err.message);
-  }
-}
-
-// NN Start Button triggers background calibration step
-btnLearnStart.addEventListener('click', async () => {
-  if (learningModeActive) return;
-  
-  // Guard check: camera feed must be active
-  if (!visionActive) {
-    alert("Camera feed must be ACTIVE first! Click '📷 START FEED' on the video panel.");
-    return;
-  }
-  
-  if (trainingState === 'IDLE') {
-    trainingState = 'BG_CAPTURE';
-    btnLearnStart.innerText = "📸 CALIBRATING...";
-    btnLearnStart.disabled = true;
-    
-    learnConsole.innerText = "Console: WIZARD STARTED.";
-    logConsole("STEP 1: BACKGROUND CALIBRATION");
-    logConsole("Capturing background scene... Please make sure your creation is STILL and hands are out of the frame.");
-    
-    await delay(1200); // Wait 1.2s for camera stability
-    captureBackground();
-    logConsole("Background captured successfully!");
-    
-    startCountdownAndCalibrate();
-  }
-});
-
-// Countdown from 3 before running the motor babble sequence
-async function startCountdownAndCalibrate() {
-  trainingState = 'BABBLING';
-  learningModeActive = true;
-  btnLearnStart.innerText = "🎓 CALIBRATING...";
-  btnLearnStart.disabled = true;
-  btnLearnTest.disabled = true;
-  btnLearnTest.innerText = "🤖 START AUTOPILOT";
-  
-  logConsole("Creation locked! Keep workspace clear.");
-  await delay(600);
-  
-  logConsole("Starting kinematics babble in 3...");
-  await delay(1000);
-  logConsole("2...");
-  await delay(1000);
-  logConsole("1...");
-  await delay(1000);
-  
-  runBabblingCalibration();
-}
-
-// Run babbling sequence to collect training samples
-async function runBabblingCalibration() {
-  learningSamples = [];
-  logConsole("Executing motor babble sequence...");
-  
-  try {
-    // Helper function to resolve current centroid coordinate (home is 160, 120)
-    const getCent = () => currentCentroid.detected ? 
-      { x: currentCentroid.x, y: currentCentroid.y } : 
-      { x: 160, y: 120 };
-
-    // --- Step 1: Babble Motor A (+) ---
-    logConsole("Testing Left Motor A (+)...");
-    await delay(500);
-    let startCent = getCent();
-    await triggerCalibMove('A', 350);
-    await delay(1600);
-    
-    let endCent = getCent();
-    let dx = endCent.x - startCent.x;
-    let dy = endCent.y - startCent.y;
-    learningSamples.push({ motorA: 1.0, motorB: 0.0, dx: dx, dy: dy });
-    logConsole(`A(+) displacement: dx=${dx.toFixed(1)}px, dy=${dy.toFixed(1)}px`);
-    
-    // --- Step 2: Babble Motor A (-) ---
-    logConsole("Testing Left Motor A (-)...");
-    await delay(500);
-    startCent = getCent();
-    await triggerCalibMove('A', -350);
-    await delay(1600);
-    
-    endCent = getCent();
-    dx = endCent.x - startCent.x;
-    dy = endCent.y - startCent.y;
-    learningSamples.push({ motorA: -1.0, motorB: 0.0, dx: dx, dy: dy });
-    logConsole(`A(-) displacement: dx=${dx.toFixed(1)}px, dy=${dy.toFixed(1)}px`);
-    
-    // --- Step 3: Babble Motor B (+) ---
-    logConsole("Testing Right Motor B (+)...");
-    await delay(500);
-    startCent = getCent();
-    await triggerCalibMove('B', 350);
-    await delay(1600);
-    
-    endCent = getCent();
-    dx = endCent.x - startCent.x;
-    dy = endCent.y - startCent.y;
-    learningSamples.push({ motorA: 0.0, motorB: 1.0, dx: dx, dy: dy });
-    logConsole(`B(+) displacement: dx=${dx.toFixed(1)}px, dy=${dy.toFixed(1)}px`);
-    
-    // --- Step 4: Babble Motor B (-) ---
-    logConsole("Testing Right Motor B (-)...");
-    await delay(500);
-    startCent = getCent();
-    await triggerCalibMove('B', -350);
-    await delay(1600);
-    
-    endCent = getCent();
-    dx = endCent.x - startCent.x;
-    dy = endCent.y - startCent.y;
-    learningSamples.push({ motorA: 0.0, motorB: -1.0, dx: dx, dy: dy });
-    logConsole(`B(-) displacement: dx=${dx.toFixed(1)}px, dy=${dy.toFixed(1)}px`);
-    
-    // Run gradient descent training on collected datasets
-    trainNeuralNetwork();
-    
-    btnLearnTest.disabled = false;
-  } catch (err) {
-    logConsole("Calibration failed: " + err.message);
-    stopAll();
-  } finally {
-    learningModeActive = false;
-    trainingState = 'IDLE';
-    btnLearnStart.disabled = false;
-    btnLearnStart.innerText = "🎓 START TRAINING";
-    btnLearnStart.classList.add('btn-run');
-    btnLearnStart.classList.remove('btn-stop');
-  }
-}
-
-// Train the linear Single-Layer Neural Network using gradient descent
-function trainNeuralNetwork() {
-  logConsole("Initializing neural weights...");
-  
-  nnWeights = [[0.0, 0.0], [0.0, 0.0]];
-  nnBiases = [0.0, 0.0];
-  
-  const lr = 0.1;
-  const epochs = 1000;
-  
-  logConsole("Training network (1000 epochs)...");
-  
-  for (let epoch = 1; epoch <= epochs; epoch++) {
-    for (let sample of learningSamples) {
-      const norm_dx = sample.dx / 320;
-      const norm_dy = sample.dy / 240;
-      
-      // Predict output mapping
-      const predA = nnWeights[0][0]*norm_dx + nnWeights[0][1]*norm_dy + nnBiases[0];
-      const predB = nnWeights[1][0]*norm_dx + nnWeights[1][1]*norm_dy + nnBiases[1];
-      
-      // Calculate delta error
-      const errA = sample.motorA - predA;
-      const errB = sample.motorB - predB;
-      
-      // Adjust weights
-      nnWeights[0][0] += lr * errA * norm_dx;
-      nnWeights[0][1] += lr * errA * norm_dy;
-      nnBiases[0] += lr * errA;
-      
-      nnWeights[1][0] += lr * errB * norm_dx;
-      nnWeights[1][1] += lr * errB * norm_dy;
-      nnBiases[1] += lr * errB;
-    }
-  }
-  
-  logConsole("Neural calibration complete!");
-  
-  networkDisplay.innerHTML = `
-    <strong>Weights:</strong><br>
-    Motor A (Left) = [${nnWeights[0][0].toFixed(2)} * dx, ${nnWeights[0][1].toFixed(2)} * dy]<br>
-    Motor B (Right) = [${nnWeights[1][0].toFixed(2)} * dx, ${nnWeights[1][1].toFixed(2)} * dy]
-  `;
-}
-
-// Convert NN predictions [-1.0, 1.0] to API steps/speed delays
-function mapSpeedValue(value) {
-  const absVal = Math.abs(value);
-  if (absVal < 0.15) {
-    return { steps: 0, speed: 2 };
-  }
-  
-  const direction = value > 0 ? 1 : -1;
-  const steps = direction * 280; // step count size
-  
-  let speed = 15; // Slow
-  if (absVal > 0.45 && absVal <= 0.75) {
-    speed = 8;  // Medium
-  } else if (absVal > 0.75) {
-    speed = 2;  // Fast
-  }
-  
-  return { steps: steps, speed: speed };
-}
-
-// Run Autopilot Control loop utilizing the trained Single-Layer Perceptron
-async function runAutopilotLoop() {
-  if (!autopilotActive) return;
-  
-  if (currentCentroid.detected) {
-    const dx = 160 - currentCentroid.x;
-    const dy = 120 - currentCentroid.y;
-    
-    const norm_dx = dx / 320;
-    const norm_dy = dy / 240;
-    
-    const predA = nnWeights[0][0]*norm_dx + nnWeights[0][1]*norm_dy + nnBiases[0];
-    const predB = nnWeights[1][0]*norm_dx + nnWeights[1][1]*norm_dy + nnBiases[1];
-    
-    const actA = mapSpeedValue(predA);
-    const actB = mapSpeedValue(predB);
-    
-    try {
-      await fetch(API_BASE + '/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'A', steps: actA.steps, speed: actA.speed })
-      });
-      await fetch(API_BASE + '/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'B', steps: actB.steps, speed: actB.speed })
-      });
-    } catch (err) {}
-  } else {
-    try {
-      await fetch(API_BASE + '/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'A', steps: 0, speed: 2 })
-      });
-      await fetch(API_BASE + '/api/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motor: 'B', steps: 0, speed: 2 })
-      });
-    } catch (err) {}
-  }
-  
-  setTimeout(runAutopilotLoop, 350);
-}
-
-btnLearnTest.addEventListener('click', () => {
-  if (autopilotActive) {
-    autopilotActive = false;
-    btnLearnTest.innerText = "🤖 START AUTOPILOT";
-    btnLearnTest.classList.remove('btn-stop');
-    btnLearnTest.classList.add('btn-clear');
-    logConsole("Autopilot stopped.");
-    stopAll();
-  } else {
-    autopilotActive = true;
-    btnLearnTest.innerText = "⏹ STOP AUTOPILOT";
-    btnLearnTest.classList.remove('btn-clear');
-    btnLearnTest.classList.add('btn-stop');
-    logConsole("Autopilot started! Tracking color target...");
-    runAutopilotLoop();
-  }
-});
-
-
 // --- 📈 PERIODIC STATUS UPDATES ---
 
 // Periodic status monitor polling (every 1 second)
@@ -1788,7 +1241,7 @@ async function updateStatus() {
     }
     
     if (isMoving) {
-      statusRobotMode.innerText = autopilotActive ? "AUTOPILOT" : "DRIVING";
+      statusRobotMode.innerText = isCarAutopilotActive ? "AUTOPILOT" : "DRIVING";
       statusRobotMode.style.color = "var(--cyan-accent)";
     } else {
       statusRobotMode.innerText = "IDLE";
@@ -1819,52 +1272,276 @@ setInterval(updateStatus, 1000);
 updateStatus(); // Initial call
 
 
-// --- 🚗 CAR MAPPER & AUTONOMOUS NAVIGATOR ---
+// --- 🚗 AI CAR AUTOPILOT ---
+//
+// Drives the robot like a car using the phone's camera. The drive geometry is
+// DECLARED, never guessed: the user picks the drive type below (differential
+// tank drive, or Ackermann drive+steer) and the constants in DRIVE_CFG describe
+// the build. All maneuvers (turns, junctions, parking) are computed from these
+// constants — there is no runtime calibration, babbling, or motion learning.
 
 const carVideo = document.getElementById('car-video');
 const carCanvas = document.getElementById('car-canvas');
 const carPlaceholder = document.getElementById('car-placeholder');
 const btnCarStartVision = document.getElementById('btn-car-start-vision');
-const btnCarCalibrateBg = document.getElementById('btn-car-calibrate-bg');
-const btnCarClearMap = document.getElementById('btn-car-clear-map');
 const btnCarStopVision = document.getElementById('btn-car-stop-vision');
-
-const btnCarMapStart = document.getElementById('btn-car-map-start');
 const btnCarAuto = document.getElementById('btn-car-auto');
+const btnCarPark = document.getElementById('btn-car-park');
 const carConsole = document.getElementById('car-console');
-
-let carVisionActive = false;
-let carVisionStream = null;
-let carBgFrameData = null;
-let carGrid = Array(15).fill(null).map(() => Array(20).fill(0));
-try {
-  const savedCarGrid = localStorage.getItem('car_map_grid');
-  if (savedCarGrid) {
-    carGrid = JSON.parse(savedCarGrid);
-  }
-} catch (e) {}
-let isMappingActive = false;
-let isCarAutopilotActive = false;
-let carCentroid = { x: 160, y: 120, detected: false };
-let carLastFrameData = null;
-let carFrameDiff = 0;
-let carMotionThreshold = 40;
-let carDriveState = 'STILL';
-
-// TensorFlow.js COCO-SSD Model
-let objectDetector = null;
-let detectedObjects = [];
 
 const carCtx = carCanvas.getContext('2d');
 carCanvas.width = 320;
 carCanvas.height = 240;
+
+// Offscreen canvas for pixel analysis (the visible canvas has HUD drawn over
+// the video, so road scanning reads from this clean copy instead).
+const scanCanvas = document.createElement('canvas');
+scanCanvas.width = 320;
+scanCanvas.height = 240;
+const scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
 
 function logCarConsole(msg) {
   carConsole.innerText += `\n> ${msg}`;
   carConsole.scrollTop = carConsole.scrollHeight;
 }
 
-// Load Object Detection Model
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
+// --- Fixed drive geometry (edit to match your build; do not auto-tune) ---
+const DRIVE_CFG = {
+  STEPS_PER_REV: 4096,      // 28BYJ-48 half-step, matches firmware stepper.py
+  WHEEL_DIAMETER_MM: 56,    // drive wheel diameter
+  TRACK_WIDTH_MM: 104,      // differential: distance between the two wheels
+  WHEELBASE_MM: 90,         // ackermann: front-to-rear axle distance
+  MAX_STEER_DEG: 28,        // ackermann: front wheel angle at full lock
+  STEER_LOCK_STEPS: 300,    // ackermann: steering motor steps from center to full lock
+  LEFT: 'A', RIGHT: 'B',    // differential wheel motors
+  DRIVE_MOTOR: 'A', STEER_MOTOR: 'B', // ackermann motor roles
+  INVERT_LEFT: false, INVERT_RIGHT: false,
+  INVERT_DRIVE: false, INVERT_STEER: false,
+  CONT_STEPS: 100000,       // "keep going" step target, refreshed every tick
+};
+const STEPS_PER_MM = DRIVE_CFG.STEPS_PER_REV / (Math.PI * DRIVE_CFG.WHEEL_DIAMETER_MM);
+// Speed = firmware per-step delay in ms (2 fast ... 20 crawl)
+const SPD = { CRUISE: 5, SLOW: 9, CREEP: 14, TURN: 3, PARK: 5 };
+const wheelMmPerSec = delayMs => (1000 / delayMs) / STEPS_PER_MM;
+
+let driveMode = localStorage.getItem('drive_mode') === 'ackermann' ? 'ackermann' : 'differential';
+let steerPosSteps = 0;        // ackermann: client-tracked steering position (centered at autopilot start)
+let lastCmdFailed = false;    // true => no robot reachable (demo mode)
+let hudSteerBias = 0;         // -1..1 shown on the HUD needle
+
+async function motorCmd(motor, steps, speed) {
+  try {
+    await fetch(API_BASE + '/api/manual', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ motor: motor, steps: Math.round(steps), speed: speed })
+    });
+    lastCmdFailed = false;
+  } catch (err) {
+    lastCmdFailed = true;
+  }
+}
+
+// Core motion primitive. dir: 1 forward, -1 reverse, 0 stop.
+// steerBias: -1 (full left) .. 0 .. +1 (full right). Non-blocking; callers
+// refresh it every tick for continuous motion, or time it for maneuvers.
+function setMotion(dir, steerBias, speed) {
+  hudSteerBias = steerBias;
+  const c = DRIVE_CFG;
+  if (dir === 0) {
+    if (driveMode === 'differential') {
+      motorCmd(c.LEFT, 0, speed); motorCmd(c.RIGHT, 0, speed);
+    } else {
+      motorCmd(c.DRIVE_MOTOR, 0, speed);
+    }
+    return;
+  }
+  if (driveMode === 'differential') {
+    // Arc by slowing the inner wheel: delay grows with |bias|. At (near) full
+    // lock the inner wheel stops entirely -- these steppers are slow, and a
+    // merely-slowed inner wheel would make sharp turns take half a minute.
+    const fullLock = Math.abs(steerBias) >= 0.9;
+    const inner = Math.min(24, Math.round(speed * (1 + 2.5 * Math.abs(steerBias))));
+    const lDelay = steerBias < 0 ? inner : speed;   // left is inner on a left turn
+    const rDelay = steerBias > 0 ? inner : speed;
+    const s = dir * c.CONT_STEPS;
+    const lSteps = (fullLock && steerBias < 0) ? 0 : s * (c.INVERT_LEFT ? -1 : 1);
+    const rSteps = (fullLock && steerBias > 0) ? 0 : s * (c.INVERT_RIGHT ? -1 : 1);
+    motorCmd(c.LEFT, lSteps, lDelay);
+    motorCmd(c.RIGHT, rSteps, rDelay);
+  } else {
+    steerTo(steerBias);
+    motorCmd(c.DRIVE_MOTOR, dir * c.CONT_STEPS * (c.INVERT_DRIVE ? -1 : 1), speed);
+  }
+}
+
+// Ackermann steering: move the steering motor to a tracked absolute position.
+function steerTo(bias) {
+  const target = Math.round(Math.max(-1, Math.min(1, bias)) * DRIVE_CFG.STEER_LOCK_STEPS);
+  const dSteps = target - steerPosSteps;
+  if (dSteps !== 0) {
+    motorCmd(DRIVE_CFG.STEER_MOTOR, dSteps * (DRIVE_CFG.INVERT_STEER ? -1 : 1), 3);
+    steerPosSteps = target;
+  }
+}
+
+function haltDrive() { setMotion(0, hudSteerBias, SPD.CRUISE); }
+
+// Yaw rate (deg/s) at a given steer bias and speed — pure declared geometry.
+// Must mirror setMotion()'s wheel assignments exactly or timed turns drift.
+function yawRateDegPerSec(bias, speed) {
+  const c = DRIVE_CFG;
+  if (driveMode === 'differential') {
+    const inner = Math.min(24, Math.round(speed * (1 + 2.5 * Math.abs(bias))));
+    const vOut = wheelMmPerSec(speed);
+    const vIn = Math.abs(bias) >= 0.9 ? 0 : wheelMmPerSec(inner);  // full lock stops the inner wheel
+    return ((vOut - vIn) / c.TRACK_WIDTH_MM) * (180 / Math.PI);
+  }
+  const v = wheelMmPerSec(speed);
+  const steerRad = Math.abs(bias) * c.MAX_STEER_DEG * Math.PI / 180;
+  return (v * Math.tan(steerRad) / c.WHEELBASE_MM) * (180 / Math.PI);
+}
+
+// A cancellable timed motion segment: keeps refreshing the motion command so
+// long maneuvers survive step-target exhaustion, and aborts early if the
+// autopilot is switched off or an emergency (pedestrian etc.) is flagged.
+let maneuverAbort = false;
+async function moveFor(ms, dir, bias, speed) {
+  const until = Date.now() + ms;
+  setMotion(dir, bias, speed);
+  while (Date.now() < until) {
+    if (!isCarAutopilotActive || maneuverAbort) { haltDrive(); return false; }
+    await delay(Math.min(120, until - Date.now()));
+  }
+  return true;
+}
+
+// Turn through `deg` degrees as a smooth car-like arc (never a tank spin).
+async function arcTurn(dirSign, deg, opts = {}) {
+  const bias = dirSign * (opts.bias || 1.0);   // full lock by default: gentler arcs are for cruise corrections
+  const speed = opts.speed || SPD.TURN;
+  const rate = yawRateDegPerSec(bias, speed);
+  const ms = Math.min(20000, (deg / Math.max(rate, 1)) * 1000);
+  const ok = await moveFor(ms, opts.reverse ? -1 : 1, opts.reverse ? -bias : bias, speed);
+  haltDrive();
+  return ok;
+}
+
+// About-face when boxed in. Differential can pivot in place; Ackermann does a
+// three-point turn like a real car.
+async function uTurn(dirSign) {
+  if (driveMode === 'differential') {
+    const c = DRIVE_CFG;
+    const steps = Math.PI * c.TRACK_WIDTH_MM * (180 / 360) * STEPS_PER_MM;
+    const spd = 4;
+    motorCmd(c.LEFT, dirSign * steps * (c.INVERT_LEFT ? -1 : 1), spd);
+    motorCmd(c.RIGHT, -dirSign * steps * (c.INVERT_RIGHT ? -1 : 1), spd);
+    hudSteerBias = dirSign;
+    await delay(steps * spd + 250);
+    haltDrive();
+    return isCarAutopilotActive && !maneuverAbort;
+  }
+  // Three-point turn: forward-left, reverse-right, forward-left.
+  if (!await arcTurn(-dirSign, 70)) return false;
+  if (!await arcTurn(dirSign, 70, { reverse: true })) return false;
+  return arcTurn(-dirSign, 50);
+}
+
+async function reverseMm(mm, speed) {
+  const ms = (mm / wheelMmPerSec(speed)) * 1000;
+  const ok = await moveFor(ms, -1, 0, speed);
+  haltDrive();
+  return ok;
+}
+
+// --- Road vision: fixed free-space column scan (no learning) ---
+// Reference = the surface directly in front of the robot (bottom-center patch).
+// Each column is walked upward from the bottom until the color stops looking
+// like that surface; the result is a per-column clearance profile of "road".
+const SCAN = {
+  COLS: 16,
+  Y_TOP: 130,          // don't scan above the visual horizon
+  Y_BOTTOM: 238,
+  REF: { x0: 130, x1: 190, y0: 222, y1: 238 },
+  COLOR_THRESH: 58,    // RGB distance where "road" ends
+  BLOCKED_NEAR: 0.22,  // clearance below this = wall right in front
+  OPEN_SIDE: 0.55,     // side columns clearer than this = open corridor
+};
+let lastScan = null;
+let prevScanData = null;
+let frameDiff = 999;   // stuck watchdog signal (safety only, not calibration)
+
+function scanRoad() {
+  if (!carVisionActive || carVideo.readyState < 2) return null;
+  scanCtx.drawImage(carVideo, 0, 0, 320, 240);
+  const img = scanCtx.getImageData(0, 0, 320, 240);
+  const d = img.data;
+
+  // Stuck watchdog: mean frame-to-frame change on sparse samples.
+  if (prevScanData) {
+    let sum = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4 * 16) {
+      sum += Math.abs(d[i] - prevScanData[i]) + Math.abs(d[i + 1] - prevScanData[i + 1]);
+      n++;
+    }
+    frameDiff = sum / n;
+  }
+  if (!prevScanData) prevScanData = new Uint8ClampedArray(d.length);
+  prevScanData.set(d);
+
+  // Reference road color: mean of the bottom-center patch.
+  let rr = 0, rg = 0, rb = 0, rn = 0;
+  for (let y = SCAN.REF.y0; y < SCAN.REF.y1; y += 2) {
+    for (let x = SCAN.REF.x0; x < SCAN.REF.x1; x += 4) {
+      const i = (y * 320 + x) * 4;
+      rr += d[i]; rg += d[i + 1]; rb += d[i + 2]; rn++;
+    }
+  }
+  rr /= rn; rg /= rn; rb /= rn;
+
+  // Per-column clearance: fraction of the scan band that still looks like road.
+  const clearance = [];
+  const colW = 320 / SCAN.COLS;
+  for (let c = 0; c < SCAN.COLS; c++) {
+    const x = Math.floor(c * colW + colW / 2);
+    let clearPx = 0;
+    const total = SCAN.Y_BOTTOM - SCAN.Y_TOP;
+    for (let y = SCAN.Y_BOTTOM; y > SCAN.Y_TOP; y -= 2) {
+      const i = (y * 320 + x) * 4;
+      const dist = Math.abs(d[i] - rr) + Math.abs(d[i + 1] - rg) + Math.abs(d[i + 2] - rb);
+      if (dist > SCAN.COLOR_THRESH) break;
+      clearPx += 2;
+    }
+    clearance.push(clearPx / total);
+  }
+
+  // Corridor: clearance-weighted centroid of open columns.
+  let wSum = 0, cSum = 0;
+  clearance.forEach((cl, i) => { wSum += cl; cSum += cl * (i + 0.5) / SCAN.COLS; });
+  const corridorCenter = wSum > 0.01 ? (cSum / wSum) * 2 - 1 : 0;  // -1..1
+  const mid = clearance.slice(5, 11);
+  const aheadClear = mid.reduce((a, b) => a + b, 0) / mid.length;
+  const leftClear = clearance.slice(0, 4).reduce((a, b) => a + b, 0) / 4;
+  const rightClear = clearance.slice(12).reduce((a, b) => a + b, 0) / 4;
+
+  lastScan = {
+    clearance, corridorCenter,
+    aheadClear,
+    aheadBlocked: aheadClear < SCAN.BLOCKED_NEAR,
+    aheadNarrowing: aheadClear < 0.45,
+    sideOpen: { left: leftClear > SCAN.OPEN_SIDE, right: rightClear > SCAN.OPEN_SIDE },
+  };
+  return lastScan;
+}
+
+// --- TensorFlow.js COCO-SSD object detection (unchanged pipeline) ---
+let objectDetector = null;
+let detectedObjects = [];
+let carVisionActive = false;
+let carVisionStream = null;
+
 async function loadObjectDetector() {
   if (objectDetector) return;
   logCarConsole("Loading TensorFlow.js COCO-SSD model...");
@@ -1872,20 +1549,383 @@ async function loadObjectDetector() {
     objectDetector = await cocoSsd.load({ modelUrl: 'models/model.json' });
     logCarConsole("Model loaded! Ready for autonomy.");
     btnCarAuto.disabled = false;
+    btnCarPark.disabled = false;
   } catch (err) {
     // The AI model isn't hosted on the robot's own Wi-Fi -- it's cached by
     // the browser from the online PWA install (see README "Offline AI
     // Autonomy"). Running straight off the robot's captive portal without
     // that install will always land here; point the user at the fix.
     logCarConsole("Error loading model: " + err.message);
-    logCarConsole("AI Explorer needs the app installed from the online demo first: " +
+    logCarConsole("AI Autonomy needs the app installed from the online demo first: " +
       "visit https://sloev.github.io/robo/ on your phone's normal internet connection, " +
       "\"Install\" it to your homescreen, then switch Wi-Fi to the robot and reopen the installed app.");
   }
 }
 
-// Background functions removed (using TFJS now)
+async function detectObjects() {
+  if (carVisionActive && objectDetector) {
+    try {
+      detectedObjects = await objectDetector.detect(carVideo);
+      feedVisionSensor();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  if (carVisionActive) requestAnimationFrame(detectObjects);
+}
 
+// Feed the Blockly "If Vision detects target" sensor from the best detection.
+let lastVisionSent = 'none';
+let lastVisionSentAt = 0;
+function feedVisionSensor() {
+  const now = Date.now();
+  if (now - lastVisionSentAt < 400) return;
+  let best = null;
+  detectedObjects.forEach(o => { if (o.score > 0.6 && (!best || o.score > best.score)) best = o; });
+  let result = 'none';
+  if (best) {
+    const cx = best.bbox[0] + best.bbox[2] / 2;
+    result = cx < 320 * 0.35 ? 'left' : cx > 320 * 0.65 ? 'right' : 'center';
+  }
+  if (result === lastVisionSent) return;
+  lastVisionSent = result;
+  lastVisionSentAt = now;
+  fetch(API_BASE + '/api/sensors', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vision: result })
+  }).catch(() => {});
+}
+
+// --- Car-behavior state machine ---
+let isCarAutopilotActive = false;
+let carState = 'IDLE';
+let stateSince = 0;
+let signal = 'none';            // 'left' | 'right' | 'hazard' | 'none'
+let maneuverRunning = false;    // an async maneuver script owns the motors
+let nextIntentAt = 0;           // when the "driver" next does something spontaneous
+let stopSignIgnoreUntil = 0;    // don't re-stop for the same sign immediately
+let stuckSince = 0;
+let pendingPark = false;
+let carAutoTimer = null;
+
+function setState(name, note) {
+  if (carState !== name) {
+    carState = name;
+    stateSince = Date.now();
+    if (note) logCarConsole(note);
+  }
+}
+
+function armIntentTimer() {
+  nextIntentAt = Date.now() + 20000 + Math.random() * 25000;
+}
+
+// Situation analysis shared by every tick.
+function assessDetections() {
+  const out = { stopSign: false, pedestrian: false, obstacle: false, obstacleSide: 0 };
+  detectedObjects.forEach(obj => {
+    if (obj.score <= 0.6) return;
+    const [x, y, w, h] = obj.bbox;
+    const big = w > 320 * 0.4 || h > 240 * 0.4;
+    const cx = x + w / 2;
+    if (obj.class === 'stop sign' && (w > 320 * 0.12 || h > 240 * 0.12)) out.stopSign = true;
+    if (obj.class === 'person' && big) out.pedestrian = true;
+    if (big && obj.class !== 'person' && obj.class !== 'stop sign') {
+      out.obstacle = true;
+      out.obstacleSide = cx < 160 ? -1 : 1;
+    }
+  });
+  return out;
+}
+
+async function autopilotTick() {
+  if (!isCarAutopilotActive) return;
+  const scan = scanRoad();
+  const seen = assessDetections();
+  const now = Date.now();
+
+  // Emergencies interrupt even scripted maneuvers.
+  if (maneuverRunning) {
+    if (seen.pedestrian) {
+      maneuverAbort = true;
+      setState('PEDESTRIAN_WAIT', "🚶 Pedestrian! Braking mid-maneuver.");
+    }
+  } else {
+    switch (carState) {
+      case 'CRUISE': {
+        if (seen.pedestrian) { haltDrive(); setState('PEDESTRIAN_WAIT', "🚶 Pedestrian ahead — waiting for them to cross."); break; }
+        if (seen.stopSign && now > stopSignIgnoreUntil) { haltDrive(); setState('STOP_SIGN_WAIT', "🛑 Stop sign. Coming to a full stop."); break; }
+        if (seen.obstacle) { haltDrive(); setState('OBSTACLE_AVOID', "📦 Obstacle ahead — going around it."); break; }
+        if (scan && scan.aheadBlocked) { haltDrive(); setState('JUNCTION_WAIT', "🛑 Road ends ahead — stopping to look both ways."); break; }
+
+        // Stuck watchdog: we're commanding motion but the world isn't moving.
+        if (frameDiff < 1.2) {
+          if (!stuckSince) stuckSince = now;
+          if (now - stuckSince > 2500) { stuckSince = 0; setState('STUCK_RECOVERY', "😬 We seem stuck — backing out."); break; }
+        } else stuckSince = 0;
+
+        // Spontaneous driver intent: signaled turns and parking, for show.
+        if (pendingPark || now > nextIntentAt) {
+          const roll = Math.random();
+          if (pendingPark || roll < 0.3) {
+            pendingPark = false;
+            armIntentTimer();
+            setState('PARKING', "🅿️ Looking for a spot to park...");
+            break;
+          }
+          if (roll < 0.75) {
+            armIntentTimer();
+            signal = Math.random() < 0.6 ? 'right' : 'left';
+            setState('SIGNAL_TURN', `🚦 Signaling ${signal} for a turn.`);
+            break;
+          }
+          armIntentTimer();
+        }
+
+        // Lane keeping: steer toward the open corridor, biased right.
+        if (scan) {
+          const target = scan.corridorCenter + 0.22;              // right-lane bias
+          const bias = Math.max(-0.6, Math.min(0.6, target));
+          setMotion(1, bias, scan.aheadNarrowing ? SPD.SLOW : SPD.CRUISE);
+        } else {
+          setMotion(1, 0.05, SPD.SLOW);
+        }
+        break;
+      }
+
+      case 'SIGNAL_TURN': {
+        setMotion(1, 0, SPD.SLOW);   // slow down while blinking
+        if (now - stateSince > 1300) {
+          setState('TURNING', `↪️ Turning ${signal}.`);
+          runManeuver(async () => {
+            await arcTurn(signal === 'right' ? 1 : -1, 80 + Math.random() * 20);
+          });
+        }
+        break;
+      }
+
+      case 'JUNCTION_WAIT': {
+        if (now - stateSince < 1600) break;   // look both ways
+        const left = lastScan ? lastScan.sideOpen.left : true;
+        const right = lastScan ? lastScan.sideOpen.right : true;
+        let dir;
+        if (right && (!left || Math.random() < 0.7)) dir = 'right';
+        else if (left) dir = 'left';
+        else dir = 'uturn';
+        if (dir === 'uturn') {
+          signal = 'left';
+          setState('TURNING', "🔄 Dead end — turning around.");
+          runManeuver(async () => { await uTurn(-1); });
+        } else {
+          signal = dir;
+          setState('TURNING', `${dir === 'right' ? '➡️' : '⬅️'} Clear ${dir} — turning ${dir}.`);
+          runManeuver(async () => {
+            await arcTurn(dir === 'right' ? 1 : -1, 90, { bias: 1.0, speed: SPD.TURN });
+          });
+        }
+        break;
+      }
+
+      case 'STOP_SIGN_WAIT': {
+        if (now - stateSince > 3000) {
+          stopSignIgnoreUntil = now + 8000;
+          setState('CRUISE', "✅ Stop complete. Proceeding.");
+        }
+        break;
+      }
+
+      case 'PEDESTRIAN_WAIT': {
+        if (!seen.pedestrian && now - stateSince > 1200) {
+          setState('CRUISE', "✅ Pedestrian clear. Driving on.");
+        }
+        break;
+      }
+
+      case 'OBSTACLE_AVOID': {
+        const side = seen.obstacleSide || (lastScan && lastScan.sideOpen.left && !lastScan.sideOpen.right ? 1 : -1);
+        signal = side > 0 ? 'left' : 'right';   // steer away from the obstacle
+        setState('TURNING', "↩️ Backing up and steering around.");
+        runManeuver(async () => {
+          if (!await reverseMm(100, SPD.PARK)) return;
+          await arcTurn(side > 0 ? -1 : 1, 55);
+        });
+        break;
+      }
+
+      case 'STUCK_RECOVERY': {
+        signal = 'hazard';
+        setState('TURNING', "🔧 Recovery: reversing and picking a new line.");
+        runManeuver(async () => {
+          if (!await reverseMm(120, SPD.PARK)) return;
+          await arcTurn(Math.random() < 0.5 ? 1 : -1, 60);
+        });
+        break;
+      }
+
+      case 'PARKING': {
+        runParkingManeuver();
+        break;
+      }
+
+      case 'PARKED': {
+        signal = 'hazard';
+        haltDrive();
+        if (now - stateSince > 6000) {
+          signal = 'left';
+          setState('TURNING', "🚗 Pulling out of the spot.");
+          runManeuver(async () => {
+            if (!await reverseMm(50, SPD.PARK)) return;
+            await arcTurn(-1, 45);
+          });
+        }
+        break;
+      }
+
+      case 'TURNING':
+      case 'IDLE':
+        break;
+    }
+  }
+
+  if (isCarAutopilotActive) carAutoTimer = setTimeout(autopilotTick, 300);
+}
+
+// Run an async maneuver script that owns the motors until it resolves.
+function runManeuver(script) {
+  maneuverRunning = true;
+  maneuverAbort = false;
+  script().catch(err => logCarConsole("Maneuver error: " + err.message)).finally(() => {
+    maneuverRunning = false;
+    haltDrive();
+    if (isCarAutopilotActive && carState !== 'PEDESTRIAN_WAIT' && carState !== 'PARKED') {
+      signal = 'none';
+      setState('CRUISE');
+    }
+  });
+}
+
+// Three scripted parking styles, all pure declared-kinematics choreography.
+function runParkingManeuver() {
+  const style = ['parallel', 'reverse-bay', 'nose-in'][Math.floor(Math.random() * 3)];
+  signal = 'right';
+  runManeuver(async () => {
+    if (style === 'parallel') {
+      logCarConsole("🅿️ Parallel parking on the right.");
+      if (!await moveFor(1100, 1, 0.05, SPD.SLOW)) return;   // pull up past the spot
+      haltDrive(); await delay(500);
+      if (!await arcTurn(1, 40, { reverse: true, bias: 0.95, speed: SPD.PARK })) return; // reverse-right
+      if (!await arcTurn(-1, 40, { reverse: true, bias: 0.95, speed: SPD.PARK })) return; // counter-steer
+      if (!await moveFor(450, 1, 0, SPD.CREEP)) return;      // straighten up
+    } else if (style === 'reverse-bay') {
+      logCarConsole("🅿️ Reversing into a bay.");
+      if (!await moveFor(700, 1, 0.02, SPD.SLOW)) return;
+      haltDrive(); await delay(500);
+      if (!await arcTurn(-1, 60, { speed: SPD.PARK })) return;   // swing nose away
+      if (!await arcTurn(1, 55, { reverse: true, bias: 0.9, speed: SPD.PARK })) return; // back in
+      if (!await reverseMm(90, SPD.CREEP)) return;
+    } else {
+      logCarConsole("🅿️ Nose-in parking.");
+      const until = Date.now() + 4000;
+      setMotion(1, 0.5, SPD.CREEP);   // creep toward the right edge
+      while (Date.now() < until) {
+        if (!isCarAutopilotActive || maneuverAbort) { haltDrive(); return; }
+        if (lastScan && lastScan.aheadBlocked) break;   // stop before touching
+        await delay(120);
+      }
+    }
+    haltDrive();
+    if (driveMode === 'ackermann') steerTo(0);
+    signal = 'hazard';
+    setState('PARKED', "✅ Parked. Hazards on.");
+  });
+}
+
+// --- HUD (drawn over the live video every frame) ---
+function drawHud() {
+  const W = 320, H = 240;
+
+  // Free-space scan bars along the bottom.
+  if (lastScan) {
+    const colW = W / SCAN.COLS;
+    lastScan.clearance.forEach((cl, i) => {
+      const barH = 6 + cl * 34;
+      carCtx.fillStyle = cl > 0.45 ? 'rgba(60,220,120,0.55)' : cl > 0.22 ? 'rgba(250,200,60,0.55)' : 'rgba(240,70,70,0.6)';
+      carCtx.fillRect(i * colW + 2, H - barH, colW - 4, barH);
+    });
+  }
+
+  // Steering needle.
+  carCtx.save();
+  carCtx.translate(W / 2, H - 14);
+  carCtx.rotate(hudSteerBias * 0.9);
+  carCtx.strokeStyle = '#ffffff';
+  carCtx.lineWidth = 3;
+  carCtx.beginPath(); carCtx.moveTo(0, 6); carCtx.lineTo(0, -26); carCtx.stroke();
+  carCtx.restore();
+
+  // Turn signals / hazards (blink at ~1.25 Hz).
+  const blinkOn = Math.floor(Date.now() / 400) % 2 === 0;
+  if (signal !== 'none' && blinkOn) {
+    carCtx.fillStyle = '#ffb300';
+    if (signal === 'left' || signal === 'hazard') {
+      carCtx.beginPath(); carCtx.moveTo(26, 120); carCtx.lineTo(52, 104); carCtx.lineTo(52, 136); carCtx.fill();
+    }
+    if (signal === 'right' || signal === 'hazard') {
+      carCtx.beginPath(); carCtx.moveTo(294, 120); carCtx.lineTo(268, 104); carCtx.lineTo(268, 136); carCtx.fill();
+    }
+  }
+
+  // State banner.
+  const labels = {
+    IDLE: 'AUTOPILOT OFF', CRUISE: 'LANE KEEPING', SIGNAL_TURN: `SIGNALING ${String(signal).toUpperCase()}`,
+    TURNING: 'TURNING', JUNCTION_WAIT: 'JUNCTION — LOOKING BOTH WAYS', STOP_SIGN_WAIT: 'STOP SIGN — WAITING',
+    PEDESTRIAN_WAIT: 'WAITING FOR PEDESTRIAN', OBSTACLE_AVOID: 'AVOIDING OBSTACLE',
+    STUCK_RECOVERY: 'RECOVERING', PARKING: 'PARKING', PARKED: 'PARKED — HAZARDS ON',
+  };
+  const label = (labels[carState] || carState) + (lastCmdFailed ? '  ·  DEMO (no robot)' : '');
+  carCtx.fillStyle = 'rgba(0,0,0,0.65)';
+  carCtx.fillRect(6, 6, 12 + label.length * 6.3, 20);
+  carCtx.fillStyle = isCarAutopilotActive ? '#4dd2ff' : '#999999';
+  carCtx.font = 'bold 10px monospace';
+  carCtx.fillText(label, 12, 20);
+}
+
+function processCarFrame() {
+  if (!carVisionActive) return;
+  try {
+    carCtx.drawImage(carVideo, 0, 0, carCanvas.width, carCanvas.height);
+
+    // Detected objects.
+    if (detectedObjects && detectedObjects.length > 0) {
+      detectedObjects.forEach(obj => {
+        if (obj.score > 0.6) {
+          const [x, y, width, height] = obj.bbox;
+          carCtx.strokeStyle = 'var(--cyan-accent)';
+          carCtx.lineWidth = 2;
+          carCtx.strokeRect(x, y, width, height);
+          carCtx.fillStyle = 'var(--cyan-accent)';
+          carCtx.fillRect(x, y - 16, width, 16);
+          carCtx.fillStyle = '#000000';
+          carCtx.font = '10px monospace';
+          carCtx.fillText(`${obj.class} ${Math.round(obj.score * 100)}%`, x + 2, y - 4);
+        }
+      });
+    }
+
+    drawHud();
+
+    if (!window.detectionLoopStarted && objectDetector) {
+      window.detectionLoopStarted = true;
+      detectObjects();
+    }
+  } catch (err) {
+    console.error("Car frame process error:", err);
+  }
+  requestAnimationFrame(processCarFrame);
+}
+
+// --- Camera feed + autopilot controls ---
 btnCarStartVision.addEventListener('click', async () => {
   if (carVisionActive) return;
   try {
@@ -1899,42 +1939,34 @@ btnCarStartVision.addEventListener('click', async () => {
     carVideo.style.display = 'block';
     carCanvas.style.display = 'block';
     carPlaceholder.style.display = 'none';
-    btnCarCalibrateBg.disabled = false;
-    
     carVisionActive = true;
     requestAnimationFrame(processCarFrame);
-    
-    // Load TFJS model in the background
     loadObjectDetector();
   } catch (err) {
     alert("Could not access camera: " + err.message);
   }
 });
 
+function stopAutopilot(reason) {
+  isCarAutopilotActive = false;
+  maneuverAbort = true;
+  signal = 'none';
+  if (carAutoTimer) { clearTimeout(carAutoTimer); carAutoTimer = null; }
+  btnCarAuto.innerText = "🤖 AUTOPILOT: OFF";
+  btnCarAuto.classList.remove('btn-stop');
+  btnCarAuto.classList.add('btn-clear');
+  setState('IDLE', reason || "Autopilot stopped.");
+  stopAll();
+}
+
 btnCarStopVision.addEventListener('click', () => {
   if (!carVisionActive) return;
+  stopAutopilot("Camera feed stopped.");
   carVisionActive = false;
   window.detectionLoopStarted = false;
-  isMappingActive = false;
-  isCarAutopilotActive = false;
   detectedObjects = [];
-  carLastFrameData = null;
-  btnCarCalibrateBg.disabled = true;
-  btnCarMapStart.innerText = "🗺️ START MAPPING";
-  btnCarMapStart.classList.add('btn-run');
-  btnCarMapStart.classList.remove('btn-stop');
-  btnCarAuto.disabled = true;
-  btnCarAuto.innerText = "🤖 AUTOPILOT: OFF";
-  
-  if (carMappingTimer) {
-    clearTimeout(carMappingTimer);
-    carMappingTimer = null;
-  }
-  if (carAutoTimer) {
-    clearTimeout(carAutoTimer);
-    carAutoTimer = null;
-  }
-  
+  lastScan = null;
+  prevScanData = null;
   if (carVisionStream) {
     carVisionStream.getTracks().forEach(track => track.stop());
     carVisionStream = null;
@@ -1943,231 +1975,46 @@ btnCarStopVision.addEventListener('click', () => {
   carVideo.style.display = 'none';
   carCanvas.style.display = 'none';
   carPlaceholder.style.display = 'flex';
-  logCarConsole("Camera feed stopped.");
-  stopAll();
-  carDriveState = 'STILL';
 });
 
-// btnCarCalibrateBg removed / disabled as TFJS doesn't need background calibration
-
-btnCarClearMap.addEventListener('click', () => {
-  carGrid = Array(15).fill(null).map(() => Array(20).fill(0));
-  localStorage.setItem('car_map_grid', JSON.stringify(carGrid));
-  logCarConsole("Obstacle map cleared.");
-});
-
-// Detect objects continuously if autopilot is active
-async function detectObjects() {
-  if (carVisionActive && objectDetector) {
-    try {
-      detectedObjects = await objectDetector.detect(carVideo);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  if (carVisionActive) {
-    // Keep detecting as fast as possible
-    requestAnimationFrame(detectObjects);
-  }
-}
-
-function processCarFrame() {
-  if (!carVisionActive) return;
-  
-  try {
-    // 1. Draw live feed
-    carCtx.drawImage(carVideo, 0, 0, carCanvas.width, carCanvas.height);
-    
-    // Draw crosshairs
-    carCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    carCtx.lineWidth = 1;
-    carCtx.beginPath();
-    carCtx.moveTo(carCanvas.width/2, 0); carCtx.lineTo(carCanvas.width/2, carCanvas.height);
-    carCtx.moveTo(0, carCanvas.height/2); carCtx.lineTo(carCanvas.width, carCanvas.height/2);
-    carCtx.stroke();
-
-    // 2. Draw detected objects
-    if (detectedObjects && detectedObjects.length > 0) {
-      detectedObjects.forEach(obj => {
-        // Only draw objects with confidence > 60%
-        if (obj.score > 0.6) {
-          const [x, y, width, height] = obj.bbox;
-
-          carCtx.strokeStyle = 'var(--cyan-accent)';
-          carCtx.lineWidth = 2;
-          carCtx.strokeRect(x, y, width, height);
-
-          carCtx.fillStyle = 'var(--cyan-accent)';
-          carCtx.fillRect(x, y - 16, width, 16);
-          carCtx.fillStyle = '#000000';
-          carCtx.font = '10px monospace';
-          carCtx.fillText(`${obj.class} ${Math.round(obj.score * 100)}%`, x + 2, y - 4);
-        }
-      });
-    }
-    
-    // Start async detection loop if not started
-    if (!window.detectionLoopStarted && objectDetector) {
-      window.detectionLoopStarted = true;
-      detectObjects();
-    }
-    
-  } catch (err) {
-    console.error("Car frame process error:", err);
-  }
-  
-  requestAnimationFrame(processCarFrame);
-}
-
-// Wander mapping timer & controller
-let carMappingTimer = null;
-btnCarMapStart.addEventListener('click', () => {
-  if (!carVisionActive) {
-    alert("Camera feed must be active first!");
-    return;
-  }
-  
-  if (isMappingActive) {
-    // Stop mapping
-    isMappingActive = false;
-    btnCarMapStart.innerText = "🗺️ START MAPPING";
-    btnCarMapStart.classList.add('btn-run');
-    btnCarMapStart.classList.remove('btn-stop');
-    btnCarAuto.disabled = false;
-    if (carMappingTimer) {
-      clearTimeout(carMappingTimer);
-      carMappingTimer = null;
-    }
-    logCarConsole("Mapping paused.");
-    stopAll();
-    carDriveState = 'STILL';
-  } else {
-    // Start mapping
-    isMappingActive = true;
-    btnCarMapStart.innerText = "⏹ STOP MAPPING";
-    btnCarMapStart.classList.remove('btn-run');
-    btnCarMapStart.classList.add('btn-stop');
-    btnCarAuto.disabled = true;
-    logCarConsole("Mapping started. Car will wander safely...");
-    
-    // Start recursive wander loop
-    runWanderStep();
-  }
-});
-
-async function runWanderStep() {
-  if (!isMappingActive) return;
-  
-  // If stuck, reverse and turn
-  if (carCentroid.detected && carFrameDiff < 0.8 && carDriveState !== 'STILL') {
-    logCarConsole("Stuck detected! Reversing...");
-    carDriveState = 'STILL';
-    // Back up both motors (Motor A and B backward)
-    await triggerCalibMove('A', -400);
-    await triggerCalibMove('B', -400);
-    await delay(1600);
-    
-    logCarConsole("Turning away...");
-    // Turn (Motor A forward, Motor B backward)
-    await triggerCalibMove('A', 350);
-    await triggerCalibMove('B', -350);
-    await delay(1200);
-    
-    carDriveState = 'FORWARD';
-    logCarConsole("Driving forward...");
-    await triggerCalibMove('A', 400);
-    await triggerCalibMove('B', 400);
-  } else {
-    carDriveState = 'FORWARD';
-    logCarConsole("Exploring forward...");
-    await triggerCalibMove('A', 400);
-    await triggerCalibMove('B', 400);
-  }
-  
-  if (isMappingActive) {
-    carMappingTimer = setTimeout(runWanderStep, 1800);
-  }
-}
-
-// Self-driving autopilot logic
-let carAutoTimer = null;
 btnCarAuto.addEventListener('click', () => {
   if (isCarAutopilotActive) {
-    isCarAutopilotActive = false;
-    btnCarAuto.innerText = "🤖 AUTOPILOT: OFF";
-    btnCarAuto.classList.remove('btn-stop');
-    btnCarAuto.classList.add('btn-clear');
-    if (carAutoTimer) {
-      clearTimeout(carAutoTimer);
-      carAutoTimer = null;
-    }
-    logCarConsole("Autopilot stopped.");
-    stopAll();
-    carDriveState = 'STILL';
+    stopAutopilot();
   } else {
+    if (!carVisionActive) { alert("Camera feed must be active first!"); return; }
     isCarAutopilotActive = true;
+    steerPosSteps = 0;   // ackermann: wheels assumed centered at engage time
+    stuckSince = 0;
+    frameDiff = 999;
+    armIntentTimer();
     btnCarAuto.innerText = "⏹ STOP AUTOPILOT";
     btnCarAuto.classList.remove('btn-clear');
     btnCarAuto.classList.add('btn-stop');
-    logCarConsole("Autopilot started! Running autonomous obstacle avoidance...");
-    
-    runAutopilotStep();
+    logCarConsole(`Autopilot engaged (${driveMode} drive). Keeping right, watching the road.`);
+    setState('CRUISE');
+    autopilotTick();
   }
 });
 
-async function runAutopilotStep() {
-  if (!isCarAutopilotActive) return;
-  
-  let obstacleAhead = false;
-  let targetToTrack = null;
-  
-  // Analyze current view
-  if (detectedObjects && detectedObjects.length > 0) {
-    detectedObjects.forEach(obj => {
-      if (obj.score > 0.6) {
-        const [x, y, width, height] = obj.bbox;
-        // Bounding box takes up more than 40% of the screen width or height -> Close obstacle
-        if (width > 320 * 0.4 || height > 240 * 0.4) {
-          obstacleAhead = true;
-          logCarConsole(`Obstacle detected: ${obj.class} (Close)`);
-        }
+btnCarPark.addEventListener('click', () => {
+  if (!isCarAutopilotActive) { alert("Start the autopilot first — parking is an autopilot maneuver."); return; }
+  pendingPark = true;
+  logCarConsole("🅿️ Park requested — finding a spot.");
+});
 
-        // Wait at cross-sections / stop signs (toy cars, bottles, people acting as obstacles)
-        if (obj.class === 'person' || obj.class === 'stop sign') {
-           obstacleAhead = true;
-           logCarConsole(`Waiting for ${obj.class}...`);
-        }
-      }
-    });
-  }
-
-  // Very simple First-Person Autopilot Logic
-  if (obstacleAhead) {
-    logCarConsole("Obstacle! Backing up and turning...");
-    carDriveState = 'STILL';
-
-    // Back up
-    await triggerCalibMove('A', -400);
-    await triggerCalibMove('B', -400);
-    await delay(1200);
-    
-    // Turn (Differential turn)
-    await triggerCalibMove('A', 400);
-    await triggerCalibMove('B', -400);
-    await delay(1000);
-
-  } else {
-    carDriveState = 'FORWARD';
-    logCarConsole("Path clear. Driving forward...");
-    await triggerCalibMove('A', 300);
-    await triggerCalibMove('B', 300);
-  }
-  
-  if (isCarAutopilotActive) {
-    carAutoTimer = setTimeout(runAutopilotStep, 1200); // Fast responsive loop
-  }
-}
+// Drive-type toggle (differential tank vs Ackermann steer). A declared user
+// choice, persisted locally — never inferred from motion.
+document.querySelectorAll('input[name="drive-mode"]').forEach(radio => {
+  radio.checked = radio.value === driveMode;
+  radio.addEventListener('change', () => {
+    if (!radio.checked) return;
+    driveMode = radio.value;
+    localStorage.setItem('drive_mode', driveMode);
+    steerPosSteps = 0;
+    logCarConsole(`Drive type set to ${driveMode === 'ackermann' ? 'Ackermann (A drives, B steers)' : 'Differential (A left, B right)'}.`);
+    if (isCarAutopilotActive) { haltDrive(); setState('CRUISE'); }
+  });
+});
 
 // --- 📱 WEB DEVICE SENSORS (TILT, SHAKE, COMPASS) ---
 let currentTilt = 'flat';
