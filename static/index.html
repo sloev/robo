@@ -212,50 +212,57 @@
     <!-- 3. AI AUTONOMY VIEW (Car Mode) -->
     <div id="view-car" class="tab-content">
       <div class="ai-layout-grid">
-        <!-- Dashboard & Sensor Fusion Info Panel -->
+        <!-- Autopilot Info & Controls Panel -->
         <section class="panel">
           <div class="panel-header">
-            <div class="panel-title">🧠 SENSOR FUSION & KINEMATICS</div>
+            <div class="panel-title">🚗 CAR AUTOPILOT</div>
           </div>
           <div class="panel-body-padding" style="max-height: 520px; overflow-y: auto;">
             <p style="margin-top: 0; font-size: 0.85rem; line-height: 1.4;">
-              Clamp your phone in portrait mode to the front of the robot using elastic bands. The browser uses the phone's built-in web sensors and computer vision for offline AI processing!
+              Clamp your phone to the front of the robot facing forward. The autopilot drives like a car:
+              it keeps to the right side of open floor, stops and looks both ways where the road ends,
+              signals before turning, waits for pedestrians and stop signs, and occasionally pulls over to park.
             </p>
-            
+
             <div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 1rem;">
-              <h4 style="margin: 0 0 0.5rem 0; color: var(--cyan-accent); font-size: 0.85rem;">IMU Dead Reckoning</h4>
-              <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
-                • <b>Sensors:</b> Gyroscope, Accelerometer, Magnetometer.<br>
-                • <b>Odometry:</b> Tracks the robot's heading and position in the room dynamically.
+              <h4 style="margin: 0 0 0.5rem 0; color: var(--cyan-accent); font-size: 0.85rem;">Drive Type</h4>
+              <p style="margin: 0 0 0.5rem 0; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+                Pick how your creation is built — the autopilot uses fixed geometry for that drive type
+                (no calibration or motion-guessing):
               </p>
+              <label style="display: block; font-size: 0.75rem; margin-bottom: 0.3rem;">
+                <input type="radio" name="drive-mode" value="differential" checked>
+                ⚙️ <b>Differential (tank)</b> — Motor A = left wheel, Motor B = right wheel. Steers by wheel-speed difference.
+              </label>
+              <label style="display: block; font-size: 0.75rem;">
+                <input type="radio" name="drive-mode" value="ackermann">
+                🚙 <b>Ackermann (car steer)</b> — Motor A drives, Motor B turns the steering. Center the wheels before engaging.
+              </label>
             </div>
 
             <div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 1rem;">
-              <h4 style="margin: 0 0 0.5rem 0; color: var(--purple-accent); font-size: 0.85rem;">Kinematic Discovery</h4>
+              <h4 style="margin: 0 0 0.5rem 0; color: var(--purple-accent); font-size: 0.85rem;">How it sees</h4>
               <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
-                • <b>Wiggle Learning:</b> The robot babbles its motors, using the IMU to learn if it's built as a Differential Drive or Ackermann Steering vehicle.<br>
+                • <b>Road scan:</b> the floor directly ahead is "road"; green/amber/red bars on the video show how far each direction stays drivable.<br>
+                • <b>TFJS COCO-SSD:</b> recognizes stop signs, pedestrians and obstacles — all offline, on your phone.<br>
+                • <b>HUD:</b> state banner, steering needle, and blinking turn signals show every decision it makes.
               </p>
             </div>
-
-            <h4 style="margin: 1rem 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">First-Person TFJS Autopilot</h4>
-            <p style="margin: 0 0 1rem 0; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
-              Click <b>START AUTOPILOT</b> below to begin. The robot uses a lightweight TFJS COCO-SSD object detection model running on your phone to drive, track objects in front of it, and avoid driving into them!
-            </p>
 
             <div class="learning-controls" style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-run" id="btn-car-map-start" style="flex: 1; display: none;">🎓 LEARN KINEMATICS</button>
               <button class="btn btn-clear" id="btn-car-auto" style="flex: 1;" disabled>🤖 AUTOPILOT: OFF</button>
+              <button class="btn btn-run" id="btn-car-park" style="flex: 1;" disabled>🅿️ PARK</button>
             </div>
             <div class="learning-console" id="car-console" style="margin-top: 0.5rem; height: 100px; font-size: 0.75rem;">
-              Car Mapper Console: Ready.
+              Autopilot Console: Ready.
             </div>
           </div>
         </section>
 
-        <!-- Video & Map Grid Overlay Panel -->
+        <!-- Road View & HUD Panel -->
         <section class="panel">
           <div class="panel-header">
-            <div class="panel-title">🎥 AUTONOMOUS ARENA & OBSTACLE MAP</div>
+            <div class="panel-title">🎥 ROAD VIEW & HUD</div>
           </div>
           <div class="panel-body-padding">
             <div class="vision-feed-container">
@@ -268,8 +275,6 @@
             </div>
             <div class="vision-controls">
               <button class="btn btn-run" id="btn-car-start-vision" style="flex: 1;">📷 START FEED</button>
-              <button class="btn btn-clear" id="btn-car-calibrate-bg" style="flex: 1; display: none;" disabled>📸 RESET BG</button>
-              <button class="btn btn-clear" id="btn-car-clear-map" style="flex: 1; display: none;">🧹 CLEAR MAP</button>
               <button class="btn btn-stop" id="btn-car-stop-vision">⏹ STOP</button>
             </div>
           </div>
