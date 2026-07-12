@@ -172,7 +172,7 @@ module uln_wall_mount_left() {
     // down between two vertical ribs (at the board's Y-ends) onto a bottom ledge.
     // Components face the cavity. Mirror this for the right wall. Prints with no
     // support (vertical ribs + flat ledge).
-    uy = -16;   // board centre Y -- moved back so the motor's rear ear (y~8.5) has room
+    uy = uln_uy;   // board centre Y -- moved back so the motor's rear ear (y~8.5) has room
     for (ey = [uy - 18, uy + 18])                  // vertical guide ribs (Y retention)
         translate([-41, ey - 1.5, floor_z]) cube([12, 3, 34]);   // overlap the wall (-41)
     // bottom ledge the board rests on (Z retention)

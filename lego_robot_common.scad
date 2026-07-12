@@ -36,6 +36,11 @@ shaft_z = 15.4; // motor shaft / coupler height (lowest Technic row: 5.8 + 9.6)
 motor_y = 26.0; // front; keeps the front mounting ear (motor_y+17.5) inside the cavity
 motor_z = shaft_z + 8.0; // body axis sits 8mm ABOVE the shaft (motor rolled shaft-down)
 
+// ULN2003 board holder centre Y (shared by uln_wall_mount_left() and the
+// showcase's drawn board, so the drawn board can't drift out of the holder
+// again -- see lego_robot_base.scad's uln_wall_mount_left() comment).
+uln_uy = -16;
+
 // --- PHONE CLAMP T-SLOT (shared by the base cavity + the moving jaw tongue) ---
 // Keeping these numbers in one place stops the two parts drifting out of
 // sync -- a past edit shrank the cavity without updating the tongue to
