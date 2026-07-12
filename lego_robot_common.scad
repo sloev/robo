@@ -28,9 +28,13 @@ floor_z = 4.8; // 3.2mm Lego tube cavity + 1.6mm floor
 lid_z = height - 2.4; // centre Z of the sliding-lid rail groove (just below top)
 
 // --- ALIGNED INTERNAL POSITIONS ---
-shaft_z = 33.6; // motor shaft / coupler height
+// The motors are mounted rolled 180 degrees about their body long axis so the
+// off-centre 28BYJ-48 shaft points DOWN, not up. That drops the axle low enough
+// to drive wheels directly off the couplers. shaft_z is snapped to the lowest
+// LEGO Technic hole row (5.8 + 9.6) so the axle line sits on the wall grid.
+shaft_z = 15.4; // motor shaft / coupler height (lowest Technic row: 5.8 + 9.6)
 motor_y = 26.0; // front; keeps the front mounting ear (motor_y+17.5) inside the cavity
-motor_z = shaft_z - 8.0;
+motor_z = shaft_z + 8.0; // body axis sits 8mm ABOVE the shaft (motor rolled shaft-down)
 
 // --- PHONE CLAMP T-SLOT (shared by the base cavity + the moving jaw tongue) ---
 // Keeping these numbers in one place stops the two parts drifting out of

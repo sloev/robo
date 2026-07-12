@@ -171,8 +171,8 @@ const couplerStlFix = [0, -Math.PI / 2, 0];
 
 // Left coupler: D-socket faces +X (towards motor). The model's default orientation points D-socket to +X.
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler,
-    [-46, 33.6, -26],   // Assembled (captive in the left wall pocket: Ø12 ring trapped, axle socket out)
-    [-105, 33.6, -26],  // Exploded (slides straight out the left wall)
+    [-46, 15.4, -26],   // Assembled (captive in the left wall pocket: Ø12 ring trapped, axle socket out)
+    [-105, 15.4, -26],  // Exploded (slides straight out the left wall)
     'couplerLeft',
     null,
     couplerStlFix
@@ -180,8 +180,8 @@ loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.s
 
 // Right coupler: D-socket must face -X. So we rotate it 180 degrees around Y!
 loadPart('https://raw.githubusercontent.com/sloev/robo/master/vehicle_couplers.stl', matCoupler,
-    [46, 33.6, -26],    // Assembled (captive in the right wall pocket: Ø12 ring trapped, axle socket out)
-    [105, 33.6, -26],   // Exploded (slides straight out the right wall)
+    [46, 15.4, -26],    // Assembled (captive in the right wall pocket: Ø12 ring trapped, axle socket out)
+    [105, 15.4, -26],   // Exploded (slides straight out the right wall)
     'couplerRight',
     [0, Math.PI, 0],    // Assembled Rotation (will be applied to wrapper)
     couplerStlFix
@@ -210,15 +210,17 @@ function addInternal(geometry, material, oscadPos, rot, explodeOffset = [0, 55, 
 
 // Detailed 28BYJ-48 stepper: body can, offset flat-D shaft + boss, two mount
 // ears with Ø4 holes (35mm apart), and the cable connector + 5 wires. Single
-// grey colour. Local frame: body axis X, "up" +Y, shaft exits +X offset +8 in Y.
+// grey colour. Local frame: body axis X, "up" +Y. The motor is mounted rolled
+// 180° about its body long axis so the offset shaft exits +X at -8 in Y (DOWN),
+// dropping the axle onto the low coupler line (mirrors the SCAD roll).
 function makeMotor() {
     const g = new THREE.Group();
     const body = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 19, 36), matMotor);
     body.rotation.z = Math.PI / 2; g.add(body);
     const boss = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, 1.5, 24), matMotor);
-    boss.rotation.z = Math.PI / 2; boss.position.set(10.25, 8, 0); g.add(boss);
+    boss.rotation.z = Math.PI / 2; boss.position.set(10.25, -8, 0); g.add(boss);
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 9, 16), matMotor);
-    shaft.rotation.z = Math.PI / 2; shaft.position.set(15.5, 8, 0); g.add(shaft);
+    shaft.rotation.z = Math.PI / 2; shaft.position.set(15.5, -8, 0); g.add(shaft);
     // Mount ears: disc tab with a Ø4 hole, at the front face, 35mm apart along Z.
     const earShape = new THREE.Shape(); earShape.absarc(0, 0, 3.5, 0, Math.PI * 2, false);
     const earHole = new THREE.Path(); earHole.absarc(0, 0, 2, 0, Math.PI * 2, true);
@@ -230,19 +232,20 @@ function makeMotor() {
         const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.8, 7, 4), matMotor);
         bridge.position.set(9, 0, dz - Math.sign(dz) * 1.75); g.add(bridge);
     }
-    // Cable connector housing + 5 wire stubs (exit upward/inward).
+    // Cable connector housing + 5 wire stubs. Rolled shaft-down with the motor,
+    // so they now exit on the UNDERSIDE (the chassis cradle is relieved for them).
     const conn = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 14.6), matMotor);
-    conn.position.set(-2, 13, 0); g.add(conn);
+    conn.position.set(-2, -13, 0); g.add(conn);
     for (const wz of [-4, -2, 0, 2, 4]) {
         const w = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 5, 8), matMotor);
-        w.position.set(-2, 17.5, wz); g.add(w);
+        w.position.set(-2, -17.5, wz); g.add(w);
     }
     return g;
 }
 for (const m of [{ x: -30.5, flip: true }, { x: 30.5, flip: false }]) {
     const motor = makeMotor();
     if (m.flip) motor.rotation.y = Math.PI;   // shaft toward the opposite wall
-    const assembled = new THREE.Vector3(m.x, 25.6, -26);   // OpenSCAD (±30.5, 30, 25.6)
+    const assembled = new THREE.Vector3(m.x, 23.4, -26);   // OpenSCAD (±30.5, 26, 23.4)
     // Real motion: the cradle is open at the top specifically so the motor
     // drops straight in/out (see motor_bays()'s comment) -- sideways fan-out
     // risked clipping the motor's ear/shaft through the coupler or wall on

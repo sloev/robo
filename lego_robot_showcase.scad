@@ -48,9 +48,12 @@ module byj48() {
 
 module showcase_electronics() {
     // Stepper motors (accurate 28BYJ-48) friction-cradled, shafts plugging into
-    // the captive couplers at the walls (body centred at x=±17.5).
-    color("silver") translate([30.5, motor_y, motor_z]) byj48();
-    color("silver") translate([-30.5, motor_y, motor_z]) rotate([0, 0, 180]) byj48();
+    // the captive couplers at the walls (body centred at x=±17.5). Each motor is
+    // rolled 180 degrees about its body long axis so the offset shaft points DOWN
+    // (lands on shaft_z, below the body axis). Left rolls about X (shaft stays +X);
+    // right rolls about Y (shaft flips to -X AND down in one rotation).
+    color("silver") translate([30.5, motor_y, motor_z]) rotate([180, 0, 0]) byj48();
+    color("silver") translate([-30.5, motor_y, motor_z]) rotate([0, 180, 0]) byj48();
 
     // ESP32-S2 Mini, flat on the floor, centred between the wall ULN boards
     translate([0, -29, floor_z + 4]) {
