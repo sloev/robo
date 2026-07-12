@@ -197,12 +197,26 @@ module motor_bays() {
     // seat its shaft in the coupler and is screwed to the wall through its ears.
     // The cradle top stops ~4mm BELOW the ear line (motor_z) so the motor can be
     // slid sideways into its coupler without the ears fouling the cradle.
+    //
+    // The motor is rolled shaft-down, which also swings its wire connector + lead
+    // stubs to the UNDERSIDE (connector centred ~z=motor_z-13). A channel is cut
+    // through the inboard-bottom corner of each cradle so the connector and harness
+    // route toward the centre cavity (ULN boards) instead of jamming into the
+    // cradle belly or the floor.
     for (s = [-1, 1])
         difference() {
             translate([s * 30.5, motor_y, (floor_z + motor_z - 4) / 2])
                 cube([20, 30, motor_z - floor_z - 4], center=true);
             translate([s * 30.5, motor_y, motor_z]) rotate([0, 90, 0])
                 cylinder(d=29, h=24, center=true);
+            // Cable/connector relief: a channel through the cradle belly under the
+            // body, over the connector's footprint (~x=s*28.5), opening inboard past
+            // the cradle's inner face so the downward-facing connector (14.6w x 10d x
+            // 6t) and lead stubs clear the belly and route out to the cavity. Kept
+            // narrow in Y (motor_y +/- 7) so the cradle's front/back arc still carries
+            // the round body.
+            translate([s * 27.5, motor_y, floor_z + 3])
+                cube([26, 14, 12], center=true);
         }
 }
 
