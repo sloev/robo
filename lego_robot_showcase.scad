@@ -61,9 +61,12 @@ module showcase_electronics() {
         color("silver") translate([0, -18, 0]) cube([9, 6, 3.5], center=true); // USB-C through back wall
     }
 
-    // ULN2003 driver boards, standing vertically on the inner side walls
+    // ULN2003 driver boards, standing vertically on the inner side walls, seated
+    // in uln_wall_mount_left()'s holder: flush against the inner wall (x=+-40),
+    // centred at uln_uy, resting on the ledge (bottom at floor_z+2), and short
+    // enough in Y to clear the guide ribs (33mm gap) instead of overhanging them.
     for (s = [-1, 1])
-        color("green") translate([s*37, -10, floor_z + 16]) cube([1.6, 35, 31.5], center=true);
+        color("green") translate([s*39.2, uln_uy, floor_z + 2 + 31.5/2]) cube([1.6, 32, 31.5], center=true);
     
     // Highlight the Technic Axle insertion path
     color("red") translate([-50, motor_y, shaft_z]) rotate([0, 90, 0]) cylinder(d=4.5, h=20, center=true);
